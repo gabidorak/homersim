@@ -34,6 +34,27 @@ Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a ded
 
 Post-1.0 ideas (proximity voice, Steam, master server, more maps, client prediction) are listed at the end of the [GDD](docs/GDD.md#10-post-10-ideas).
 
+## Downloads and auto-update
+Every push to any branch builds the game on GitHub Actions and, once the tests pass, replaces that branch's
+release ([Releases](https://github.com/gabidorak/homersim/releases): `build-master` is the latest, the other
+branches are pre-releases). Download one file:
+
+| File | What |
+|---|---|
+| `homersim-linux-x86_64` / `homersim-windows-x86_64.exe` | the game (client) |
+| `homersim-server-linux-x86_64` / `homersim-server-windows-x86_64.exe` | dedicated server |
+
+On Linux, make it executable first (`chmod +x homersim-linux-x86_64`). The folder must be writable: from then on, the
+game and the server update themselves. At each start they download the newest build of their branch, then restart
+with the same arguments. The server also checks every 5 minutes while nobody is connected. Clients and servers must
+run the exact same build to play together, so keep both updating.
+```bash
+./homersim-linux-x86_64 -- --branch my-feature    # follow another branch (sticks: that build then follows my-feature)
+./homersim-linux-x86_64 -- --no-update            # skip the update check
+./homersim-server-linux-x86_64 -- --port 7777     # the server runs as 2 processes: a small supervisor + the real server
+```
+Builds from source or local exports never update themselves.
+
 ## Tests and exports
 ```bash
 godot --headless --import    # once, or after adding files outside the editor
@@ -41,7 +62,9 @@ godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
 godot --headless --export-release "Linux" build/linux/homersim.x86_64
 godot --headless --export-release "Windows Desktop" build/windows/homersim.exe
 godot --headless --export-release "Linux Server" build/server/homersim_server.x86_64
+godot --headless --export-release "Windows Server" build/server-windows/homersim_server.exe
 ```
+Each export is a single file (the `.pck` is embedded).
 
 ## Running
 ```bash

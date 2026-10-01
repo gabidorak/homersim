@@ -24,6 +24,7 @@ Log="*res://autoload/log.gd"
 Config="*res://autoload/config.gd"
 Events="*res://autoload/events.gd"
 Net="*res://autoload/net.gd"
+Updater="*res://autoload/updater.gd"
 
 [debug]
 

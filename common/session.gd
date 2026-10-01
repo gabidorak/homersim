@@ -70,11 +70,16 @@ var _leaving := false
 @onready var client_only: Node = $ClientOnly
 
 
-## The protocol version clients must match. Debug builds accept `--game-version X` to test mismatches.
+## The protocol version clients must match. CI builds add their branch and build number, so clients
+## only join a server running the very same build (the auto-updater keeps both on the newest one).
+## Debug builds accept `--game-version X` to test mismatches.
 static func game_version() -> String:
 	if OS.is_debug_build() and Cli.has_arg("game-version"):
 		return Cli.get_str("game-version")
-	return str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+	var version := str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+	if BuildInfo.NUMBER > 0:
+		version += "+%s.%d" % [BuildInfo.BRANCH, BuildInfo.NUMBER]
+	return version
 
 
 func _enter_tree() -> void:

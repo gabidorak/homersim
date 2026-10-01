@@ -271,9 +271,11 @@ tests/integration/run_match_loop.sh
 ```
 
 ## 11. Build and CI
-- Export presets (`export_presets.cfg`, committed **without** credentials): `Linux` (x86_64), `Windows Desktop` (x86_64), `Linux Server` (Dedicated Server mode, custom feature tag `dedicated_server`).
-- `.github/workflows/ci.yml`: on push → unit tests. On tag `v*` → integration tests, then the 3 exports, then upload artifacts / GitHub release.
-- `Dockerfile` (server): `debian:stable-slim`, copy the server binary and `.pck`, `EXPOSE 7777/udp`, `ENTRYPOINT ["./homersim_server.x86_64", "--headless", "--", "--server", "--config", "/config/server.cfg"]`.
+- Export presets (`export_presets.cfg`, committed **without** credentials): `Linux` (x86_64), `Windows Desktop` (x86_64), `Linux Server` and `Windows Server` (Dedicated Server mode, custom feature tag `dedicated_server`). All embed the `.pck`, so every build is a single file.
+- `.github/workflows/build.yml`: on every push to any branch → the tests from `ci.yml` (unit + integration) → the 4 exports → the branch's rolling GitHub release `build-<branch>` is replaced (master: "Latest", other branches: pre-release). The release holds the binaries plus `build.json` (build number = workflow run number, commit, SHA-256 of each binary). CI writes `common/build_info.gd` (repo, branch, build number, commit) before exporting.
+- `.github/workflows/ci.yml`: pull requests, and called by `build.yml`. `delete-branch-build.yml`: deleting a branch deletes its release.
+- Auto-update (`autoload/updater.gd`, exported CI builds only): at startup, read `build.json` of the followed branch (the build's own branch, or `--branch NAME`); if it is newer or from another branch, download the matching binary, check its SHA-256, rename the running executable to `<exe>.old-<time>` (deleted at a later start), move the new one in, and restart with the same arguments. The client shows the progress (Esc skips). The server's first process only supervises: it runs the real server as a child with `--update-supervisor PID`, restarts it when it exits with code 75, and the child stops when the supervisor is gone (Godot starts children in their own session, so Ctrl+C would not reach a plain relaunch). The child checks again every 5 min while nobody is connected. `Session.game_version()` adds `+<branch>.<number>` in CI builds, so clients only join a server running the very same build.
+- `Dockerfile` (server): `debian:stable-slim`, copy the server binary, `EXPOSE 7777/udp`, `ENTRYPOINT ["./homersim_server.x86_64", "--headless", "--", "--server", "--config", "/config/server.cfg"]`.
 - Windows builds are exported **from Linux** with the official export templates (no Windows machine needed; `rcedit` is optional for the .exe icon). Test them on a real Windows PC or VM before each release.
 
 ## 12. Security and robustness checklist

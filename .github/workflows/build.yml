@@ -1,0 +1,132 @@
+name: Build
+
+# Every push to any branch: run the tests (ci.yml), export the four binaries, then replace that
+# branch's rolling GitHub release, tagged "build-<branch>". The game's auto-updater
+# (autoload/updater.gd) downloads build.json and the binaries from it, so the tag and the asset
+# names below must match tag_for() and asset_name() there.
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+# One build per branch at a time. A newer push waits instead of cancelling, so a release is never
+# left half-replaced.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  tests:
+    uses: ./.github/workflows/ci.yml
+
+  export:
+    needs: tests
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.7.2
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Put the export templates where Godot looks for them ($HOME differs in the container)
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/
+
+      - name: Write build info (branch and build number, read by the auto-updater)
+        env:
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          NUMBER: ${{ github.run_number }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          branch=$(printf '%s' "$BRANCH" | sed 's/[\\"]/\\&/g')
+          cat > common/build_info.gd <<EOF
+          class_name BuildInfo
+          ## Written by .github/workflows/build.yml.
+
+          const REPO := "$REPO"
+          const BRANCH := "$branch"
+          const NUMBER := $NUMBER
+          const COMMIT := "$COMMIT"
+          EOF
+          cat common/build_info.gd
+
+      - name: Import project
+        run: godot --headless --import
+
+      - name: Export (pck embedded, so each build is a single file)
+        run: |
+          mkdir -p dist
+          godot --headless --export-release "Linux" dist/homersim-linux-x86_64
+          godot --headless --export-release "Windows Desktop" dist/homersim-windows-x86_64.exe
+          godot --headless --export-release "Linux Server" dist/homersim-server-linux-x86_64
+          godot --headless --export-release "Windows Server" dist/homersim-server-windows-x86_64.exe
+          ls -l dist
+          # Godot can exit with 0 after a failed export, so check that every file exists.
+          for f in homersim-linux-x86_64 homersim-windows-x86_64.exe \
+                   homersim-server-linux-x86_64 homersim-server-windows-x86_64.exe; do
+            test -s "dist/$f" || { echo "missing dist/$f"; exit 1; }
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+          retention-days: 3
+
+  publish:
+    needs: export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BRANCH: ${{ github.ref_name }}
+      NUMBER: ${{ github.run_number }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist
+
+      - name: Write build.json (build number + SHA-256 of every binary)
+        working-directory: dist
+        run: |
+          assets=$(for f in homersim*; do
+            jq -n --arg f "$f" --arg sha "$(sha256sum "$f" | cut -d' ' -f1)" '{($f): {sha256: $sha}}'
+          done | jq -s add)
+          jq -n --arg branch "$BRANCH" --argjson number "$NUMBER" --arg commit "$GITHUB_SHA" \
+            --argjson assets "$assets" \
+            '{branch: $branch, number: $number, commit: $commit, assets: $assets}' > build.json
+          cat build.json
+
+      - name: Replace the branch's release
+        run: |
+          tag="build-${BRANCH//[^A-Za-z0-9._-]/-}"
+          if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
+            flags=(--latest)
+          else
+            flags=(--prerelease --latest=false)
+          fi
+          gh release delete "$tag" --cleanup-tag --yes || echo "no previous release $tag"
+          gh release create "$tag" dist/* --target "$GITHUB_SHA" "${flags[@]}" \
+            --title "Build $NUMBER ($BRANCH)" \
+            --notes "Automatic build $NUMBER of branch \`$BRANCH\` (commit $GITHUB_SHA).
+
+          Download the file for your system. Clients: \`homersim-linux-x86_64\` or \`homersim-windows-x86_64.exe\`. Dedicated servers: \`homersim-server-*\`.
+          On Linux, make it executable first: \`chmod +x homersim-linux-x86_64\`.
+          After that the game updates itself at every start (see the README)."

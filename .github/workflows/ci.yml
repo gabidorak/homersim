@@ -1,8 +1,10 @@
 name: CI
 
+# Pushes run these tests through build.yml (which only publishes when they pass), so here: pull
+# requests, and calls from build.yml.
 on:
-  push:
   pull_request:
+  workflow_call:
 
 env:
   GODOT_VERSION: 4.7.2

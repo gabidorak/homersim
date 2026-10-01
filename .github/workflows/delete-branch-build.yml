@@ -1,0 +1,21 @@
+name: Delete branch build
+
+# A deleted branch takes its rolling "build-<branch>" release with it (see build.yml).
+
+on: delete
+
+permissions:
+  contents: write
+
+jobs:
+  delete-release:
+    if: github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BRANCH: ${{ github.event.ref }}
+    steps:
+      - run: |
+          tag="build-${BRANCH//[^A-Za-z0-9._-]/-}"
+          gh release delete "$tag" --cleanup-tag --yes || echo "no release $tag"
