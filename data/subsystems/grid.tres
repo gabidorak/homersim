@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="SubsystemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/subsystem_data.gd" id="1_sub"]
+
+[resource]
+script = ExtResource("1_sub")
+id = &"grid"
+display_name = "Power grid"
+short_name = "GRD"
+heat_weight = 1.5
+critical = false
+hazard_kind = 4

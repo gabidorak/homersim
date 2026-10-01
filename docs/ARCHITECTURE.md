@@ -52,6 +52,7 @@ Supported CLI args (user args after `--`):
 - Client: `--connect host:port`, `--name X`
 - Test only (honoured only in debug builds): `--allow-debug` (enables debug RPCs such as teleport), `--test-duration S`, `--exit-after-match`, `--result-file path`, `--bot rat|supervisor` (headless scripted client)
 - Test-only client flags since M2 (debug builds, `client/debug_hooks.gd` and `MovementComponent`): `--pref rat|supervisor|any`, `--auto-ready`, `--say TEXT`, `--auto-move`, `--debug-speed N`, `--screenshot PATH [--screenshot-delay S]`
+- Bot options since M3 (`tests/helpers/bot_client.gd`): `--bot-target SUBSYSTEM` (default `pumps`), `--bot-lever A|B` (critical subsystems), `--bot-delay S`. The bot scene lives under `tests/`, which is excluded from exports.
 
 ### `server.cfg` (ConfigFile/INI)
 ```ini
@@ -109,7 +110,7 @@ func request_interact(target_path: NodePath) -> void:
 ```
 - **Never trust the client**: the server re-checks role, status, distance (with a lag tolerance of +0.75 m), line of sight (raycast), and cooldown, all server-side.
 - **Hit checks** (broom, bite) use the server's latest known positions plus that tolerance. No position rewind in v1. Consider a 150 ms history buffer in M9 if playtests show "I clearly hit him" complaints.
-- **Hold interactions** keep running on the server while the client keeps sending a `hold_heartbeat` every 0.25 s. They are cancelled if heartbeats stop, the player moves more than 0.5 m, or the player gets a disabling status.
+- **Hold interactions** keep running on the server while the client keeps sending `request_interact_heartbeat` every 0.25 s. They are cancelled if heartbeats stop for 1 s, the player moves more than 0.5 m, gets a disabling status, fails the reach/LOS/availability re-check (done every tick), disconnects, or the match stops. The server reports every end of a hold the client didn't ask for (completed, cancelled, refused) with `on_hold_ended`; after that the client needs a fresh press of E. Heartbeats are sent **reliable**: unreliable ones were sometimes dropped (they share the ENet channel with reliable traffic) and cancelled valid holds.
 
 ### RPC conventions
 - `@rpc("any_peer", "reliable")` → **only** on server-side request handlers whose names start with `request_`. Always read `multiplayer.get_remote_sender_id()`.
@@ -175,6 +176,10 @@ func begin(p: Player) -> void                 # server
 func cancel(p: Player) -> void                # server
 func _complete(p: Player) -> void             # server → emits completed
 ```
+- Each interactable builds its own `Sync` MultiplayerSynchronizer in `_ready` (synced `progress` 0..1 and `holder_count`), so no subclass scene can forget it.
+- Facing convention: an interactable's +Z points away from its machine, toward where the player stands (`stand_position()`).
+- `CriticalLever`: set `partner_path` on one lever of a pair only. That one is the leader and runs the shared progress on the server: it advances only while both levers are held, pauses while one is, and resets when neither is.
+
 Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `RepairPoint`, `Door` / `KeycardDoor`, `Cage`, `CctvCamera`, `ConsoleAction` (control room), `Vent` (rat-only trigger volume), `Pickup` (trap refill, donut, spare keycard).
 `SabotagePoint` / `RepairPoint` hold an exported `subsystem_id`, and on `completed` they call `PlantSim.apply_damage(id, amount)` / `apply_repair(...)`.
 
@@ -193,19 +198,19 @@ Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `Repa
 
 ## 6. Server systems
 ### MatchManager (`common/match_manager.gd`)
-Its replicated state (`MatchSync`, on change): `state`, `countdown_left`, `min_players` and `roster` (peer → name, role preference, ready, role). Always assign a modified copy of `roster`, never edit it in place.
+Its replicated state (`MatchSync`, on change): `state`, `countdown_left` (COUNTDOWN and POST_MATCH), `time_left` (PLAYING), `min_players`, `roster` (peer → name, role preference, ready, role) and `result` (winner, reason, per-player stats, set when POST_MATCH starts). Always assign a modified copy of `roster`, never edit it in place.
 ```
 LOBBY ──ready vote / --debug-start──▶ ROLE_ASSIGN ─▶ COUNTDOWN(10s) ─▶ PLAYING ─▶ POST_MATCH(15s) ─▶ LOBBY
-                                                        ▲ players < 2 → abort to LOBBY
+                                                        ▲ players < 2 during ROLE_ASSIGN/COUNTDOWN → abort to LOBBY
 ```
-- Owns `time_left`, `state`, the `roles` dict and scores. Checks win conditions each tick, in this order: meltdown ≥ 100 → rats win; all active rats caged or eliminated → supervisors win; `time_left ≤ 0` → supervisors win.
+- Owns `time_left`, `state`, the roles and the stats (sabotages and repairs per player). Checks win conditions each frame with `MatchRulesModel.check_winner`, in this order: meltdown ≥ 100 → rats win; all rats caged, eliminated or gone → supervisors win; all supervisors gone → rats win; `time_left ≤ 0` → supervisors win. A team only counts as "gone" if it had players when PLAYING began, so solo debug matches run until the timer.
 - **Late join** during PLAYING: the player becomes a spectator until the next match.
 - **Disconnect** during PLAYING: the body is despawned. If a team is empty, the other team wins.
 
 ### PlantSim (`common/plant_sim.gd`)
-- `subsystems: Array[SubsystemState]` built from `data/subsystems/*.tres`. Fixed tick of 10 Hz (a `Timer`), using the formulas from [GDD §4](GDD.md#4-plant-simulation).
-- Public API (server only): `apply_damage(id, amount)`, `apply_repair(id, amount)`, `reboot(id)`, `emergency_coolant()`, `scram()`, `can_sabotage(id)`.
-- Synced properties: `healths: PackedFloat32Array`, `core_temp: float`, `meltdown: float`, `alarm: int`, `scram_until: float`, `cooldowns`.
+- Subsystems come from `PlantTuning.subsystems` (`data/plant_tuning.tres` lists the six `data/subsystems/*.tres` in order); that order is the index everywhere. Fixed tick of 10 Hz (a `Timer`), using the formulas from [GDD §4](GDD.md#4-plant-simulation).
+- Public API (server only): `apply_damage(index, amount, peers)`, `apply_repair(index, amount, peers)`, `reboot(index, peers)`, `reset()`, and the `subsystem_changed` signal that MatchManager uses for stats. Readable everywhere: `health(i)`, `cooldown_left(i)`, `needs_reboot(i)`, `can_sabotage(i)`. Later: `emergency_coolant()`, `scram()`.
+- Synced properties (`PlantSync`, on change, checked every 0.2 s): `healths: PackedFloat32Array`, `core_temp`, `meltdown`, `alarm`, `cooldowns` (seconds **left**, not absolute times), `offline_mask` (bit i = needs a reboot).
 - **Pure logic lives in `plant_model.gd` (`RefCounted`, no nodes)** so GUT can unit-test it without a scene tree. `PlantSim` is only a thin node wrapper around it. Apply the same split to the match rules (`match_rules_model.gd`).
 
 ### HazardDirector (`server/hazard_director.gd`)
@@ -220,7 +225,7 @@ data/
   roles/rat.tres
   subsystems/rods.tres …    # SubsystemData: id, display_name, heat_weight, critical, hazard_kind, icon
   abilities/broom.tres …    # AbilityData: range, cone_deg, cooldown, status, status_duration
-  plant_tuning.tres         # cooling rate, thresholds, meltdown rates, sabotage/repair amounts, control-room actions
+  plant_tuning.tres         # PlantTuning: the subsystem list, cooling rate, thresholds, meltdown rates, sabotage/repair amounts and hold times
 ```
 The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_data_sanity.gd`) loads every resource and asserts value ranges.
 
@@ -241,7 +246,7 @@ The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_d
 | Level | Tool | What |
 |---|---|---|
 | Unit | GUT, headless | `plant_model`, `match_rules_model`, status stacking, team balance, data sanity |
-| Integration | Shell script launching separate headless processes (`tests/integration/*.sh`) | A server on a random port (`--exit-after-match --result-file`) plus 2 bot clients (`--bot rat\|supervisor`) that connect, auto-ready, go to a sabotage point and complete it. The script asserts the result JSON, the exit code, and that the logs contain no errors. |
+| Integration | Shell script launching separate headless processes (`tests/integration/*.sh`) | A server on a random port (`--exit-after-match --result-file`) plus bot clients (`--bot rat\|supervisor`) that connect, pick their role and ready up (the real ready vote, `min_players=2`: `--debug-start` would start before the preferences arrive), go to a sabotage point and complete it (plus a lever-pair variant). The scripts assert the result JSON, the exit code, and that the logs contain no errors. |
 | Manual | Run Instances (editor: *Debug → Customize Run Instances*) | 1 instance with `-- --server --debug-start`, 3 instances with `-- --connect 127.0.0.1:7777` |
 | Network conditions | `tc netem` on Linux (`sudo tc qdisc add dev lo root netem delay 80ms 20ms loss 1%`) | Play with 80–150 ms latency before calling any PvP feature done |
 
@@ -282,6 +287,7 @@ homersim/
   hazards/         hazard.gd steam_jet/ electric_puddle/ radiation_zone/ debris/ smoke/
   levels/          test/TestArena.tscn  plant/Plant.tscn + plant/pois/*.tscn
   data/            match_rules.tres plant_tuning.tres roles/ subsystems/ abilities/
+                   (scripts: match_rules.gd role_data.gd plant_tuning.gd subsystem_data.gd)
   shaders/         toon.gdshader outline.gdshader
   assets/          third_party/<pack>/  generated/  audio/  fonts/  ui/
   addons/          gut/  (later: netfox/ …)

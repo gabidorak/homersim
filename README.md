@@ -8,7 +8,7 @@ A goofy, cartoon-style **asymmetric multiplayer** game set in a nuclear power pl
 
 Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows**.
 
-> Status: **M2 done** (lobby with role preferences and a ready vote, team balance, countdown, first-person supervisors, third-person rats with vents, stamina, chat, movement validator). Next: [M3](docs/milestones/M3-first-playable-loop.md).
+> Status: **M3 implemented, waiting for its first playtest** (plant simulation with six subsystems, sabotage points, critical lever pairs, hold repairs and reboots, meltdown meter, match timer, winner and post-match stats, full HUD with alarms). Next: playtest it with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), then [M4](docs/milestones/M4-pvp.md).
 
 ## Documents
 | Doc | What's inside |
@@ -53,8 +53,9 @@ godot -- --connect 127.0.0.1:7777 --name Alice
 tools/dev/run_local.sh 3
 ```
 Server settings live in `server.cfg` (copy [server.cfg.example](server.cfg.example)); CLI args override them.
-In game: WASD, mouse, Space to jump, Shift to sprint, Enter to chat. Esc frees the mouse (to click the lobby
-buttons), a click captures it again. The match starts when at least 3 players are in and more than half of
+In game: WASD, mouse, Space to jump, Shift to sprint, **hold E** to sabotage (rats) or repair (supervisors),
+Enter to chat. Esc frees the mouse (to click the lobby buttons), a click captures it again. Rats win when the
+meltdown meter hits 100%; supervisors win when the shift timer runs out first. The match starts when at least 3 players are in and more than half of
 them are ready; `--debug-start N` on the server skips the vote once N players joined.
 
 From the editor: *Debug → Customize Run Instances…* → enable multiple instances, set 4. Give instance 1
@@ -63,9 +64,14 @@ the arguments `-- --server --headless` and instances 2–4 `-- --connect 127.0.0
 Test helpers:
 ```bash
 tests/integration/join_smoke.sh       # headless server + clients: join, full, version mismatch, kill detection
-tests/integration/lobby_smoke.sh      # lobby: prefs, ready vote, roles, countdown, chat, validator, abort
+tests/integration/lobby_smoke.sh      # lobby: prefs, ready vote, roles, countdown, chat, validator, team left
+tests/integration/run_match_loop.sh   # full match with 2 bots: sabotage, cancels, repair, timer, winner, result JSON
+tests/integration/critical_lever.sh   # 2 rat bots on a lever pair, then reboot + repairs
 # test-only client flags (debug builds): --pref rat|supervisor|any, --auto-ready, --say TEXT,
 #   --auto-move, --debug-speed N (fake speed hack), --screenshot PATH [--screenshot-delay S]
+# test-only server flags (debug builds): --allow-debug (debug RPCs such as teleport), --test-duration S,
+#   --exit-after-match, --result-file PATH
+# scripted bot client (debug builds): --bot rat|supervisor [--bot-target ID] [--bot-lever A|B] [--bot-delay S]
 godot -- --connect 127.0.0.1:7777 --game-version 0.0.0   # debug builds only: fake an old client
 # simulate a bad network on localhost (needs sudo, remove it afterwards!)
 sudo tc qdisc add dev lo root netem delay 100ms 20ms loss 1%

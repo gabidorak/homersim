@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="PlantTuning" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://data/plant_tuning.gd" id="1_tuning"]
+[ext_resource type="Script" path="res://data/subsystem_data.gd" id="2_sub"]
+[ext_resource type="Resource" path="res://data/subsystems/rods.tres" id="3_rods"]
+[ext_resource type="Resource" path="res://data/subsystems/pumps.tres" id="4_pumps"]
+[ext_resource type="Resource" path="res://data/subsystems/valves.tres" id="5_valves"]
+[ext_resource type="Resource" path="res://data/subsystems/turbine.tres" id="6_turbine"]
+[ext_resource type="Resource" path="res://data/subsystems/grid.tres" id="7_grid"]
+[ext_resource type="Resource" path="res://data/subsystems/ventilation.tres" id="8_vent"]
+
+[resource]
+script = ExtResource("1_tuning")
+subsystems = Array[ExtResource("2_sub")]([ExtResource("3_rods"), ExtResource("4_pumps"), ExtResource("5_valves"), ExtResource("6_turbine"), ExtResource("7_grid"), ExtResource("8_vent")])
+nominal_temp = 300.0
+min_temp = 300.0
+max_temp = 1000.0
+cooling_rate = 1.5
+warning_temp = 500.0
+critical_temp = 700.0
+meltdown_start_temp = 700.0
+meltdown_fill_rate = 1.0
+meltdown_recover_temp = 400.0
+meltdown_decay_rate = 0.25
+max_health = 100.0
+sabotage_damage = 50.0
+critical_sabotage_damage = 100.0
+sabotage_cooldown_s = 20.0
+sabotage_hold_s = 4.0
+critical_hold_s = 6.0
+repair_amount = 35.0
+repair_hold_s = 6.0
+reboot_hold_s = 3.0
+scram_heat_factor = 0.5

@@ -49,3 +49,37 @@ func test_match_rules_match_gdd() -> void:
 func test_validator_allowed_distance() -> void:
 	assert_almost_eq(MovementValidator.allowed_distance(6.0, 0.25), 2.75, 0.001)
 	assert_almost_eq(MovementValidator.allowed_distance(0.0, 0.25), 0.5, 0.001, "frozen: only the slack")
+
+
+func test_subsystems_match_gdd() -> void:
+	var tuning: PlantTuning = load(PlantSim.TUNING_PATH)
+	# GDD §4 table, in index order: id, heat_weight, critical, hazard
+	var table := [
+		[&"rods", 3.0, true, SubsystemData.HazardKind.RADIATION],
+		[&"pumps", 2.5, false, SubsystemData.HazardKind.STEAM],
+		[&"valves", 2.0, false, SubsystemData.HazardKind.STEAM],
+		[&"turbine", 1.5, true, SubsystemData.HazardKind.DEBRIS],
+		[&"grid", 1.5, false, SubsystemData.HazardKind.ELECTRIC],
+		[&"ventilation", 1.0, false, SubsystemData.HazardKind.SMOKE],
+	]
+	assert_eq(tuning.subsystems.size(), table.size())
+	for i in table.size():
+		var s := tuning.subsystems[i]
+		assert_eq([s.id, s.heat_weight, s.critical, s.hazard_kind], table[i], "subsystem %d" % i)
+		assert_false(s.display_name.is_empty())
+		assert_between(s.short_name.length(), 1, 4)
+
+
+func test_plant_tuning_matches_gdd() -> void:
+	var t: PlantTuning = load(PlantSim.TUNING_PATH)
+	assert_eq([t.nominal_temp, t.min_temp, t.max_temp, t.cooling_rate], [300.0, 300.0, 1000.0, 1.5])
+	assert_eq([t.warning_temp, t.critical_temp], [500.0, 700.0])
+	assert_eq([t.meltdown_start_temp, t.meltdown_fill_rate, t.meltdown_recover_temp, t.meltdown_decay_rate],
+		[700.0, 1.0, 400.0, 0.25])
+	assert_eq([t.max_health, t.sabotage_damage, t.critical_sabotage_damage], [100.0, 50.0, 100.0])
+	assert_eq([t.sabotage_cooldown_s, t.sabotage_hold_s, t.critical_hold_s], [20.0, 4.0, 6.0])
+	assert_eq([t.repair_amount, t.repair_hold_s, t.reboot_hold_s], [35.0, 6.0, 3.0])
+	assert_eq(t.scram_heat_factor, 0.5)
+	assert_true(t.min_temp <= t.nominal_temp and t.nominal_temp < t.warning_temp)
+	assert_true(t.warning_temp < t.critical_temp and t.critical_temp < t.max_temp)
+	assert_true(t.meltdown_recover_temp < t.meltdown_start_temp)

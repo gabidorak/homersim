@@ -4,8 +4,10 @@ extends Node
 ## because RPCs and replication only work between nodes that have the same path everywhere.
 ##
 ## It owns the join handshake, the player list, and spawning/despawning bodies (MatchManager
-## decides who spawns where and as what). Children: MatchManager, ChatService, World, and the
-## side-specific ServerOnly / ClientOnly nodes, filled at runtime.
+## decides who spawns where and as what). Children: MatchManager, PlantSim, InteractionService,
+## ChatService, World, and the
+## side-specific ServerOnly / ClientOnly nodes, filled at runtime. PlantSim and InteractionService
+## are reachable as `plant` and `interactions`.
 ##
 ## Join flow:
 ##   client connects ─▶ request_join(name, version) ─▶ server validates
@@ -23,6 +25,7 @@ const MENU_SCENE_PATH := "res://client/MainMenu.tscn"
 const LOBBY_SCENE: PackedScene = preload("res://client/Lobby.tscn")
 const HUD_SCENE: PackedScene = preload("res://client/HUD.tscn")
 const CHAT_SCENE: PackedScene = preload("res://client/Chat.tscn")
+const POST_MATCH_SCENE: PackedScene = preload("res://client/PostMatch.tscn")
 ## Server: drop peers that connect but never send request_join.
 const PENDING_TIMEOUT_S := 5.0
 ## Server: delay before dropping a rejected peer, so on_join_rejected reaches it first
@@ -41,6 +44,11 @@ var desired_name := JoinRules.DEFAULT_NAME
 var players: Dictionary[int, PlayerInfo] = {}
 ## Client: our own peer id once accepted.
 var local_peer_id := 0
+
+## Set in _enter_tree (not @onready) because children use them in their own _ready, which runs
+## before ours.
+var plant: PlantSim
+var interactions: InteractionService
 
 var _pending: Dictionary[int, bool] = {}  # server: connected peers that haven't joined yet
 var _leaving := false
@@ -62,6 +70,8 @@ static func game_version() -> String:
 
 func _enter_tree() -> void:
 	current = self
+	plant = $PlantSim
+	interactions = $InteractionService
 
 
 func _exit_tree() -> void:
@@ -208,6 +218,25 @@ func _spawn_player(data: Variant) -> Node:
 	return player
 
 
+## Test-only: debug builds started with --allow-debug accept debug RPCs.
+static func debug_allowed() -> bool:
+	return OS.is_debug_build() and Cli.has_arg("allow-debug")
+
+
+## Test-only (bots): teleport the sender's body. Refused unless debug_allowed() on the server.
+@rpc("any_peer", "reliable")
+func request_debug_teleport(pos: Vector3) -> void:
+	if not multiplayer.is_server():
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	var body := get_body(peer)
+	if not debug_allowed() or body == null:
+		Log.warn("session", "refused a debug teleport from peer %d" % peer)
+		return
+	Log.info("session", "debug teleport of %s to %s" % [body.display_name, pos])
+	body.server_force_position(pos)
+
+
 # --- Client side ------------------------------------------------------------
 
 func _on_connected() -> void:
@@ -276,6 +305,7 @@ func _build_client_ui() -> void:
 	client_only.add_child(overview)
 	client_only.add_child(HUD_SCENE.instantiate())
 	client_only.add_child(LOBBY_SCENE.instantiate())
+	client_only.add_child(POST_MATCH_SCENE.instantiate())
 	client_only.add_child(CHAT_SCENE.instantiate())
 	if OS.is_debug_build() and DebugHooks.wanted():
 		var hooks := DebugHooks.new()

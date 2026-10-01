@@ -28,3 +28,9 @@ jobs:
 
       - name: Lobby smoke test (prefs, ready vote, roles, chat, validator)
         run: tests/integration/lobby_smoke.sh
+
+      - name: Match loop test (bots sabotage, repair, timer, winner)
+        run: tests/integration/run_match_loop.sh
+
+      - name: Critical sabotage test (lever pair, reboot, repairs)
+        run: tests/integration/critical_lever.sh

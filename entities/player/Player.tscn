@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://entities/player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://components/movement/movement_component.gd" id="2_move"]
 [ext_resource type="Script" path="res://components/status/status_component.gd" id="3_status"]
+[ext_resource type="Script" path="res://components/interactor/interactor_component.gd" id="4_interactor"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_body"]
 properties/0/path = NodePath(".:sync_position")
@@ -33,6 +34,9 @@ script = ExtResource("2_move")
 
 [node name="StatusComponent" type="Node" parent="."]
 script = ExtResource("3_status")
+
+[node name="InteractorComponent" type="Node" parent="."]
+script = ExtResource("4_interactor")
 
 [node name="NameTag" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, 0)

@@ -33,6 +33,7 @@ var validator_grace_until_ms := 0
 @onready var visual: Node3D = $Visual
 @onready var movement: MovementComponent = $MovementComponent
 @onready var status: StatusComponent = $StatusComponent
+@onready var interactor: InteractorComponent = $InteractorComponent
 
 
 static func color_for_peer(id: int) -> Color:

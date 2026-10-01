@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/dark_01.png" id="tex_dark"]
 [ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/light_01.png" id="tex_light"]
@@ -7,6 +7,10 @@
 [ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/purple_01.png" id="tex_purple"]
 [ext_resource type="Script" path="res://levels/spawn_point.gd" id="spawn_point"]
 [ext_resource type="Script" path="res://interactables/vent/vent_volume.gd" id="vent_volume"]
+[ext_resource type="Script" path="res://levels/station_label.gd" id="station_label"]
+[ext_resource type="PackedScene" path="res://interactables/sabotage_point/SabotagePoint.tscn" id="sabotage_point"]
+[ext_resource type="PackedScene" path="res://interactables/repair_point/RepairPoint.tscn" id="repair_point"]
+[ext_resource type="PackedScene" path="res://interactables/critical_lever/CriticalLever.tscn" id="critical_lever"]
 
 [sub_resource type="StandardMaterial3D" id="mat_dark"]
 albedo_texture = ExtResource("tex_dark")
@@ -398,3 +402,201 @@ script = ExtResource("spawn_point")
 role = 2
 position = Vector3(-15.5, 0, -15.5)
 rotation = Vector3(0, -2.35619, 0)
+
+[node name="Stations" type="Node3D" parent="."]
+
+[node name="ControlRods" type="Node3D" parent="Stations"]
+position = Vector3(-4, 0, -16)
+rotation = Vector3(0, 0.2450, 0)
+
+[node name="Machine" type="CSGBox3D" parent="Stations/ControlRods"]
+position = Vector3(0, 0.8, 0)
+size = Vector3(2, 1.6, 2)
+material = SubResource("mat_purple")
+use_collision = true
+
+[node name="Label" type="Label3D" parent="Stations/ControlRods"]
+position = Vector3(0, 2.3, 0)
+billboard = 1
+font_size = 56
+outline_size = 12
+text = "rods"
+script = ExtResource("station_label")
+subsystem_id = &"rods"
+
+[node name="RepairPoint" parent="Stations/ControlRods" instance=ExtResource("repair_point")]
+position = Vector3(0, 1, 1.3)
+subsystem_id = &"rods"
+
+[node name="LeverA" parent="Stations/ControlRods" instance=ExtResource("critical_lever")]
+position = Vector3(-3, 0.3, 0.4)
+subsystem_id = &"rods"
+partner_path = NodePath("../LeverB")
+
+[node name="LeverB" parent="Stations/ControlRods" instance=ExtResource("critical_lever")]
+position = Vector3(3, 0.3, 0.4)
+subsystem_id = &"rods"
+
+[node name="CoolantPumps" type="Node3D" parent="Stations"]
+position = Vector3(12, 0, -15)
+rotation = Vector3(0, -0.6747, 0)
+
+[node name="Machine" type="CSGBox3D" parent="Stations/CoolantPumps"]
+position = Vector3(0, 0.8, 0)
+size = Vector3(2, 1.6, 2)
+material = SubResource("mat_green")
+use_collision = true
+
+[node name="Label" type="Label3D" parent="Stations/CoolantPumps"]
+position = Vector3(0, 2.3, 0)
+billboard = 1
+font_size = 56
+outline_size = 12
+text = "pumps"
+script = ExtResource("station_label")
+subsystem_id = &"pumps"
+
+[node name="RepairPoint" parent="Stations/CoolantPumps" instance=ExtResource("repair_point")]
+position = Vector3(0, 1, 1.3)
+subsystem_id = &"pumps"
+
+[node name="SabotageA" parent="Stations/CoolantPumps" instance=ExtResource("sabotage_point")]
+position = Vector3(-1.3, 0.3, 0)
+rotation = Vector3(0, -1.5708, 0)
+subsystem_id = &"pumps"
+
+[node name="SabotageB" parent="Stations/CoolantPumps" instance=ExtResource("sabotage_point")]
+position = Vector3(1.3, 0.3, 0)
+rotation = Vector3(0, 1.5708, 0)
+subsystem_id = &"pumps"
+
+[node name="Turbine" type="Node3D" parent="Stations"]
+position = Vector3(17, 0, -1)
+rotation = Vector3(0, -1.5120, 0)
+
+[node name="Machine" type="CSGBox3D" parent="Stations/Turbine"]
+position = Vector3(0, 0.8, 0)
+size = Vector3(2, 1.6, 2)
+material = SubResource("mat_purple")
+use_collision = true
+
+[node name="Label" type="Label3D" parent="Stations/Turbine"]
+position = Vector3(0, 2.3, 0)
+billboard = 1
+font_size = 56
+outline_size = 12
+text = "turbine"
+script = ExtResource("station_label")
+subsystem_id = &"turbine"
+
+[node name="RepairPoint" parent="Stations/Turbine" instance=ExtResource("repair_point")]
+position = Vector3(0, 1, 1.3)
+subsystem_id = &"turbine"
+
+[node name="LeverA" parent="Stations/Turbine" instance=ExtResource("critical_lever")]
+position = Vector3(-3, 0.3, 0.4)
+subsystem_id = &"turbine"
+partner_path = NodePath("../LeverB")
+
+[node name="LeverB" parent="Stations/Turbine" instance=ExtResource("critical_lever")]
+position = Vector3(3, 0.3, 0.4)
+subsystem_id = &"turbine"
+
+[node name="PowerGrid" type="Node3D" parent="Stations"]
+position = Vector3(5, 0, 16)
+rotation = Vector3(0, -2.8387, 0)
+
+[node name="Machine" type="CSGBox3D" parent="Stations/PowerGrid"]
+position = Vector3(0, 0.8, 0)
+size = Vector3(2, 1.6, 2)
+material = SubResource("mat_green")
+use_collision = true
+
+[node name="Label" type="Label3D" parent="Stations/PowerGrid"]
+position = Vector3(0, 2.3, 0)
+billboard = 1
+font_size = 56
+outline_size = 12
+text = "grid"
+script = ExtResource("station_label")
+subsystem_id = &"grid"
+
+[node name="RepairPoint" parent="Stations/PowerGrid" instance=ExtResource("repair_point")]
+position = Vector3(0, 1, 1.3)
+subsystem_id = &"grid"
+
+[node name="SabotageA" parent="Stations/PowerGrid" instance=ExtResource("sabotage_point")]
+position = Vector3(-1.3, 0.3, 0)
+rotation = Vector3(0, -1.5708, 0)
+subsystem_id = &"grid"
+
+[node name="SabotageB" parent="Stations/PowerGrid" instance=ExtResource("sabotage_point")]
+position = Vector3(1.3, 0.3, 0)
+rotation = Vector3(0, 1.5708, 0)
+subsystem_id = &"grid"
+
+[node name="Ventilation" type="Node3D" parent="Stations"]
+position = Vector3(-10, 0, 17)
+rotation = Vector3(0, 2.6099, 0)
+
+[node name="Machine" type="CSGBox3D" parent="Stations/Ventilation"]
+position = Vector3(0, 0.8, 0)
+size = Vector3(2, 1.6, 2)
+material = SubResource("mat_green")
+use_collision = true
+
+[node name="Label" type="Label3D" parent="Stations/Ventilation"]
+position = Vector3(0, 2.3, 0)
+billboard = 1
+font_size = 56
+outline_size = 12
+text = "ventilation"
+script = ExtResource("station_label")
+subsystem_id = &"ventilation"
+
+[node name="RepairPoint" parent="Stations/Ventilation" instance=ExtResource("repair_point")]
+position = Vector3(0, 1, 1.3)
+subsystem_id = &"ventilation"
+
+[node name="SabotageA" parent="Stations/Ventilation" instance=ExtResource("sabotage_point")]
+position = Vector3(-1.3, 0.3, 0)
+rotation = Vector3(0, -1.5708, 0)
+subsystem_id = &"ventilation"
+
+[node name="SabotageB" parent="Stations/Ventilation" instance=ExtResource("sabotage_point")]
+position = Vector3(1.3, 0.3, 0)
+rotation = Vector3(0, 1.5708, 0)
+subsystem_id = &"ventilation"
+
+[node name="CoolantValves" type="Node3D" parent="Stations"]
+position = Vector3(-18, 0, 2)
+rotation = Vector3(0, 1.6815, 0)
+
+[node name="Machine" type="CSGBox3D" parent="Stations/CoolantValves"]
+position = Vector3(0, 0.8, 0)
+size = Vector3(2, 1.6, 2)
+material = SubResource("mat_green")
+use_collision = true
+
+[node name="Label" type="Label3D" parent="Stations/CoolantValves"]
+position = Vector3(0, 2.3, 0)
+billboard = 1
+font_size = 56
+outline_size = 12
+text = "valves"
+script = ExtResource("station_label")
+subsystem_id = &"valves"
+
+[node name="RepairPoint" parent="Stations/CoolantValves" instance=ExtResource("repair_point")]
+position = Vector3(0, 1, 1.3)
+subsystem_id = &"valves"
+
+[node name="SabotageA" parent="Stations/CoolantValves" instance=ExtResource("sabotage_point")]
+position = Vector3(-1.3, 0.3, 0)
+rotation = Vector3(0, -1.5708, 0)
+subsystem_id = &"valves"
+
+[node name="SabotageB" parent="Stations/CoolantValves" instance=ExtResource("sabotage_point")]
+position = Vector3(1.3, 0.3, 0)
+rotation = Vector3(0, 1.5708, 0)
+subsystem_id = &"valves"

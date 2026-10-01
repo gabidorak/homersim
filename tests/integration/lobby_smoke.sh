@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # M2 lobby smoke test: a headless server and headless test clients on a random local port.
 # Checks preferences + ready vote -> role assignment -> countdown -> unfreeze, late joiners
-# spectating, chat relay + rate limit, the movement validator, and the abort back to the lobby.
+# spectating, chat relay + rate limit, the movement validator, and (since M3) the supervisors
+# winning when every rat leaves mid-match.
 # Usage: tests/integration/lobby_smoke.sh   (GODOT=/path/to/godot to override the binary)
 set -u
 cd "$(dirname "$0")/../.."
@@ -32,7 +33,7 @@ client Cheat 14 --pref rat --auto-move --debug-speed 3   # never readies: 3 of 4
 sleep 2.5                                                # it runs around the lobby meanwhile
 client Sup 26 --pref supervisor --auto-ready
 client RatA 12 --pref rat --auto-ready --say hello
-client RatB 12 --pref any --auto-ready
+client RatB 13 --pref any --auto-ready                   # 1 s apart: two peers dropping at once can make ENet log an error
 sleep 5                                                  # vote passes, 3 s countdown, playing
 client Late 6
 sleep 15                                                 # rats killed by ~14 s; ENet notices in ~5 s
@@ -47,11 +48,11 @@ expect server "state: PLAYING"                              "server: playing aft
 expect server "Late joined mid-match"                       "server: late joiner spectates"
 expect server "strike [0-9]+ for Cheat .*too fast"          "server: validator flagged the x3 speed"
 expect server "\[chat\] RatA: hello"                        "server: relayed chat"
-expect server "too few players left, back to the lobby"     "server: aborted to the lobby"
+expect server "Supervisors win: All rats left the game"     "server: rats all gone, supervisors win"
 expect Sup "spawned Sup \(peer [0-9]+\) as Lobby \[local\]" "Sup: lobby body first"
 expect Sup "spawned Sup \(peer [0-9]+\) as Supervisor \[local\]" "Sup: respawned as Supervisor"
 expect Sup "state: PLAYING"                                 "Sup: saw the match start"
-expect Sup "state: LOBBY"                                   "Sup: back in the lobby"
+expect Sup "state: POST_MATCH"                              "Sup: saw the post-match screen"
 expect RatB "spawned RatB \(peer [0-9]+\) as Rat \[local\]" "RatB: 'Any' became a rat"
 expect RatB "spawned Sup \(peer [0-9]+\) as Supervisor$"    "RatB: sees the supervisor"
 expect RatB "\[chat\] RatA: hello"                          "RatB: got the chat message"
