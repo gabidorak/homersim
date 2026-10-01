@@ -11,19 +11,63 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
 
-[node name="Label" type="Label" parent="."]
+[node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -20.0
-offset_right = 200.0
-offset_bottom = 20.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "HomerSim — main menu (placeholder)"
+color = Color(0.11, 0.13, 0.12, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "HomerSim"
 horizontal_alignment = 1
-vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="Center/Box"]
+layout_mode = 2
+text = "Name"
+
+[node name="NameEdit" type="LineEdit" parent="Center/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Player"
+placeholder_text = "Your name"
+max_length = 16
+
+[node name="AddressLabel" type="Label" parent="Center/Box"]
+layout_mode = 2
+text = "Server address"
+
+[node name="AddressEdit" type="LineEdit" parent="Center/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "127.0.0.1:7777"
+placeholder_text = "host:port"
+
+[node name="ConnectButton" type="Button" parent="Center/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Connect"
+
+[node name="StatusLabel" type="Label" parent="Center/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3

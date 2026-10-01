@@ -1,0 +1,242 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/dark_01.png" id="tex_dark"]
+[ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/light_01.png" id="tex_light"]
+[ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/orange_01.png" id="tex_orange"]
+[ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/green_01.png" id="tex_green"]
+[ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/purple_01.png" id="tex_purple"]
+
+[sub_resource type="StandardMaterial3D" id="mat_dark"]
+albedo_texture = ExtResource("tex_dark")
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="mat_light"]
+albedo_texture = ExtResource("tex_light")
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="mat_orange"]
+albedo_texture = ExtResource("tex_orange")
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="mat_green"]
+albedo_texture = ExtResource("tex_green")
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="mat_purple"]
+albedo_texture = ExtResource("tex_purple")
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 3
+tonemap_mode = 2
+ssao_enabled = true
+
+[sub_resource type="BoxShape3D" id="stair_ramp"]
+size = Vector3(2, 0.1, 2.8302)
+
+[node name="TestArena" type="Node3D"]
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.9, 0.6, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Floor" type="CSGBox3D" parent="Geometry"]
+position = Vector3(0, -0.5, 0)
+size = Vector3(40, 1, 40)
+material = SubResource("mat_dark")
+use_collision = true
+
+[node name="WallNorth" type="CSGBox3D" parent="Geometry"]
+position = Vector3(0, 1.5, -20.25)
+size = Vector3(41, 3, 0.5)
+material = SubResource("mat_light")
+use_collision = true
+
+[node name="WallSouth" type="CSGBox3D" parent="Geometry"]
+position = Vector3(0, 1.5, 20.25)
+size = Vector3(41, 3, 0.5)
+material = SubResource("mat_light")
+use_collision = true
+
+[node name="WallEast" type="CSGBox3D" parent="Geometry"]
+position = Vector3(20.25, 1.5, 0)
+size = Vector3(0.5, 3, 40)
+material = SubResource("mat_light")
+use_collision = true
+
+[node name="WallWest" type="CSGBox3D" parent="Geometry"]
+position = Vector3(-20.25, 1.5, 0)
+size = Vector3(0.5, 3, 40)
+material = SubResource("mat_light")
+use_collision = true
+
+[node name="Box050" type="CSGBox3D" parent="Geometry"]
+position = Vector3(6, 0.25, -6)
+size = Vector3(2, 0.5, 2)
+material = SubResource("mat_orange")
+use_collision = true
+
+[node name="Box100" type="CSGBox3D" parent="Geometry"]
+position = Vector3(9, 0.5, -6)
+size = Vector3(2, 1, 2)
+material = SubResource("mat_orange")
+use_collision = true
+
+[node name="Box200" type="CSGBox3D" parent="Geometry"]
+position = Vector3(12, 1, -6)
+size = Vector3(2, 2, 2)
+material = SubResource("mat_orange")
+use_collision = true
+
+[node name="Crate050" type="CSGBox3D" parent="Geometry"]
+position = Vector3(-6, 0.25, 8)
+size = Vector3(1, 0.5, 1)
+material = SubResource("mat_orange")
+use_collision = true
+
+[node name="Crate100" type="CSGBox3D" parent="Geometry"]
+position = Vector3(-7.5, 0.5, 8)
+size = Vector3(1, 1, 1)
+material = SubResource("mat_orange")
+use_collision = true
+
+[node name="Crate200" type="CSGBox3D" parent="Geometry"]
+position = Vector3(-9.5, 1, 8)
+size = Vector3(2, 2, 2)
+material = SubResource("mat_orange")
+use_collision = true
+
+[node name="RampGentle" type="CSGPolygon3D" parent="Geometry"]
+position = Vector3(6, 0, 8)
+polygon = PackedVector2Array(0, 0, 6, 0, 6, 1.5)
+depth = 4.0
+use_collision = true
+material = SubResource("mat_green")
+
+[node name="PlatformGentle" type="CSGBox3D" parent="Geometry"]
+position = Vector3(14, 0.75, 6)
+size = Vector3(4, 1.5, 4)
+material = SubResource("mat_orange")
+use_collision = true
+
+[node name="RampSteep" type="CSGPolygon3D" parent="Geometry"]
+position = Vector3(-16, 0, 15)
+polygon = PackedVector2Array(0, 0, 2.67, 0, 2.67, 2)
+depth = 3.0
+use_collision = true
+material = SubResource("mat_green")
+
+[node name="BlockSteep" type="CSGBox3D" parent="Geometry"]
+position = Vector3(-12.33, 1, 13.5)
+size = Vector3(2, 2, 3)
+material = SubResource("mat_orange")
+use_collision = true
+
+[node name="Tunnel" type="CSGCombiner3D" parent="Geometry"]
+position = Vector3(-8, 0, -8)
+use_collision = true
+
+[node name="Shell" type="CSGBox3D" parent="Geometry/Tunnel"]
+position = Vector3(0, 0.75, 0)
+size = Vector3(2, 1.5, 5)
+material = SubResource("mat_purple")
+
+[node name="Hole" type="CSGBox3D" parent="Geometry/Tunnel"]
+position = Vector3(0, 0.35, 0)
+size = Vector3(1, 0.7, 5.2)
+operation = 2
+material = SubResource("mat_purple")
+
+[node name="Stairs" type="Node3D" parent="Geometry"]
+position = Vector3(-14, 0, 0)
+
+[node name="Step1" type="CSGBox3D" parent="Geometry/Stairs"]
+position = Vector3(0, 0.125, -0.2)
+size = Vector3(2, 0.25, 0.4)
+material = SubResource("mat_light")
+
+[node name="Step2" type="CSGBox3D" parent="Geometry/Stairs"]
+position = Vector3(0, 0.25, -0.6)
+size = Vector3(2, 0.5, 0.4)
+material = SubResource("mat_light")
+
+[node name="Step3" type="CSGBox3D" parent="Geometry/Stairs"]
+position = Vector3(0, 0.375, -1)
+size = Vector3(2, 0.75, 0.4)
+material = SubResource("mat_light")
+
+[node name="Step4" type="CSGBox3D" parent="Geometry/Stairs"]
+position = Vector3(0, 0.5, -1.4)
+size = Vector3(2, 1, 0.4)
+material = SubResource("mat_light")
+
+[node name="Step5" type="CSGBox3D" parent="Geometry/Stairs"]
+position = Vector3(0, 0.625, -1.8)
+size = Vector3(2, 1.25, 0.4)
+material = SubResource("mat_light")
+
+[node name="Step6" type="CSGBox3D" parent="Geometry/Stairs"]
+position = Vector3(0, 0.75, -2.2)
+size = Vector3(2, 1.5, 0.4)
+material = SubResource("mat_light")
+
+[node name="Landing" type="CSGBox3D" parent="Geometry/Stairs"]
+position = Vector3(0, 0.75, -3.9)
+size = Vector3(2, 1.5, 3)
+material = SubResource("mat_orange")
+use_collision = true
+
+[node name="StepsCollision" type="StaticBody3D" parent="Geometry/Stairs"]
+position = Vector3(0, 0.7076, -0.8265)
+rotation = Vector3(0.5586, 0, 0)
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/Stairs/StepsCollision"]
+shape = SubResource("stair_ramp")
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="Spawn1" type="Marker3D" parent="SpawnPoints"]
+position = Vector3(0, 0, 4)
+rotation = Vector3(0, 0, 0)
+
+[node name="Spawn2" type="Marker3D" parent="SpawnPoints"]
+position = Vector3(3.464, 0, 2)
+rotation = Vector3(0, 1.04718, 0)
+
+[node name="Spawn3" type="Marker3D" parent="SpawnPoints"]
+position = Vector3(3.464, 0, -2)
+rotation = Vector3(0, 2.09441, 0)
+
+[node name="Spawn4" type="Marker3D" parent="SpawnPoints"]
+position = Vector3(0, 0, -4)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="Spawn5" type="Marker3D" parent="SpawnPoints"]
+position = Vector3(-3.464, 0, -2)
+rotation = Vector3(0, -2.09441, 0)
+
+[node name="Spawn6" type="Marker3D" parent="SpawnPoints"]
+position = Vector3(-3.464, 0, 2)
+rotation = Vector3(0, -1.04718, 0)

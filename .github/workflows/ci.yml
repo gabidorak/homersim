@@ -22,3 +22,6 @@ jobs:
 
       - name: Run GUT unit tests
         run: godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
+
+      - name: Networking smoke test (headless server + clients)
+        run: tests/integration/join_smoke.sh

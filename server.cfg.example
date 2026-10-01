@@ -1,0 +1,6 @@
+; Dedicated server config. Copy to server.cfg (next to the server binary, or the project
+; root when running from source) or pass --config path. CLI args --port / --max-players win.
+[server]
+port=7777
+max_players=6
+name="Sunny Acres #1"

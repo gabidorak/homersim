@@ -8,7 +8,7 @@ A goofy, cartoon-style **asymmetric multiplayer** game set in a nuclear power pl
 
 Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows**.
 
-> Status: **M0 done** (project skeleton, tests, CI, exports). Next: [M1](docs/milestones/M1-networked-graybox.md).
+> Status: **M1 done** (networked graybox: dedicated server, join handshake, 6 synced capsules). Next: [M2](docs/milestones/M2-roles-and-controllers.md).
 
 ## Documents
 | Doc | What's inside |
@@ -43,10 +43,26 @@ godot --headless --export-release "Windows Desktop" build/windows/homersim.exe
 godot --headless --export-release "Linux Server" build/server/homersim_server.x86_64
 ```
 
-## Running (available from M1 onwards)
+## Running
 ```bash
 # dedicated server (from the editor build or an exported server binary)
-godot --headless -- --server --port 7777
-# client
+godot --headless -- --server --port 7777          # also: --max-players N, --config path
+# client (or run without args and use the menu)
 godot -- --connect 127.0.0.1:7777 --name Alice
+# server + 3 clients in one go (Ctrl+C stops all)
+tools/dev/run_local.sh 3
+```
+Server settings live in `server.cfg` (copy [server.cfg.example](server.cfg.example)); CLI args override them.
+In game: WASD, mouse, Space to jump, Shift to sprint. Esc frees the mouse, a click captures it again.
+
+From the editor: *Debug → Customize Run Instances…* → enable multiple instances, set 4. Give instance 1
+the arguments `-- --server --headless` and instances 2–4 `-- --connect 127.0.0.1:7777 --name P2` (P3, P4).
+
+Test helpers:
+```bash
+tests/integration/join_smoke.sh       # headless server + clients: join, full, version mismatch, kill detection
+godot -- --connect 127.0.0.1:7777 --game-version 0.0.0   # debug builds only: fake an old client
+# simulate a bad network on localhost (needs sudo, remove it afterwards!)
+sudo tc qdisc add dev lo root netem delay 100ms 20ms loss 1%
+sudo tc qdisc del dev lo root
 ```

@@ -8,7 +8,7 @@ Add one row **at the moment an asset is imported**, including CC0 assets: credit
 
 | Asset / pack | Author | Source URL | Licence | Used for | Path in repo |
 |---|---|---|---|---|---|
-| _example: Prototype Textures_ | _Kenney_ | _https://kenney.nl/assets/prototype-textures_ | _CC0 1.0_ | _graybox materials_ | _assets/third_party/kenney_prototype/_ |
+| Prototype Textures 1.0 (5 of the PNGs) | Kenney | https://kenney.nl/assets/prototype-textures | CC0 1.0 | graybox materials | assets/third_party/kenney_prototype/ |
 
 ## Addons
 | Addon | Author | Source | Licence |

@@ -23,6 +23,7 @@ func _side() -> String:
 	if OS.has_feature("dedicated_server") or Cli.has_arg("server"):
 		return "S"
 	var peer: MultiplayerPeer = multiplayer.multiplayer_peer
-	if peer == null or peer is OfflineMultiplayerPeer:
+	if peer == null or peer is OfflineMultiplayerPeer \
+			or peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
 		return "C"
 	return "C%d" % multiplayer.get_unique_id()
