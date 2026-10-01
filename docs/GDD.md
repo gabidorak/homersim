@@ -112,7 +112,7 @@ Abilities:
 |---|---|
 | Height | 0.5 m (capsule radius 0.2), with a chunky cartoon silhouette |
 | Walk / sprint | 5.0 / 7.5 m/s |
-| Stamina | 3 s of sprint, regenerates in 3 s |
+| Stamina | 3 s of sprint, regenerates in 3 s after a 1 s delay |
 | Jump | 1.6 m (so rats can reach tables, crates and pipe runs) |
 | Vents | Can enter vents (0.7 m openings). Supervisors cannot. |
 

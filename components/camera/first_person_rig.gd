@@ -1,35 +1,45 @@
 class_name FirstPersonRig
-extends Node3D
-## First-person head pivot (it pitches up/down; the body handles yaw). Holds the camera, which
-## only the local player uses. Captures the mouse: Esc frees it, a click captures it again.
+extends CameraRig
+## First-person head (supervisors, lobby bodies). The rig pitches up/down; mouse X turns the body.
+## Adds head bob (Config.head_bob) and, for supervisors, a placeholder broom in view.
 
-@onready var camera: Camera3D = $Camera3D
+const MAX_PITCH := 1.55  ## radians, just under straight up/down
+const EYE_BELOW_TOP := 0.2  ## m between the top of the capsule and the eyes
+const BOB_AMPLITUDE := 0.04  ## m, at full walking speed
+const BOB_RADIANS_PER_M := 4.5  ## about one up-down cycle per 1.4 m travelled
+const BOB_SETTLE_RATE := 10.0
 
+var _bob_phase := 0.0
 
-func _ready() -> void:
-	if not is_multiplayer_authority():
-		# Remote bodies must never take over the view (Godot makes the first camera it sees current).
-		camera.queue_free()
-		set_process_unhandled_input(false)
-		return
-	camera.make_current()
-	# Only one window can grab the mouse; with several clients open, the others wait for a click.
-	if get_window().has_focus():
-		_capture_mouse(true)
+@onready var arms: Node3D = $Camera3D/Arms
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause"):
-		_capture_mouse(Input.mouse_mode != Input.MOUSE_MODE_CAPTURED)
-	elif event is InputEventMouseButton and event.is_pressed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
-		_capture_mouse(true)
+func _place(data: RoleData) -> void:
+	position.y = data.height - EYE_BELOW_TOP
 
 
-func _notification(what: int) -> void:
-	# Otherwise the mouse stays trapped after alt-tabbing out.
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and is_inside_tree() and is_multiplayer_authority():
-		_capture_mouse(false)
+func _setup_local() -> void:
+	arms.visible = body.role == Role.Kind.SUPERVISOR
 
 
-func _capture_mouse(capture: bool) -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if capture else Input.MOUSE_MODE_VISIBLE
+func look_pitch() -> float:
+	return rotation.x
+
+
+func apply_look_pitch(pitch: float) -> void:
+	rotation.x = pitch
+
+
+func _look(delta: Vector2) -> void:
+	body.rotate_y(-delta.x)
+	rotation.x = clampf(rotation.x - delta.y, -MAX_PITCH, MAX_PITCH)
+
+
+func _process(delta: float) -> void:
+	var speed := Vector2(body.velocity.x, body.velocity.z).length()
+	var target := Vector3.ZERO
+	if Config.head_bob and body.is_on_floor() and speed > 0.5:
+		_bob_phase = fmod(_bob_phase + speed * BOB_RADIANS_PER_M * delta, TAU * 2.0)
+		var strength := BOB_AMPLITUDE * minf(speed / body.role_data.walk_speed, 1.5)
+		target = Vector3(cos(_bob_phase * 0.5) * strength * 0.5, sin(_bob_phase) * strength, 0.0)
+	camera.position = camera.position.lerp(target, 1.0 - exp(-BOB_SETTLE_RATE * delta))

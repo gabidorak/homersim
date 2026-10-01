@@ -25,3 +25,6 @@ jobs:
 
       - name: Networking smoke test (headless server + clients)
         run: tests/integration/join_smoke.sh
+
+      - name: Lobby smoke test (prefs, ready vote, roles, chat, validator)
+        run: tests/integration/lobby_smoke.sh

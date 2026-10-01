@@ -3,18 +3,26 @@ extends Node
 ## The shared networked scene. It lives at /root/Session on the server AND on every client,
 ## because RPCs and replication only work between nodes that have the same path everywhere.
 ##
-## M1 scope: the join handshake, the player roster, and spawning/despawning player bodies.
+## It owns the join handshake, the player list, and spawning/despawning bodies (MatchManager
+## decides who spawns where and as what). Children: MatchManager, ChatService, World, and the
+## side-specific ServerOnly / ClientOnly nodes, filled at runtime.
 ##
 ## Join flow:
 ##   client connects ─▶ request_join(name, version) ─▶ server validates
-##     ok:  on_join_accepted(peer_id, roster) to the client, on_player_joined to the others, spawn body
+##     ok:  on_join_accepted(peer_id, roster) to the client, on_player_joined to the others,
+##          player_added (MatchManager spawns a lobby body)
 ##     bad: on_join_rejected(reason), then the server drops the peer
 
 signal joined  ## client: the server accepted us
 signal roster_changed
+signal player_added(peer_id: int)  ## server: a player finished the join handshake
+signal player_removed(peer_id: int)  ## server: a joined player left
 
 const PLAYER_SCENE: PackedScene = preload("res://entities/player/Player.tscn")
 const MENU_SCENE_PATH := "res://client/MainMenu.tscn"
+const LOBBY_SCENE: PackedScene = preload("res://client/Lobby.tscn")
+const HUD_SCENE: PackedScene = preload("res://client/HUD.tscn")
+const CHAT_SCENE: PackedScene = preload("res://client/Chat.tscn")
 ## Server: drop peers that connect but never send request_join.
 const PENDING_TIMEOUT_S := 5.0
 ## Server: delay before dropping a rejected peer, so on_join_rejected reaches it first
@@ -23,8 +31,9 @@ const REJECT_DISCONNECT_DELAY_S := 0.5
 
 static var current: Session
 
-## Server setting, set by ServerMain before the node enters the tree.
+## Server settings, set by ServerMain before the node enters the tree.
 var max_players := 6
+var match_rules: MatchRules
 ## Client setting, set by MainMenu before the node enters the tree.
 var desired_name := JoinRules.DEFAULT_NAME
 
@@ -34,13 +43,13 @@ var players: Dictionary[int, PlayerInfo] = {}
 var local_peer_id := 0
 
 var _pending: Dictionary[int, bool] = {}  # server: connected peers that haven't joined yet
-var _next_spawn := 0
 var _leaving := false
-var _hud: Label
 
+@onready var match_manager: MatchManager = $MatchManager
+@onready var chat: ChatService = $ChatService
 @onready var players_root: Node3D = $World/Players
 @onready var spawner: MultiplayerSpawner = $World/PlayerSpawner
-@onready var spawn_points: Node3D = $World/TestArena/SpawnPoints
+@onready var server_only: Node = $ServerOnly
 @onready var client_only: Node = $ClientOnly
 
 
@@ -69,11 +78,14 @@ func _ready() -> void:
 	if Net.is_server:
 		Net.peer_joined.connect(_on_peer_joined)
 		Net.peer_left.connect(_on_peer_left)
+		var validator := MovementValidator.new()
+		validator.name = "MovementValidator"
+		server_only.add_child(validator)
 	else:
 		Net.connected.connect(_on_connected)
 		Net.connection_failed.connect(_leave_to_menu)
 		Net.disconnected.connect(_leave_to_menu.bind("Disconnected from server"))
-		_build_hud()
+		_build_client_ui()
 
 
 func roster() -> Array[Dictionary]:
@@ -81,6 +93,19 @@ func roster() -> Array[Dictionary]:
 	for info: PlayerInfo in players.values():
 		result.append(info.to_dict())
 	return result
+
+
+func get_body(peer_id: int) -> Player:
+	return players_root.get_node_or_null(str(peer_id)) as Player
+
+
+func spawn_points_for(role: Role.Kind) -> Array[SpawnPoint]:
+	var points: Array[SpawnPoint] = []
+	for node in get_tree().get_nodes_in_group(SpawnPoint.GROUP):
+		var point := node as SpawnPoint
+		if point.role == role and is_ancestor_of(point):
+			points.append(point)
+	return points
 
 
 # --- Server side ------------------------------------------------------------
@@ -100,12 +125,13 @@ func _on_peer_left(peer_id: int) -> void:
 		return
 	var info: PlayerInfo = players[peer_id]
 	players.erase(peer_id)
-	var body := players_root.get_node_or_null(str(peer_id))
-	if body != null:
-		body.queue_free()  # the spawner replicates the removal to clients
+	despawn_body(peer_id)
+	chat.forget(peer_id)
 	Log.info("session", "%s (peer %d) left, %d player(s) remain" % [info.name, peer_id, players.size()])
 	for other: int in players:
 		on_player_left.rpc_id(other, peer_id)
+	chat.broadcast_system("%s left" % info.name)
+	player_removed.emit(peer_id)
 
 
 @rpc("any_peer", "reliable")
@@ -132,31 +158,53 @@ func request_join(player_name: String, version: String) -> void:
 	for other: int in players:
 		if other != peer_id:
 			on_player_joined.rpc_id(other, info.to_dict())
-	_spawn_body(info)
+	chat.broadcast_system("%s joined" % info.name)
+	player_added.emit(peer_id)
 
 
-func _spawn_body(info: PlayerInfo) -> void:
-	var marker := spawn_points.get_child(_next_spawn % spawn_points.get_child_count()) as Marker3D
-	_next_spawn += 1
-	spawner.spawn({
-		"peer": info.peer_id,
-		"name": info.name,
-		"pos": marker.global_position,
-		"yaw": marker.global_rotation.y,
-	})
+## Server: spawn `peer_id`'s body as `role` at `point`. `locked` = frozen (LOCKED status) from
+## its first frame, until the server clears it.
+func spawn_body(peer_id: int, role: Role.Kind, point: Node3D, locked: bool) -> Player:
+	return spawner.spawn({
+		"peer": peer_id,
+		"name": players[peer_id].name,
+		"role": role,
+		"pos": point.global_position,
+		"yaw": point.global_rotation.y,
+		"locked": locked,
+	}) as Player
 
 
-## Runs on the server and on every client with the same data. Authority is set here, before the
-## node enters the tree, so BodySync starts with the right owner.
+## Server: remove `peer_id`'s body if it has one. The spawner replicates the removal.
+func despawn_body(peer_id: int) -> void:
+	var body := get_body(peer_id)
+	if body != null:
+		# Out of the tree right away, not at the end of the frame: a respawn in the same frame
+		# needs the name str(peer_id), and Godot would rename the newcomer if it were still taken.
+		players_root.remove_child(body)
+		body.queue_free()
+
+
+## Runs on the server and on every client with the same data, so all of them build the same body.
+## Authority is set here, before the node enters the tree, so BodySync starts with the right owner.
 func _spawn_player(data: Variant) -> Node:
 	var d: Dictionary = data
 	var player: Player = PLAYER_SCENE.instantiate()
 	player.peer_id = d["peer"]
 	player.name = str(player.peer_id)
 	player.display_name = d["name"]
+	player.setup(d["role"])
 	player.position = d["pos"]
 	player.rotation.y = d["yaw"]
-	player.set_multiplayer_authority(player.peer_id)  # recursive: the body, its components and BodySync
+	player.set_multiplayer_authority(player.peer_id)  # recursive: the body, its components, BodySync…
+	# …except the status, which the server owns.
+	var status := player.get_node("StatusComponent") as StatusComponent
+	status.set_multiplayer_authority(1)
+	player.get_node("StatusSync").set_multiplayer_authority(1)
+	if d["locked"]:
+		# Clients apply it too, so the body is frozen from its first frame instead of waiting
+		# for StatusSync's first update.
+		status.apply(StatusComponent.Status.LOCKED)
 	return player
 
 
@@ -222,19 +270,14 @@ func _teardown() -> void:
 	tree.change_scene_to_file(MENU_SCENE_PATH)
 
 
-func _build_hud() -> void:
-	_hud = Label.new()
-	_hud.position = Vector2(12, 8)
-	_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud.add_theme_color_override("font_outline_color", Color.BLACK)
-	_hud.add_theme_constant_override("outline_size", 4)
-	client_only.add_child(_hud)
-	roster_changed.connect(_update_hud)
-	_update_hud()
-
-
-func _update_hud() -> void:
-	var names: Array[String] = []
-	for info: PlayerInfo in players.values():
-		names.append(info.name + (" (you)" if info.peer_id == local_peer_id else ""))
-	_hud.text = "Players: %s\nEsc: free the mouse · click: capture it" % ", ".join(names)
+func _build_client_ui() -> void:
+	var overview := OverviewCamera.new()
+	overview.name = "OverviewCamera"
+	client_only.add_child(overview)
+	client_only.add_child(HUD_SCENE.instantiate())
+	client_only.add_child(LOBBY_SCENE.instantiate())
+	client_only.add_child(CHAT_SCENE.instantiate())
+	if OS.is_debug_build() and DebugHooks.wanted():
+		var hooks := DebugHooks.new()
+		hooks.name = "DebugHooks"
+		client_only.add_child(hooks)

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RoleData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/role_data.gd" id="1_role"]
+[ext_resource type="PackedScene" path="res://entities/player/rat/RatVisual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_role")
+kind = 2
+height = 0.5
+radius = 0.2
+walk_speed = 5.0
+sprint_speed = 7.5
+stamina_s = 3.0
+stamina_regen_s = 3.0
+stamina_regen_delay_s = 1.0
+jump_height = 1.6
+can_use_vents = true
+camera_kind = 1
+visual_scene = ExtResource("2_visual")

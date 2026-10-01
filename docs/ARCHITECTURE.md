@@ -48,9 +48,10 @@ func _ready() -> void:
         get_tree().change_scene_to_file.call_deferred("res://client/MainMenu.tscn")
 ```
 Supported CLI args (user args after `--`):
-- Server: `--server`, `--port N`, `--max-players N`, `--config path`, `--debug-start` (skip ready vote)
+- Server: `--server`, `--port N`, `--max-players N`, `--config path`, `--debug-start [N]` (skip the ready vote; start once N players, default 1, have joined)
 - Client: `--connect host:port`, `--name X`
 - Test only (honoured only in debug builds): `--allow-debug` (enables debug RPCs such as teleport), `--test-duration S`, `--exit-after-match`, `--result-file path`, `--bot rat|supervisor` (headless scripted client)
+- Test-only client flags since M2 (debug builds, `client/debug_hooks.gd` and `MovementComponent`): `--pref rat|supervisor|any`, `--auto-ready`, `--say TEXT`, `--auto-move`, `--debug-speed N`, `--screenshot PATH [--screenshot-delay S]`
 
 ### `server.cfg` (ConfigFile/INI)
 ```ini
@@ -64,6 +65,7 @@ rules="res://data/match_rules.tres"   ; can be overridden per key below
 duration_s=540
 min_players=3
 ```
+Every key of `[match]` other than `rules` overrides the `MatchRules` property of the same name (`Config.load_match_rules`).
 
 ## 3. Authority model
 **Rule of thumb: clients own their *own body's movement*. The server owns *everything else*.**
@@ -81,7 +83,8 @@ min_players=3
 ### Why client-owned movement?
 - Zero input lag with no prediction or reconciliation code, which matters a lot for a first networked game.
 - Cost: a cheater could teleport. Mitigation is the **server sanity check** in `server/movement_validator.gd`: every physics tick, for every player, compare the new synced position to the previous one. If `distance > max_speed(role, status) * dt * 1.5 + 0.5`, or if a supervisor is inside a rat-only volume, the server sends `force_position` back to the owner and logs a strike. 10 strikes = kick.
-- **Server-imposed movement** (knockback, being carried, teleport to cage, freeze during countdown) is sent to the owning client as an RPC on its `MovementComponent`: `apply_impulse(v)`, `set_locked(bool)`, `attach_to(path)`, `force_position(p)`. The owner applies it. The validator allows a temporary tolerance window afterwards.
+- **Server-imposed movement** (knockback, being carried, teleport to cage) is sent to the owning client as an RPC on its `MovementComponent`: `apply_impulse(v)`, `set_locked(bool)`, `attach_to(path)`, `force_position(p)`. The owner applies it. The validator allows a temporary tolerance window afterwards. These RPCs are `any_peer` (the node's authority is the owner, not the server) and check that the sender is peer 1. Call them through `Player.server_*` helpers, which also open the validator window.
+- The **countdown freeze** uses the `LOCKED` status instead: the spawn function applies it on every peer, so the body is frozen from its first frame, and the server clears it when the countdown ends.
 
 If movement cheating or feel becomes a real problem, `MovementComponent` is the only place that needs to change to adopt netfox prediction.
 
@@ -190,6 +193,7 @@ Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `Repa
 
 ## 6. Server systems
 ### MatchManager (`common/match_manager.gd`)
+Its replicated state (`MatchSync`, on change): `state`, `countdown_left`, `min_players` and `roster` (peer → name, role preference, ready, role). Always assign a modified copy of `roster`, never edit it in place.
 ```
 LOBBY ──ready vote / --debug-start──▶ ROLE_ASSIGN ─▶ COUNTDOWN(10s) ─▶ PLAYING ─▶ POST_MATCH(15s) ─▶ LOBBY
                                                         ▲ players < 2 → abort to LOBBY

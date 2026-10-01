@@ -4,3 +4,9 @@
 port=7777
 max_players=6
 name="Sunny Acres #1"
+
+; Optional match tuning: any MatchRules property (data/match_rules.gd) can be overridden here.
+[match]
+; rules="res://data/match_rules.tres"
+; min_players=3
+; countdown_s=10

@@ -1,10 +1,35 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://common/session.gd" id="1_session"]
 [ext_resource type="PackedScene" path="res://levels/test/TestArena.tscn" id="2_arena"]
+[ext_resource type="Script" path="res://common/match_manager.gd" id="3_match"]
+[ext_resource type="Script" path="res://common/chat_service.gd" id="4_chat"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_match"]
+properties/0/path = NodePath(".:state")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:countdown_left")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+properties/2/path = NodePath(".:min_players")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+properties/3/path = NodePath(".:roster")
+properties/3/spawn = true
+properties/3/replication_mode = 2
 
 [node name="Session" type="Node"]
 script = ExtResource("1_session")
+
+[node name="MatchManager" type="Node" parent="."]
+script = ExtResource("3_match")
+
+[node name="MatchSync" type="MultiplayerSynchronizer" parent="MatchManager"]
+replication_config = SubResource("SceneReplicationConfig_match")
+
+[node name="ChatService" type="Node" parent="."]
+script = ExtResource("4_chat")
 
 [node name="World" type="Node3D" parent="."]
 

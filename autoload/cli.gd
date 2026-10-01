@@ -43,3 +43,8 @@ func get_str(key: String, default: String = "") -> String:
 func get_int(key: String, default: int = 0) -> int:
 	var value: String = get_str(key)
 	return value.to_int() if value.is_valid_int() else default
+
+
+func get_float(key: String, default: float = 0.0) -> float:
+	var value: String = get_str(key)
+	return value.to_float() if value.is_valid_float() else default

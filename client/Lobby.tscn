@@ -1,0 +1,116 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://client/lobby.gd" id="1_lobby"]
+
+[node name="Lobby" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_lobby")
+
+[node name="Panel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -356.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 300.0
+grow_horizontal = 0
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="Box" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Panel/Margin/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Lobby"
+
+[node name="StatusLabel" type="Label" parent="Panel/Margin/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="RosterLabel" type="RichTextLabel" parent="Panel/Margin/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+bbcode_enabled = true
+fit_content = true
+
+[node name="PrefLabel" type="Label" parent="Panel/Margin/Box"]
+layout_mode = 2
+text = "I'd like to play"
+
+[node name="Prefs" type="HBoxContainer" parent="Panel/Margin/Box"]
+layout_mode = 2
+
+[node name="AnyButton" type="Button" parent="Panel/Margin/Box/Prefs"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+toggle_mode = true
+button_pressed = true
+text = "Any"
+
+[node name="SupervisorButton" type="Button" parent="Panel/Margin/Box/Prefs"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+toggle_mode = true
+text = "Supervisor"
+
+[node name="RatButton" type="Button" parent="Panel/Margin/Box/Prefs"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+toggle_mode = true
+text = "Rat"
+
+[node name="ReadyButton" type="Button" parent="Panel/Margin/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+toggle_mode = true
+text = "Ready?"
+
+[node name="Hint" type="Label" parent="Panel/Margin/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "Esc frees the mouse so you can click."
+
+[node name="Banner" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -150.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 44
+horizontal_alignment = 1
+vertical_alignment = 1

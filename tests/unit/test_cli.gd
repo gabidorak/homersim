@@ -53,3 +53,11 @@ func test_getters() -> void:
 	assert_eq(cli.get_int("bad", 7777), 7777)
 	assert_eq(cli.get_str("name"), "Al")
 	assert_eq(cli.get_str("server", "def"), "def")
+
+
+func test_get_float() -> void:
+	cli.args = cli.parse(PackedStringArray(["--speed", "2.5", "--n", "3", "--bad", "x"]))
+	assert_eq(cli.get_float("speed"), 2.5)
+	assert_eq(cli.get_float("n"), 3.0)
+	assert_eq(cli.get_float("bad", 1.0), 1.0)
+	assert_eq(cli.get_float("missing", 1.0), 1.0)

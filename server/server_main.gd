@@ -27,6 +27,7 @@ func _boot() -> void:
 
 	var session: Session = SESSION_SCENE.instantiate()
 	session.max_players = max_players
+	session.match_rules = Config.load_match_rules(path)
 	get_tree().root.add_child(session)
 	Log.info("server", "'%s' listening on UDP %d, max %d players, version %s"
 		% [cfg["name"], port, max_players, Session.game_version()])
