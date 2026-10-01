@@ -26,27 +26,27 @@
 **Pin the Godot version** (e.g. `4.5.1`) in `README.md`, `docs/ARCHITECTURE.md` and the CI workflow.
 
 ## 3. Tasks
-- [ ] `git init`, first commit with the docs and the existing `.gitignore` / `.gitattributes` (LFS rules).
-- [ ] Create a GitHub (or GitLab) repo and push. Make it private for now.
-- [ ] Create the Godot project in the repo root: `project.godot`, Forward+ renderer.
-- [ ] Project settings:
-  - [ ] *Application → Run → Main Scene* = `res://main.tscn`
-  - [ ] *Physics → Common → Physics Ticks per Second* = 60
-  - [ ] *Display → Window*: 1280×720, resizable, stretch mode `canvas_items`
-  - [ ] *Debug → GDScript → Warnings*: `untyped_declaration` = Warn, `inferred_declaration` = Ignore
-  - [ ] *Input Map*: `move_forward/back/left/right`, `jump`, `sprint`, `crouch`, `primary`, `secondary`, `interact`, `chat`, `team_chat`, `scoreboard`, `emote`, `pause`
-- [ ] Create the folder structure from [ARCHITECTURE §13](../ARCHITECTURE.md#13-repository-layout) (add a `.gdkeep` in each empty folder).
-- [ ] Autoload stubs, registered in Project Settings → Autoload: `autoload/net.gd`, `events.gd`, `config.gd`, `log.gd`, `cli.gd`.
+- [x] `git init`, first commit with the docs and the existing `.gitignore` / `.gitattributes` (LFS rules).
+- [x] Create a GitHub (or GitLab) repo and push. Make it private for now.
+- [x] Create the Godot project in the repo root: `project.godot`, Forward+ renderer.
+- [x] Project settings:
+  - [x] *Application → Run → Main Scene* = `res://main.tscn`
+  - [x] *Physics → Common → Physics Ticks per Second* = 60
+  - [x] *Display → Window*: 1280×720, resizable, stretch mode `canvas_items`
+  - [x] *Debug → GDScript → Warnings*: `untyped_declaration` = Warn, `inferred_declaration` = Ignore
+  - [x] *Input Map*: `move_forward/back/left/right`, `jump`, `sprint`, `crouch`, `primary`, `secondary`, `interact`, `chat`, `team_chat`, `scoreboard`, `emote`, `pause`
+- [x] Create the folder structure from [ARCHITECTURE §13](../ARCHITECTURE.md#13-repository-layout) (add a `.gdkeep` in each empty folder).
+- [x] Autoload stubs, registered in Project Settings → Autoload: `autoload/net.gd`, `events.gd`, `config.gd`, `log.gd`, `cli.gd`.
   - `cli.gd`: parse `OS.get_cmdline_user_args()` into a `Dictionary` (`--key value` / `--flag`).
   - `log.gd`: `info/warn/error(tag, msg)` printing `[HH:MM:SS][S|C<id>][tag] msg`.
-- [ ] `main.tscn` + `main.gd`: the server/client switch from [ARCHITECTURE §2](../ARCHITECTURE.md#entry-point-maingd), pointing at placeholder `server/ServerMain.tscn` and `client/MainMenu.tscn` scenes that just print a line.
-- [ ] Install **GUT** from the Asset Library into `addons/gut/` and enable the plugin. Write `tests/unit/test_cli.gd` to test arg parsing.
-- [ ] Export presets: `Linux`, `Windows Desktop`, `Linux Server` (Resources tab → Export Mode = *Export as dedicated server*, Features → custom feature `dedicated_server`). Export each once by hand.
-- [ ] `.github/workflows/ci.yml`: a job on `barichello/godot-ci:<pinned version>` that runs `godot --headless --import` (to build the import cache) and then the GUT unit tests.
-- [ ] Add GUT to `CREDITS.md`.
+- [x] `main.tscn` + `main.gd`: the server/client switch from [ARCHITECTURE §2](../ARCHITECTURE.md#entry-point-maingd), pointing at placeholder `server/ServerMain.tscn` and `client/MainMenu.tscn` scenes that just print a line.
+- [x] Install **GUT** from the Asset Library into `addons/gut/` and enable the plugin. Write `tests/unit/test_cli.gd` to test arg parsing.
+- [x] Export presets: `Linux`, `Windows Desktop`, `Linux Server` (Resources tab → Export Mode = *Export as dedicated server*, Features → custom feature `dedicated_server`). Export each once by hand.
+- [x] `.github/workflows/ci.yml`: a job on `barichello/godot-ci:<pinned version>` that runs `godot --headless --import` (to build the import cache) and then the GUT unit tests.
+- [x] Add GUT to `CREDITS.md`.
 
 ## 4. Done when
-- [ ] `godot --headless -- --server` prints "server boot" and keeps running. `godot` (no args) opens the placeholder main menu.
+- [x] `godot --headless -- --server` prints "server boot" and keeps running. `godot` (no args) opens the placeholder main menu.
 - [ ] `godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit` passes locally **and** in CI.
 - [ ] The exported Linux client runs. The exported Windows `.exe` runs under Wine or on a Windows PC. The exported server runs headless.
 - [ ] The practice exercise works with 2 instances on the same machine.

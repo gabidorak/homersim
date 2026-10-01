@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Import project (builds the .godot/ cache)
+        run: godot --headless --import
+
+      - name: Run GUT unit tests
+        run: godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit

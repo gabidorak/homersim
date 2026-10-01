@@ -3,7 +3,7 @@
 ## 1. Stack
 | Concern | Choice | Why |
 |---|---|---|
-| Engine | **Godot 4.x, latest stable** (pin the exact version in M0, e.g. `4.5.x`, in this file and in CI) | MIT, small, Linux-native editor, built-in high-level multiplayer |
+| Engine | **Godot 4.x, latest stable** — pinned to **4.7.2-stable** (also in `README.md` and `.github/workflows/ci.yml`) | MIT, small, Linux-native editor, built-in high-level multiplayer |
 | Language | **GDScript with static typing everywhere** (`var hp: int`, `func f() -> void`) | Fast iteration; typed code catches errors and runs faster |
 | Transport | `ENetMultiplayerPeer` (reliable + unreliable UDP channels) | Built in, works through the high-level `@rpc` / `MultiplayerSynchronizer` API |
 | Server | The same project exported with the **"Dedicated Server"** export mode, run with `--headless` | One codebase, no client/server drift |

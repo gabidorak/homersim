@@ -13,7 +13,7 @@ Add one row **at the moment an asset is imported**, including CC0 assets: credit
 ## Addons
 | Addon | Author | Source | Licence |
 |---|---|---|---|
-| _GUT (from M0)_ | _bitwes_ | _https://github.com/bitwes/Gut_ | _MIT_ |
+| GUT 9.7.1 | bitwes (Butch Wesley) | https://github.com/bitwes/Gut | MIT |
 
 ## Generated assets
 Models in `assets/generated/` are produced by the scripts in `tools/blender/` and belong to this project.

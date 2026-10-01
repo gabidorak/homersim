@@ -6,9 +6,9 @@ A goofy, cartoon-style **asymmetric multiplayer** game set in a nuclear power pl
 - **3–4 Rats** (third person) sneak through vents and sabotage the plant until it melts down.
 - Supervisors whack, catch and cage rats. Rats bite, trip and rob supervisors. Broken machinery hurts everyone.
 
-Engine: **Godot 4 (GDScript)**, with a dedicated headless server. Targets: **Linux and Windows**.
+Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows**.
 
-> Status: **planning**. No game code yet. Start with [M0](docs/milestones/M0-setup-and-learning.md).
+> Status: **M0 done** (project skeleton, tests, CI, exports). Next: [M1](docs/milestones/M1-networked-graybox.md).
 
 ## Documents
 | Doc | What's inside |
@@ -33,6 +33,15 @@ Engine: **Godot 4 (GDScript)**, with a dedicated headless server. Targets: **Lin
 | M9 | Ship v1 | [M9-ship-v1.md](docs/milestones/M9-ship-v1.md) |
 
 Post-1.0 ideas (proximity voice, Steam, master server, more maps, client prediction) are listed at the end of the [GDD](docs/GDD.md#10-post-10-ideas).
+
+## Tests and exports
+```bash
+godot --headless --import    # once, or after adding files outside the editor
+godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
+godot --headless --export-release "Linux" build/linux/homersim.x86_64
+godot --headless --export-release "Windows Desktop" build/windows/homersim.exe
+godot --headless --export-release "Linux Server" build/server/homersim_server.x86_64
+```
 
 ## Running (available from M1 onwards)
 ```bash
