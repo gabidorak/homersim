@@ -9,6 +9,10 @@ extends Node
 ## the side-specific ServerOnly / ClientOnly nodes, filled at runtime. The services are reachable
 ## as `plant`, `interactions`, `abilities`, `captures` and `items`.
 ##
+## The level (World's first child) is added in _enter_tree: the plant, or the TestArena sandbox in
+## debug builds started with `--level test` (the PvP integration tests use it). Server and clients
+## must load the same one, so the join handshake compares them.
+##
 ## Join flow:
 ##   client connects ─▶ request_join(name, version) ─▶ server validates
 ##     ok:  on_join_accepted(peer_id, roster) to the client, on_player_joined to the others,
@@ -27,6 +31,8 @@ const HUD_SCENE: PackedScene = preload("res://client/HUD.tscn")
 const CHAT_SCENE: PackedScene = preload("res://client/Chat.tscn")
 const POST_MATCH_SCENE: PackedScene = preload("res://client/PostMatch.tscn")
 const SPECTATOR_CAM_SCENE: PackedScene = preload("res://client/SpectatorCam.tscn")
+const LEVELS := {"plant": "res://levels/plant/Plant.tscn", "test": "res://levels/test/TestArena.tscn"}
+const DEFAULT_LEVEL := "plant"
 ## Server: drop peers that connect but never send request_join.
 const PENDING_TIMEOUT_S := 5.0
 ## Server: delay before dropping a rejected peer, so on_join_rejected reaches it first
@@ -57,6 +63,7 @@ var interactions: InteractionService
 var abilities: AbilityService
 var captures: CaptureService
 var items: ItemService
+var level: Node3D  ## the loaded level scene (Plant or TestArena)
 
 var _pending: Dictionary[int, bool] = {}  # server: connected peers that haven't joined yet
 var _retire_acks: Dictionary[int, bool] = {}  # server: peers asked to stop syncing -> confirmed
@@ -73,6 +80,13 @@ var _leaving := false
 ## The protocol version clients must match. CI builds add their branch and build number, so clients
 ## only join a server running the very same build (the auto-updater keeps both on the newest one).
 ## Debug builds accept `--game-version X` to test mismatches.
+## The level this process plays (a LEVELS key): the plant, or `--level test` in debug builds.
+static func level_id() -> String:
+	if OS.is_debug_build() and LEVELS.has(Cli.get_str("level")):
+		return Cli.get_str("level")
+	return DEFAULT_LEVEL
+
+
 static func game_version() -> String:
 	if OS.is_debug_build() and Cli.has_arg("game-version"):
 		return Cli.get_str("game-version")
@@ -89,6 +103,12 @@ func _enter_tree() -> void:
 	abilities = $AbilityService
 	captures = $CaptureService
 	items = $ItemService
+	if level == null:
+		# Before the children enter the tree, so the level's interactables exist (with their
+		# synchronizers) before a client connects.
+		level = (load(LEVELS[level_id()]) as PackedScene).instantiate()
+		$World.add_child(level)
+		$World.move_child(level, 0)
 
 
 func _exit_tree() -> void:
@@ -108,6 +128,9 @@ func _ready() -> void:
 		var validator := MovementValidator.new()
 		validator.name = "MovementValidator"
 		server_only.add_child(validator)
+		var heatmap := HeatmapRecorder.new()
+		heatmap.name = "HeatmapRecorder"
+		server_only.add_child(heatmap)
 	else:
 		Net.connected.connect(_on_connected)
 		Net.connection_failed.connect(_leave_to_menu)
@@ -167,13 +190,15 @@ func _on_peer_left(peer_id: int) -> void:
 
 
 @rpc("any_peer", "reliable")
-func request_join(player_name: String, version: String) -> void:
+func request_join(player_name: String, version: String, level_name: String) -> void:
 	if not multiplayer.is_server():
 		return
 	var peer_id := multiplayer.get_remote_sender_id()
 	if not _pending.erase(peer_id):
 		return  # already joined, or unknown
 	var reason := JoinRules.check(version, game_version(), players.size(), max_players)
+	if reason == "" and level_name != level_id():
+		reason = "The server plays another level (%s, you have %s)" % [level_id(), level_name]
 	if reason != "":
 		Log.info("session", "rejected peer %d (%s): %s" % [peer_id, player_name, reason])
 		on_join_rejected.rpc_id(peer_id, reason)
@@ -304,7 +329,7 @@ func request_debug_teleport(pos: Vector3) -> void:
 
 func _on_connected() -> void:
 	Log.info("session", "connected, requesting to join as '%s'" % desired_name)
-	request_join.rpc_id(1, desired_name, game_version())
+	request_join.rpc_id(1, desired_name, game_version(), level_id())
 
 
 @rpc("authority", "reliable")
@@ -383,6 +408,12 @@ func _build_client_ui() -> void:
 	client_only.add_child(LOBBY_SCENE.instantiate())
 	client_only.add_child(POST_MATCH_SCENE.instantiate())
 	client_only.add_child(CHAT_SCENE.instantiate())
+	var cctv := CctvView.new()
+	cctv.name = "CctvView"
+	client_only.add_child(cctv)
+	var overlay := DebugOverlay.new()
+	overlay.name = "DebugOverlay"
+	client_only.add_child(overlay)
 	if OS.is_debug_build() and DebugHooks.wanted():
 		var hooks := DebugHooks.new()
 		hooks.name = "DebugHooks"

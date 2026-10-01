@@ -32,7 +32,7 @@ func test_every_role_with_a_body_is_sane() -> void:
 
 
 func test_supervisors_do_not_fit_through_vents() -> void:
-	const VENT_HEIGHT := 0.6  # TestArena openings: 0.7 m wide, 0.6 m high
+	const VENT_HEIGHT := 0.6  # vent openings (TestArena and the plant): 0.7 m wide, 0.6 m high
 	assert_true(Role.data(Role.Kind.SUPERVISOR).height > VENT_HEIGHT)
 	assert_true(Role.data(Role.Kind.RAT).height < VENT_HEIGHT)
 
@@ -131,5 +131,6 @@ func test_pvp_tuning_matches_gdd() -> void:
 	assert_eq([t.steal_hold_s, t.stolen_item_speed, t.spare_keycard_delay_s], [1.0, 0.9, 30.0])
 	assert_eq([t.donut_speed, t.donut_duration_s, t.donut_cooldown_s, t.keycard_door_open_s], [1.2, 20.0, 60.0, 3.0])
 	assert_eq(t.trap_charges, 3)
+	assert_eq([t.cctv_break_hold_s, t.cctv_repair_hold_s], [2.0, 3.0])
 	var m: MatchRules = load(Config.DEFAULT_MATCH_RULES)
 	assert_eq([m.swarm_bonus, m.swarm_cooldown_s], [15.0, 45.0])

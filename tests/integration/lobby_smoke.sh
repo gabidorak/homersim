@@ -26,7 +26,7 @@ expect() {  # expect <file> <pattern> <description>
 	if grep -qE "$2" "$LOGS/$1.log"; then echo "ok   - $3"; else echo "FAIL - $3"; FAIL=1; fi
 }
 
-"$GODOT" --headless -- --server --port "$PORT" --config "$LOGS/server.cfg" > "$LOGS/server.log" 2>&1 &
+"$GODOT" --headless -- --server --no-heatmap --port "$PORT" --config "$LOGS/server.cfg" > "$LOGS/server.log" 2>&1 &
 SERVER=$!
 sleep 2
 client Cheat 14 --pref rat --auto-move --debug-speed 3   # never readies: 3 of 4 is enough

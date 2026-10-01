@@ -8,11 +8,20 @@ extends Node
 ## The server imposes movement through the RPCs at the bottom (freeze, teleport, knockback,
 ## hanging from a carrier's hand). Speed = role speed × status (slows, donut) × inventory (a
 ## stolen item); a supervisor carrying a rat walks at the role's carry speed and can't sprint.
+##
+## Ladders (Ladder volumes): pushing toward the ladder climbs, pushing away in the air climbs down,
+## no input hangs on, jump lets go. Out of bounds (an OutOfBounds volume, or below KILL_Y): back to
+## the last spot we stood on safely (sampled every SAFE_SAMPLE_S while on the floor).
 
 const COYOTE_S := 0.1  ## you can still jump this long after walking off a ledge
 const JUMP_BUFFER_S := 0.1  ## a jump pressed this long before landing still happens
 const TURN_RATE := 12.0  ## third person: how fast the body turns toward its movement
-const KILL_Y := -20.0  ## fell out of the world: back to the spawn point
+const KILL_Y := -20.0  ## fell out of the world: back to the last safe spot
+const SAFE_SAMPLE_S := 0.5  ## how often the last safe spot is remembered
+const LADDER_GRAB_DOT := 0.3  ## how directly you must push toward / away from a ladder
+const LADDER_SIDE_FACTOR := 0.5  ## horizontal speed while climbing, as a fraction of walking
+const LADDER_JUMP_OFF := Vector3(0, 2.0, 0)  ## plus 3 m/s away from the ladder
+const LADDER_REGRAB_S := 0.4  ## after jumping off, ignore ladders this long
 
 @export var ground_accel := 12.0  ## how quickly velocity reaches the target speed
 @export var air_accel := 3.0
@@ -25,7 +34,10 @@ var locked := false
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _since_on_floor := INF
 var _since_jump_pressed := INF
-var _spawn_position := Vector3.ZERO
+var _last_safe := Vector3.ZERO  # where we last stood on the floor, inside the map
+var _since_safe_sample := 0.0
+var _since_jump_off := INF
+var climbing := false  ## on a ladder right now (HUD, camera)
 var _anchor: Node3D  # set by attach_to(): we are carried, the body follows this node
 var _debug_speed := 1.0  # test-only: --debug-speed N (a fake speed hack for the validator)
 var _debug_auto_move := false  # test-only: --auto-move (walk forward without input)
@@ -37,7 +49,7 @@ var _debug_auto_move := false  # test-only: --auto-move (walk forward without in
 func _ready() -> void:
 	var data := body.role_data
 	stamina = Stamina.new(data.stamina_s, data.stamina_regen_s, data.stamina_regen_delay_s)
-	_spawn_position = body.position
+	_last_safe = body.position
 	set_physics_process(is_multiplayer_authority())
 	if OS.is_debug_build():
 		_debug_speed = Cli.get_float("debug-speed", 1.0)
@@ -90,17 +102,56 @@ func _physics_process(delta: float) -> void:
 	var speed := base * status.speed_multiplier() * body.inventory.speed_multiplier() * _debug_speed
 	var target := dir * speed
 
-	var accel := ground_accel if on_floor else air_accel
+	_since_jump_off += delta
+	var ladder := Ladder.find(body) if free and _since_jump_off > LADDER_REGRAB_S else null
+	var climb := _ladder_climb(ladder, dir, on_floor)
+	if climb != 0 and free and _since_jump_pressed <= JUMP_BUFFER_S:
+		# Let go: a little hop away from the ladder.
+		body.velocity = -ladder.up_direction() * 3.0 + LADDER_JUMP_OFF
+		_since_jump_pressed = INF
+		_since_jump_off = 0.0
+		climb = 0
+	climbing = climb != 0
+	if climbing:
+		body.velocity.y = ladder.climb_speed * (climb if climb != 2 else 0)
+		target = dir * speed * LADDER_SIDE_FACTOR
+
+	var accel := ground_accel if on_floor or climbing else air_accel
 	var horizontal := Vector3(body.velocity.x, 0.0, body.velocity.z).lerp(target, 1.0 - exp(-accel * delta))
 	body.velocity.x = horizontal.x
 	body.velocity.z = horizontal.z
 	if data.camera_kind == RoleData.CameraKind.THIRD_PERSON and dir.length_squared() > 0.01:
 		body.rotation.y = lerp_angle(body.rotation.y, atan2(-dir.x, -dir.z), 1.0 - exp(-TURN_RATE * delta))
 	body.move_and_slide()
+	_check_bounds(delta)
 
-	if body.position.y < KILL_Y:
-		body.position = _spawn_position
+
+## 1 = climb up, -1 = climb down, 2 = hang on, 0 = not climbing (walk / fall normally).
+func _ladder_climb(ladder: Ladder, dir: Vector3, on_floor: bool) -> int:
+	if ladder == null:
+		return 0
+	var push := dir.dot(ladder.up_direction()) if dir.length_squared() > 0.01 else 0.0
+	if push > LADDER_GRAB_DOT:
+		return 1
+	if on_floor:
+		return 0
+	if push < -LADDER_GRAB_DOT:
+		return -1
+	return 2 if climbing else 0
+
+
+## Out of the map: back to the last safe spot. Otherwise remember where we stand now and then.
+func _check_bounds(delta: float) -> void:
+	if body.position.y < KILL_Y or OutOfBounds.contains(body):
+		Log.info("move", "out of bounds at %s, back to %s" % [body.position, _last_safe])
+		body.position = _last_safe
 		body.velocity = Vector3.ZERO
+		_since_safe_sample = 0.0
+		return
+	_since_safe_sample += delta
+	if _since_safe_sample >= SAFE_SAMPLE_S and body.is_on_floor():
+		_since_safe_sample = 0.0
+		_last_safe = body.position
 
 
 # --- Server → owner ------------------------------------------------------------
@@ -119,6 +170,7 @@ func force_position(pos: Vector3) -> void:
 	if _from_server():
 		body.position = pos
 		body.velocity = Vector3.ZERO
+		_last_safe = pos
 
 
 @rpc("any_peer", "reliable")

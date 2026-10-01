@@ -61,7 +61,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_capture_mouse(Input.mouse_mode != Input.MOUSE_MODE_CAPTURED)
 	elif event is InputEventMouseButton and event.is_pressed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		_capture_mouse(true)
-	elif event is InputEventMouseMotion and PlayerInput.has_control():
+	elif event is InputEventMouseMotion and PlayerInput.has_control() and body.seated_console() == null:
 		# event.relative is in pixels, so the look speed doesn't depend on the frame rate.
 		_look((event as InputEventMouseMotion).relative * Config.mouse_sensitivity)
 

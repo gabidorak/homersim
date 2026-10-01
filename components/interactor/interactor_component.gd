@@ -33,6 +33,11 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if body.seated_console() != null:
+		target = null  # E switches cameras while we watch the CCTV
+		if holding != null:
+			_stop()
+		return
 	target = bot_hold if bot_hold != null else _find_target()
 	var key_down := bot_hold != null or (PlayerInput.has_control() and Input.is_action_pressed("interact"))
 	if not key_down:

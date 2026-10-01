@@ -48,3 +48,9 @@ jobs:
 
       - name: PvP hacked-client requests are all refused
         run: tests/integration/pvp_hack.sh
+
+      - name: Map check (navmesh paths vs the GDD design rules)
+        run: tests/integration/map_check.sh
+
+      - name: Plant test (CCTV, ladder, vent shaft, out of bounds)
+        run: tests/integration/plant_cctv.sh

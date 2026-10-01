@@ -25,7 +25,7 @@ expect() {  # expect <file> <pattern> <description>
 	if grep -qE "$2" "$1"; then echo "ok   - $3"; else echo "FAIL - $3"; FAIL=1; fi
 }
 
-timeout -s KILL 60 "$GODOT" --headless -- --server --port "$PORT" --config "$LOGS/server.cfg" \
+timeout -s KILL 60 "$GODOT" --headless -- --server --no-heatmap --port "$PORT" --config "$LOGS/server.cfg" \
 	--allow-debug --test-duration 25 --exit-after-match --result-file "$RESULT" \
 	> "$LOGS/server.log" 2>&1 &
 SERVER=$!

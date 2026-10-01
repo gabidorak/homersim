@@ -23,6 +23,8 @@ enum State { LOBBY, ROLE_ASSIGN, COUNTDOWN, PLAYING, POST_MATCH }
 
 ## --exit-after-match: how long the server stays up in POST_MATCH before quitting.
 const EXIT_DELAY_S := 1.5
+## Nodes in this group get reset_for_match() at every match start (server): CCTV cameras, the chair.
+const RESET_GROUP := "match_reset"
 ## Per-player counters in the result (same order as the post-match columns).
 const STAT_KEYS: Array[String] = ["sabotages", "repairs", "catches", "frees", "bites", "knockdowns", "steals"]
 
@@ -222,6 +224,7 @@ func _start_match() -> void:
 	session.plant.reset()
 	session.captures.reset()
 	session.items.clear()
+	get_tree().call_group(RESET_GROUP, "reset_for_match")
 	countdown_left = rules.countdown_s
 	_countdown_end_ms = Time.get_ticks_msec() + rules.countdown_s * 1000
 	state = State.COUNTDOWN

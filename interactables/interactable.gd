@@ -99,8 +99,18 @@ func stand_position(role: Role.Kind) -> Vector3:
 	var out := global_basis.z
 	out.y = 0.0
 	var spot := global_position + out.normalized() * reach_for(role) * 0.5
-	spot.y = 0.0
+	spot.y = _floor_below(spot)
 	return spot
+
+
+## The height of the floor under `spot` (catwalks and roofs too), 0 if nothing is found.
+func _floor_below(spot: Vector3) -> float:
+	if not is_inside_tree():
+		return 0.0
+	var query := PhysicsRayQueryParameters3D.create(spot + Vector3.UP * 0.5, spot + Vector3.DOWN * 3.0,
+		PhysicsLayers.WORLD)
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	return (hit["position"] as Vector3).y if not hit.is_empty() else 0.0
 
 
 # --- Virtual -----------------------------------------------------------------------------

@@ -96,12 +96,19 @@ tests/integration/pvp_capture.sh      # broom, grab, carry, cage, free, eliminat
 tests/integration/pvp_swarm.sh        # bite makes a carrier drop, 3 rats knock down a supervisor, swarm bonus (4 bots)
 tests/integration/pvp_items.sh        # steal, keycard door lockout, dropped keycard, traps, donut, spare keycard (~1 min)
 tests/integration/pvp_hack.sh         # a "hacked client" sends ~25 bad requests; the server must refuse them all
+tests/integration/plant_cctv.sh       # on the plant: CCTV chair + broken camera, ladder, vent shaft, out of bounds
+tests/integration/map_check.sh        # navmesh paths on the plant vs the GDD design rules (--update-docs: README table)
 # test-only client flags (debug builds): --pref rat|supervisor|any, --auto-ready, --say TEXT,
 #   --auto-move, --debug-speed N (fake speed hack), --screenshot PATH [--screenshot-delay S]
 # test-only server flags (debug builds): --allow-debug (debug RPCs such as teleport), --test-duration S,
 #   --exit-after-match, --result-file PATH
 # scripted bot client (debug builds): --bot rat|supervisor [--bot-target ID] [--bot-lever A|B] [--bot-delay S]
-#   PvP scenarios: --bot-scenario capture|swarm|items|hack [--bot-part P]
+#   PvP scenarios: --bot-scenario capture|swarm|items|hack|plant [--bot-part P]
+# level (debug builds, server and clients alike): --level plant (default) | test (the TestArena sandbox)
+# server: --no-heatmap   client: --debug-overlay (F3 overlay; F4 = route stopwatch)
+godot tests/helpers/MapTour.tscn -- --out /tmp/tour [--alarm]   # windowed: screenshots + fps of every room
+python3 tools/map/gen_plant.py --force   # rebuild the graybox plant + docs/map plan from the layout numbers
+python3 tools/heatmap.py ~/.local/share/godot/app_userdata/HomerSim/heatmap_*.csv   # playtest heatmap
 godot -- --connect 127.0.0.1:7777 --game-version 0.0.0   # debug builds only: fake an old client
 # simulate a bad network on localhost (needs sudo, remove it afterwards!)
 sudo tc qdisc add dev lo root netem delay 100ms 20ms loss 1%

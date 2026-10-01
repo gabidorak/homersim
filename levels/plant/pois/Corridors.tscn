@@ -1,0 +1,288 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_corridors.tres" id="2_wall_corrido"]
+[ext_resource type="Material" path="res://levels/plant/materials/floor_corridors.tres" id="3_floor_corrid"]
+[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="4_cctvcamera"]
+[ext_resource type="Material" path="res://levels/plant/materials/prop_crate.tres" id="5_prop_crate"]
+[ext_resource type="Material" path="res://levels/plant/materials/prop_pipe.tres" id="6_prop_pipe"]
+[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="7_alarmbeacon"]
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
+size = Vector3(7.9, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_2"]
+size = Vector3(27.3, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_3"]
+size = Vector3(7.3, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
+size = Vector3(33.3, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_5"]
+size = Vector3(11.9, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_6"]
+size = Vector3(0.24, 4, 6.5)
+
+[node name="Corridors" type="Node3D"]
+script = ExtResource("1_poi")
+display_name = "Corridors"
+bounds = Array[AABB]([AABB(-38, -1, 0, 24, 5, 6), AABB(10, -1, 0, 24, 5, 6), AABB(-38, -1, 20, 90, 5, 6)])
+area_names = PackedStringArray("Main Hall West", "Main Hall East", "South Corridor")
+
+[node name="Shell" type="CSGCombiner3D" parent="."]
+use_collision = true
+
+[node name="FloorMHW" type="CSGBox3D" parent="Shell"]
+position = Vector3(-26, -0.25, 3)
+size = Vector3(24, 0.5, 6)
+material = ExtResource("3_floor_corrid")
+
+[node name="CeilingMHW" type="CSGBox3D" parent="Shell"]
+position = Vector3(-26, 4.15, 3)
+size = Vector3(24, 0.3, 6)
+material = ExtResource("2_wall_corrido")
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Light" type="OmniLight3D" parent="Lights"]
+position = Vector3(-32, 3.4, 3)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light2" type="OmniLight3D" parent="Lights"]
+position = Vector3(-20, 3.4, 3)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="FloorMHE" type="CSGBox3D" parent="Shell"]
+position = Vector3(22, -0.25, 3)
+size = Vector3(24, 0.5, 6)
+material = ExtResource("3_floor_corrid")
+
+[node name="CeilingMHE" type="CSGBox3D" parent="Shell"]
+position = Vector3(22, 4.15, 3)
+size = Vector3(24, 0.3, 6)
+material = ExtResource("2_wall_corrido")
+
+[node name="Light3" type="OmniLight3D" parent="Lights"]
+position = Vector3(16, 3.4, 3)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light4" type="OmniLight3D" parent="Lights"]
+position = Vector3(28, 3.4, 3)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="FloorCS" type="CSGBox3D" parent="Shell"]
+position = Vector3(7, -0.25, 23)
+size = Vector3(90, 0.5, 6)
+material = ExtResource("3_floor_corrid")
+
+[node name="CeilingCS" type="CSGBox3D" parent="Shell"]
+position = Vector3(7, 4.15, 23)
+size = Vector3(90, 0.3, 6)
+material = ExtResource("2_wall_corrido")
+
+[node name="Light5" type="OmniLight3D" parent="Lights"]
+position = Vector3(-33, 3.4, 23)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light6" type="OmniLight3D" parent="Lights"]
+position = Vector3(-23, 3.4, 23)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light7" type="OmniLight3D" parent="Lights"]
+position = Vector3(-13, 3.4, 23)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light8" type="OmniLight3D" parent="Lights"]
+position = Vector3(-3, 3.4, 23)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light9" type="OmniLight3D" parent="Lights"]
+position = Vector3(7, 3.4, 23)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light10" type="OmniLight3D" parent="Lights"]
+position = Vector3(17, 3.4, 23)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light11" type="OmniLight3D" parent="Lights"]
+position = Vector3(27, 3.4, 23)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light12" type="OmniLight3D" parent="Lights"]
+position = Vector3(37, 3.4, 23)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light13" type="OmniLight3D" parent="Lights"]
+position = Vector3(47, 3.4, 23)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Wall" type="CSGBox3D" parent="Shell"]
+position = Vector3(-34.3, 2, 26)
+size = Vector3(7.9, 4, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Occluders" type="Node3D" parent="."]
+
+[node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(-34.3, 2, 26)
+occluder = SubResource("BoxOccluder3D_1")
+
+[node name="Wall2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-30, 2.3, 26)
+size = Vector3(0.7, 3.4, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Wall3" type="CSGBox3D" parent="Shell"]
+position = Vector3(-16, 2, 26)
+size = Vector3(27.3, 4, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(-16, 2, 26)
+occluder = SubResource("BoxOccluder3D_2")
+
+[node name="Wall4" type="CSGBox3D" parent="Shell"]
+position = Vector3(-2, 1.4, 26)
+size = Vector3(0.7, 2.8, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Wall5" type="CSGBox3D" parent="Shell"]
+position = Vector3(-2, 3.7, 26)
+size = Vector3(0.7, 0.6, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Wall6" type="CSGBox3D" parent="Shell"]
+position = Vector3(2, 2, 26)
+size = Vector3(7.3, 4, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(2, 2, 26)
+occluder = SubResource("BoxOccluder3D_3")
+
+[node name="Wall7" type="CSGBox3D" parent="Shell"]
+position = Vector3(6, 2.3, 26)
+size = Vector3(0.7, 3.4, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Wall8" type="CSGBox3D" parent="Shell"]
+position = Vector3(23, 2, 26)
+size = Vector3(33.3, 4, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(23, 2, 26)
+occluder = SubResource("BoxOccluder3D_4")
+
+[node name="Wall9" type="CSGBox3D" parent="Shell"]
+position = Vector3(40, 2.3, 26)
+size = Vector3(0.7, 3.4, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Wall10" type="CSGBox3D" parent="Shell"]
+position = Vector3(46.3, 2, 26)
+size = Vector3(11.9, 4, 0.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(46.3, 2, 26)
+occluder = SubResource("BoxOccluder3D_5")
+
+[node name="VentSill" type="CSGBox3D" parent="Shell"]
+position = Vector3(-30, -0.25, 26.125)
+size = Vector3(0.7, 0.5, 0.25)
+material = ExtResource("3_floor_corrid")
+
+[node name="VentSill2" type="CSGBox3D" parent="Shell"]
+position = Vector3(6, -0.25, 26.125)
+size = Vector3(0.7, 0.5, 0.25)
+material = ExtResource("3_floor_corrid")
+
+[node name="VentSill3" type="CSGBox3D" parent="Shell"]
+position = Vector3(40, -0.25, 26.125)
+size = Vector3(0.7, 0.5, 0.25)
+material = ExtResource("3_floor_corrid")
+
+[node name="Wall11" type="CSGBox3D" parent="Shell"]
+position = Vector3(52, 2, 23)
+size = Vector3(0.5, 4, 6.5)
+material = ExtResource("2_wall_corrido")
+
+[node name="Occluder6" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(52, 2, 23)
+occluder = SubResource("BoxOccluder3D_6")
+
+[node name="Camera8" parent="." instance=ExtResource("4_cctvcamera")]
+position = Vector3(-32, 0.4, 5.4)
+rotation = Vector3(0, 3.1416, 0)
+number = 8
+label = "Main Hall West"
+lens_height = 3
+lens_pitch_deg = 20
+lens_yaw_deg = -35
+
+[node name="Crate" type="CSGBox3D" parent="Shell"]
+position = Vector3(-35.75, 0.5, 24.75)
+size = Vector3(1.5, 1, 1.5)
+material = ExtResource("5_prop_crate")
+
+[node name="Crate2" type="CSGBox3D" parent="Shell"]
+position = Vector3(30.6, 0.6, 21.6)
+size = Vector3(1.2, 1.2, 1.2)
+material = ExtResource("5_prop_crate")
+
+[node name="PipeHigh" type="CSGBox3D" parent="Shell"]
+position = Vector3(7, 3.25, 25.15)
+size = Vector3(89, 0.5, 0.5)
+material = ExtResource("6_prop_pipe")
+
+[node name="AlarmBeacon" parent="." instance=ExtResource("7_alarmbeacon")]
+position = Vector3(-26, 3.7, 3)
+
+[node name="AlarmBeacon2" parent="." instance=ExtResource("7_alarmbeacon")]
+position = Vector3(22, 3.7, 3)
+
+[node name="AlarmBeacon3" parent="." instance=ExtResource("7_alarmbeacon")]
+position = Vector3(7, 3.7, 23)

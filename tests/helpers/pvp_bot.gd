@@ -18,6 +18,10 @@ extends Node
 ##            the spare keycard after 30 s.
 ##   hack     supervisor + rat send requests a hacked client could: wrong role, bad args, out of
 ##            range, cooldown spam. The server must refuse them all (checked in the server log).
+##   plant    (M5, on the plant: --level plant) supervisor + rat: the supervisor sits at the CCTV
+##            chair, the rat breaks camera 1, the supervisor stands up and repairs it, then climbs
+##            the yard ladder to the vent roof and is teleported out of bounds (it must come back
+##            by itself); the rat climbs the vent shaft up to the roof.
 
 const VICTIM_SPOT := Vector3(0, 0, -1)
 const RESCUER_SPOT := Vector3(-3, 0, 3)
@@ -53,6 +57,10 @@ func run(p_bot: Node, scenario: String) -> void:
 			await _hack_supervisor()
 		"hack:rat":
 			await _hack_rat()
+		"plant:supervisor":
+			await _plant_supervisor()
+		"plant:rat":
+			await _plant_rat()
 		_:
 			Log.error("bot", "unknown scenario %s for %s" % [scenario, Role.display_name(me().role)])
 	Log.info("bot", "scenario done")
@@ -425,3 +433,76 @@ func _hack_rat() -> void:
 	interactions.request_interact_start.rpc_id(1, sup.get_node("StealHandle").get_path())
 	await wait(1.0)
 	Log.info("bot", "hack: done")
+
+
+# --- plant (M5) -------------------------------------------------------------------------------
+
+func _console() -> CctvConsole:
+	return get_tree().get_first_node_in_group(CctvConsole.CONSOLE_GROUP) as CctvConsole
+
+
+func _camera(number: int) -> CctvCamera:
+	for cam in CctvCamera.all_in(get_tree()):
+		if cam.number == number:
+			return cam
+	return null
+
+
+## Walk forward (the movement component's test-only auto-move) until `condition` holds.
+func _walk_until(condition: Callable, timeout: float, what: String) -> bool:
+	me().movement._debug_auto_move = true
+	var ok := await wait_until(condition, timeout, what)
+	me().movement._debug_auto_move = false
+	return ok
+
+
+func _plant_supervisor() -> void:
+	var console := _console()
+	await teleport(console.stand_position(Role.Kind.SUPERVISOR))
+	await face(console.global_position + Vector3.UP * 0.5)
+	await press(console)
+	if await wait_until(func() -> bool: return console.user == session.local_peer_id, 3.0, "the seat"):
+		Log.info("bot", "sitting at the CCTV")
+	var cam := _camera(1)
+	if await wait_until(func() -> bool: return cam.broken, 20.0, "camera 1 to break"):
+		Log.info("bot", "the CCTV shows camera 1 broken")
+	console.request_stand_up.rpc_id(1)
+	if await wait_until(func() -> bool: return console.user == 0, 3.0, "standing up"):
+		Log.info("bot", "stood up")
+	await wait(0.3)
+	await teleport(cam.stand_position(Role.Kind.SUPERVISOR))
+	await face(cam.global_position)
+	Log.info("bot", "camera repair hold ended: %s" % await hold(cam))
+	if await wait_until(func() -> bool: return not cam.broken, 2.0, "the repair to arrive"):
+		Log.info("bot", "camera 1 works again")
+	# Up the yard ladder: walk into it, facing the wall.
+	var ladder := get_tree().root.find_child("Ladder", true, false) as Ladder
+	var base := ladder.global_position - ladder.up_direction() * 1.0
+	base.y = 0.0
+	await teleport(base)
+	await face(base + ladder.up_direction() * 3.0 + Vector3.UP * 1.6)
+	if await _walk_until(func() -> bool: return me().global_position.y > 5.8 and me().is_on_floor(), 10.0, "the top of the ladder"):
+		Log.info("bot", "climbed the ladder to the vent roof at %s" % me().global_position)
+	await wait(1.0)  # stand on the roof: the last safe spot
+	var safe := me().global_position
+	session.request_debug_teleport.rpc_id(1, Vector3(0, 2, -48))  # beyond the yard fence
+	if await wait_until(func() -> bool: return me().global_position.distance_to(safe) < 1.5, 4.0, "the way back in bounds"):
+		Log.info("bot", "back in bounds at %s" % me().global_position)
+
+
+func _plant_rat() -> void:
+	var console := _console()
+	if not await wait_until(func() -> bool: return console.user != 0, 15.0, "the supervisor to sit"):
+		return
+	var cam := _camera(1)
+	await teleport(cam.stand_position(Role.Kind.RAT))
+	await face(cam.global_position)
+	Log.info("bot", "camera break hold ended: %s" % await hold(cam))
+	# Into the vent network, at the foot of the shaft, and up: push toward the roof exit (west).
+	var shaft := get_tree().root.find_child("ShaftLadder", true, false) as Ladder
+	var foot := shaft.global_position
+	await teleport(foot)
+	var west := shaft.up_direction()
+	me().rig.set("_yaw", atan2(-west.x, -west.z))
+	if await _walk_until(func() -> bool: return me().global_position.y > 5.8 and me().is_on_floor(), 10.0, "the top of the shaft"):
+		Log.info("bot", "climbed the shaft to the vent roof at %s" % me().global_position)

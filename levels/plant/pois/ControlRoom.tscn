@@ -1,0 +1,202 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_controlroom.tres" id="2_wall_control"]
+[ext_resource type="Material" path="res://levels/plant/materials/floor_controlroom.tres" id="3_floor_contro"]
+[ext_resource type="PackedScene" path="res://interactables/door/Door.tscn" id="4_door"]
+[ext_resource type="Material" path="res://levels/plant/materials/prop_metal.tres" id="5_prop_metal"]
+[ext_resource type="PackedScene" path="res://interactables/cctv/CctvConsole.tscn" id="6_cctvconsole"]
+[ext_resource type="Script" path="res://levels/plant/props/cctv_screen.gd" id="7_cctv_screen"]
+[ext_resource type="Script" path="res://levels/plant/props/status_board.gd" id="8_status_board"]
+[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="9_alarmbeacon"]
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
+size = Vector3(11.9, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_2"]
+size = Vector3(11.9, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_3"]
+size = Vector3(0.24, 4, 16.25)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
+size = Vector3(0.24, 4, 16.25)
+
+[node name="ControlRoom" type="Node3D"]
+script = ExtResource("1_poi")
+display_name = "Control Room"
+bounds = Array[AABB]([AABB(-14, -1, 0, 24, 5, 20)])
+
+[node name="Shell" type="CSGCombiner3D" parent="."]
+use_collision = true
+
+[node name="FloorCR" type="CSGBox3D" parent="Shell"]
+position = Vector3(-2, -0.25, 10)
+size = Vector3(24, 0.5, 20)
+material = ExtResource("3_floor_contro")
+
+[node name="CeilingCR" type="CSGBox3D" parent="Shell"]
+position = Vector3(-2, 4.15, 10)
+size = Vector3(24, 0.3, 20)
+material = ExtResource("2_wall_control")
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Light" type="OmniLight3D" parent="Lights"]
+position = Vector3(-8, 3.4, 5)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light2" type="OmniLight3D" parent="Lights"]
+position = Vector3(-8, 3.4, 15)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light3" type="OmniLight3D" parent="Lights"]
+position = Vector3(4, 3.4, 5)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light4" type="OmniLight3D" parent="Lights"]
+position = Vector3(4, 3.4, 15)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Wall" type="CSGBox3D" parent="Shell"]
+position = Vector3(-8.3, 2, 20)
+size = Vector3(11.9, 4, 0.5)
+material = ExtResource("2_wall_control")
+
+[node name="Occluders" type="Node3D" parent="."]
+
+[node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(-8.3, 2, 20)
+occluder = SubResource("BoxOccluder3D_1")
+
+[node name="Wall2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-2, 1.4, 20)
+size = Vector3(0.7, 2.8, 0.5)
+material = ExtResource("2_wall_control")
+
+[node name="Wall3" type="CSGBox3D" parent="Shell"]
+position = Vector3(-2, 3.7, 20)
+size = Vector3(0.7, 0.6, 0.5)
+material = ExtResource("2_wall_control")
+
+[node name="Wall4" type="CSGBox3D" parent="Shell"]
+position = Vector3(4.3, 2, 20)
+size = Vector3(11.9, 4, 0.5)
+material = ExtResource("2_wall_control")
+
+[node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(4.3, 2, 20)
+occluder = SubResource("BoxOccluder3D_2")
+
+[node name="Wall5" type="CSGBox3D" parent="Shell"]
+position = Vector3(-14, 2, 0.875)
+size = Vector3(0.5, 4, 2.25)
+material = ExtResource("2_wall_control")
+
+[node name="Wall6" type="CSGBox3D" parent="Shell"]
+position = Vector3(-14, 3.3, 3)
+size = Vector3(0.5, 1.4, 2)
+material = ExtResource("2_wall_control")
+
+[node name="Wall7" type="CSGBox3D" parent="Shell"]
+position = Vector3(-14, 2, 12.125)
+size = Vector3(0.5, 4, 16.25)
+material = ExtResource("2_wall_control")
+
+[node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(-14, 2, 12.125)
+occluder = SubResource("BoxOccluder3D_3")
+
+[node name="Door" parent="." instance=ExtResource("4_door")]
+position = Vector3(-14, 0, 3)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Wall8" type="CSGBox3D" parent="Shell"]
+position = Vector3(10, 2, 0.875)
+size = Vector3(0.5, 4, 2.25)
+material = ExtResource("2_wall_control")
+
+[node name="Wall9" type="CSGBox3D" parent="Shell"]
+position = Vector3(10, 3.3, 3)
+size = Vector3(0.5, 1.4, 2)
+material = ExtResource("2_wall_control")
+
+[node name="Wall10" type="CSGBox3D" parent="Shell"]
+position = Vector3(10, 2, 12.125)
+size = Vector3(0.5, 4, 16.25)
+material = ExtResource("2_wall_control")
+
+[node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(10, 2, 12.125)
+occluder = SubResource("BoxOccluder3D_4")
+
+[node name="Door2" parent="." instance=ExtResource("4_door")]
+position = Vector3(10, 0, 3)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Desk" type="CSGBox3D" parent="Shell"]
+position = Vector3(-6, 0.4, 6)
+size = Vector3(6, 0.8, 1)
+material = ExtResource("5_prop_metal")
+
+[node name="Desk2" type="CSGBox3D" parent="Shell"]
+position = Vector3(4, 0.4, 6)
+size = Vector3(6, 0.8, 1)
+material = ExtResource("5_prop_metal")
+
+[node name="CctvDesk" type="CSGBox3D" parent="Shell"]
+position = Vector3(-1, 0.4, 17.2)
+size = Vector3(8, 0.8, 0.8)
+material = ExtResource("5_prop_metal")
+
+[node name="CctvConsole" parent="." instance=ExtResource("6_cctvconsole")]
+position = Vector3(-1, 0, 15.6)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="CctvScreen1" type="Node3D" parent="."]
+position = Vector3(-5, 2, 19.7)
+rotation = Vector3(0, 3.1416, 0)
+script = ExtResource("7_cctv_screen")
+cameras = Array[int]([1, 2, 3, 4])
+size = Vector2(2.6, 1.46)
+
+[node name="CctvScreen2" type="Node3D" parent="."]
+position = Vector3(3, 2, 19.7)
+rotation = Vector3(0, 3.1416, 0)
+script = ExtResource("7_cctv_screen")
+cameras = Array[int]([5, 6, 7, 8])
+size = Vector2(2.6, 1.46)
+
+[node name="StatusBoard" type="Node3D" parent="."]
+position = Vector3(-13.7, 2.1, 12)
+rotation = Vector3(0, 1.5708, 0)
+script = ExtResource("8_status_board")
+size = Vector2(4.8, 2.7)
+
+[node name="ConsolesM6" type="Marker3D" parent="."]
+position = Vector3(-2, 0, 6.5)
+
+[node name="AlarmBeacon" parent="." instance=ExtResource("9_alarmbeacon")]
+position = Vector3(-2, 3.7, 1)
+
+[node name="AlarmBeacon2" parent="." instance=ExtResource("9_alarmbeacon")]
+position = Vector3(-2, 3.7, 18.5)
+
+[node name="Sign" type="Label3D" parent="."]
+position = Vector3(-2, 3.3, 10)
+billboard = 1
+text = "CONTROL ROOM"
+font_size = 90
+outline_size = 18

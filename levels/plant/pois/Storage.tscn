@@ -1,0 +1,188 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_storage.tres" id="2_wall_storage"]
+[ext_resource type="Material" path="res://levels/plant/materials/floor_storage.tres" id="3_floor_storag"]
+[ext_resource type="Material" path="res://levels/plant/materials/prop_metal.tres" id="4_prop_metal"]
+[ext_resource type="Material" path="res://levels/plant/materials/prop_crate.tres" id="5_prop_crate"]
+[ext_resource type="Script" path="res://interactables/pickup/pickup.gd" id="6_pickup"]
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
+size = Vector3(18.5, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_2"]
+size = Vector3(7.75, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_3"]
+size = Vector3(7.75, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
+size = Vector3(0.24, 4, 6.55)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_5"]
+size = Vector3(0.24, 4, 5.9)
+
+[node name="Storage" type="Node3D"]
+script = ExtResource("1_poi")
+display_name = "Storage"
+bounds = Array[AABB]([AABB(34, -1, -20, 18, 5, 14)])
+
+[node name="Shell" type="CSGCombiner3D" parent="."]
+use_collision = true
+
+[node name="FloorST" type="CSGBox3D" parent="Shell"]
+position = Vector3(43, -0.25, -13)
+size = Vector3(18, 0.5, 14)
+material = ExtResource("3_floor_storag")
+
+[node name="CeilingST" type="CSGBox3D" parent="Shell"]
+position = Vector3(43, 4.15, -13)
+size = Vector3(18, 0.3, 14)
+material = ExtResource("2_wall_storage")
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Light" type="OmniLight3D" parent="Lights"]
+position = Vector3(38.5, 3.4, -13)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Light2" type="OmniLight3D" parent="Lights"]
+position = Vector3(47.5, 3.4, -13)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Wall" type="CSGBox3D" parent="Shell"]
+position = Vector3(43, 2, -20)
+size = Vector3(18.5, 4, 0.5)
+material = ExtResource("2_wall_storage")
+
+[node name="Occluders" type="Node3D" parent="."]
+
+[node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(43, 2, -20)
+occluder = SubResource("BoxOccluder3D_1")
+
+[node name="Wall2" type="CSGBox3D" parent="Shell"]
+position = Vector3(37.625, 2, -6)
+size = Vector3(7.75, 4, 0.5)
+material = ExtResource("2_wall_storage")
+
+[node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(37.625, 2, -6)
+occluder = SubResource("BoxOccluder3D_2")
+
+[node name="Wall3" type="CSGBox3D" parent="Shell"]
+position = Vector3(43, 3.5, -6)
+size = Vector3(3, 1, 0.5)
+material = ExtResource("2_wall_storage")
+
+[node name="Wall4" type="CSGBox3D" parent="Shell"]
+position = Vector3(48.375, 2, -6)
+size = Vector3(7.75, 4, 0.5)
+material = ExtResource("2_wall_storage")
+
+[node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(48.375, 2, -6)
+occluder = SubResource("BoxOccluder3D_3")
+
+[node name="Wall5" type="CSGBox3D" parent="Shell"]
+position = Vector3(52, 2, -19.925)
+size = Vector3(0.5, 4, 0.65)
+material = ExtResource("2_wall_storage")
+
+[node name="Wall6" type="CSGBox3D" parent="Shell"]
+position = Vector3(52, 2.3, -19.25)
+size = Vector3(0.5, 3.4, 0.7)
+material = ExtResource("2_wall_storage")
+
+[node name="Wall7" type="CSGBox3D" parent="Shell"]
+position = Vector3(52, 2, -15.625)
+size = Vector3(0.5, 4, 6.55)
+material = ExtResource("2_wall_storage")
+
+[node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(52, 2, -15.625)
+occluder = SubResource("BoxOccluder3D_4")
+
+[node name="Wall8" type="CSGBox3D" parent="Shell"]
+position = Vector3(52, 2.3, -12)
+size = Vector3(0.5, 3.4, 0.7)
+material = ExtResource("2_wall_storage")
+
+[node name="Wall9" type="CSGBox3D" parent="Shell"]
+position = Vector3(52, 2, -8.7)
+size = Vector3(0.5, 4, 5.9)
+material = ExtResource("2_wall_storage")
+
+[node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(52, 2, -8.7)
+occluder = SubResource("BoxOccluder3D_5")
+
+[node name="VentSill" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.125, -0.25, -19.25)
+size = Vector3(0.25, 0.5, 0.7)
+material = ExtResource("3_floor_storag")
+
+[node name="VentSill2" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.125, -0.25, -12)
+size = Vector3(0.25, 0.5, 0.7)
+material = ExtResource("3_floor_storag")
+
+[node name="Shelf" type="CSGBox3D" parent="Shell"]
+position = Vector3(42, 1.2, -16)
+size = Vector3(6, 2.4, 1)
+material = ExtResource("4_prop_metal")
+
+[node name="Shelf2" type="CSGBox3D" parent="Shell"]
+position = Vector3(48.5, 1.2, -16)
+size = Vector3(4, 2.4, 1)
+material = ExtResource("4_prop_metal")
+
+[node name="Crate" type="CSGBox3D" parent="Shell"]
+position = Vector3(45.75, 0.6, -16)
+size = Vector3(1.1, 1.2, 1.2)
+material = ExtResource("5_prop_crate")
+
+[node name="Shelf3" type="CSGBox3D" parent="Shell"]
+position = Vector3(42, 1.2, -11)
+size = Vector3(6, 2.4, 1)
+material = ExtResource("4_prop_metal")
+
+[node name="Shelf4" type="CSGBox3D" parent="Shell"]
+position = Vector3(48.5, 1.2, -11)
+size = Vector3(4, 2.4, 1)
+material = ExtResource("4_prop_metal")
+
+[node name="Crate2" type="CSGBox3D" parent="Shell"]
+position = Vector3(45.75, 0.6, -11)
+size = Vector3(1.1, 1.2, 1.2)
+material = ExtResource("5_prop_crate")
+
+[node name="TrapRefill" type="Area3D" parent="."]
+position = Vector3(35, 0.2, -16.5)
+rotation = Vector3(0, 1.5708, 0)
+script = ExtResource("6_pickup")
+item = "trap_refill"
+
+[node name="SpareKeycard" type="Area3D" parent="."]
+position = Vector3(35, 0.45, -13.5)
+rotation = Vector3(0, 1.5708, 0)
+script = ExtResource("6_pickup")
+item = "spare_keycard"
+
+[node name="PickupTable" type="CSGBox3D" parent="Shell"]
+position = Vector3(34.625, 0.125, -15)
+size = Vector3(0.75, 0.25, 6)
+material = ExtResource("5_prop_crate")
+
+[node name="Sign" type="Label3D" parent="."]
+position = Vector3(43, 3.2, -8.5)
+billboard = 1
+text = "STORAGE"
+font_size = 90
+outline_size = 18

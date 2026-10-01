@@ -1,0 +1,13 @@
+{
+  "image": "plant_layout_v1.png",
+  "px_per_m": 10,
+  "world_min": [
+    -58,
+    -42
+  ],
+  "world_max": [
+    58,
+    44
+  ],
+  "note": "pixel = (x - world_min[0], z - world_min[1]) * px_per_m; +x right, +z down (north up)"
+}

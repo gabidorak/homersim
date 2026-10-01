@@ -1,0 +1,247 @@
+[gd_scene load_steps=36 format=3]
+
+[ext_resource type="PackedScene" path="res://levels/plant/pois/Yard.tscn" id="1_yard"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/Substation.tscn" id="2_substation"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/VentRoof.tscn" id="3_ventroof"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/PumpHouse.tscn" id="4_pumphouse"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/ValveCorridor.tscn" id="5_valvecorrido"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/ReactorHall.tscn" id="6_reactorhall"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/TurbineHall.tscn" id="7_turbinehall"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/Storage.tscn" id="8_storage"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/CageRoom.tscn" id="9_cageroom"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/ControlRoom.tscn" id="10_controlroom"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/BreakRoom.tscn" id="11_breakroom"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/LockerRoom.tscn" id="12_lockerroom"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/Corridors.tscn" id="13_corridors"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/RatNest.tscn" id="14_ratnest"]
+[ext_resource type="PackedScene" path="res://levels/plant/pois/VentNetwork.tscn" id="15_ventnetwork"]
+[ext_resource type="Script" path="res://levels/out_of_bounds.gd" id="16_out_of_bound"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.02, 0.03, 0.08, 1)
+sky_horizon_color = Color(0.1, 0.12, 0.2, 1)
+ground_bottom_color = Color(0.02, 0.02, 0.03, 1)
+ground_horizon_color = Color(0.1, 0.12, 0.2, 1)
+sun_angle_max = 1
+
+[sub_resource type="Sky" id="Sky_2"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_3"]
+background_mode = 2
+sky = SubResource("Sky_2")
+ambient_light_source = 2
+ambient_light_color = Color(0.55, 0.6, 0.75, 1)
+ambient_light_energy = 0.45
+tonemap_mode = 2
+glow_enabled = true
+glow_bloom = 0.1
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_4"]
+size = Vector3(300, 52, 300)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5"]
+size = Vector3(106, 45, 31.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6"]
+size = Vector3(26.7, 45, 18.3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(24, 11.65, 20)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8"]
+size = Vector3(24, 11.65, 14)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_9"]
+size = Vector3(24, 11.65, 14)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_10"]
+size = Vector3(14, 11.65, 14)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_11"]
+size = Vector3(14, 11.65, 32)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_12"]
+size = Vector3(18, 11.65, 14)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_13"]
+size = Vector3(18, 11.65, 26)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_14"]
+size = Vector3(24, 11.65, 6)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_15"]
+size = Vector3(24, 11.65, 6)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_16"]
+size = Vector3(90, 11.65, 6)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_17"]
+size = Vector3(28, 11.65, 20)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_18"]
+size = Vector3(44, 11.65, 20)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_19"]
+size = Vector3(12, 11.65, 10)
+
+[node name="Plant" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_3")
+
+[node name="Moon" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.8727, 0.5236, 0)
+light_color = Color(0.6, 0.7, 1, 1)
+light_energy = 0.25
+sky_mode = 1
+
+[node name="POIs" type="Node3D" parent="."]
+
+[node name="Yard" parent="POIs" instance=ExtResource("1_yard")]
+
+[node name="Substation" parent="POIs" instance=ExtResource("2_substation")]
+
+[node name="VentRoof" parent="POIs" instance=ExtResource("3_ventroof")]
+
+[node name="PumpHouse" parent="POIs" instance=ExtResource("4_pumphouse")]
+
+[node name="ValveCorridor" parent="POIs" instance=ExtResource("5_valvecorrido")]
+
+[node name="ReactorHall" parent="POIs" instance=ExtResource("6_reactorhall")]
+
+[node name="TurbineHall" parent="POIs" instance=ExtResource("7_turbinehall")]
+
+[node name="Storage" parent="POIs" instance=ExtResource("8_storage")]
+
+[node name="CageRoom" parent="POIs" instance=ExtResource("9_cageroom")]
+
+[node name="ControlRoom" parent="POIs" instance=ExtResource("10_controlroom")]
+
+[node name="BreakRoom" parent="POIs" instance=ExtResource("11_breakroom")]
+
+[node name="LockerRoom" parent="POIs" instance=ExtResource("12_lockerroom")]
+
+[node name="Corridors" parent="POIs" instance=ExtResource("13_corridors")]
+
+[node name="RatNest" parent="POIs" instance=ExtResource("14_ratnest")]
+
+[node name="VentNetwork" parent="POIs" instance=ExtResource("15_ventnetwork")]
+
+[node name="OutOfBounds" type="Node3D" parent="."]
+
+[node name="Below" type="Area3D" parent="OutOfBounds"]
+position = Vector3(0, -34, 0)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/Below"]
+shape = SubResource("BoxShape3D_4")
+
+[node name="BeyondYardNorth" type="Area3D" parent="OutOfBounds"]
+position = Vector3(-27, 17.5, -54.15)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/BeyondYardNorth"]
+shape = SubResource("BoxShape3D_5")
+
+[node name="BeyondYardWest" type="Area3D" parent="OutOfBounds"]
+position = Vector3(-66.65, 17.5, -29.15)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/BeyondYardWest"]
+shape = SubResource("BoxShape3D_6")
+
+[node name="RoofCR" type="Area3D" parent="OutOfBounds"]
+position = Vector3(-2, 10.175, 10)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofCR"]
+shape = SubResource("BoxShape3D_7")
+
+[node name="RoofBR" type="Area3D" parent="OutOfBounds"]
+position = Vector3(-26, 10.175, 13)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofBR"]
+shape = SubResource("BoxShape3D_8")
+
+[node name="RoofLR" type="Area3D" parent="OutOfBounds"]
+position = Vector3(22, 10.175, 13)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofLR"]
+shape = SubResource("BoxShape3D_9")
+
+[node name="RoofPH" type="Area3D" parent="OutOfBounds"]
+position = Vector3(-45, 10.175, -13)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofPH"]
+shape = SubResource("BoxShape3D_10")
+
+[node name="RoofVC" type="Area3D" parent="OutOfBounds"]
+position = Vector3(-45, 10.175, 10)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofVC"]
+shape = SubResource("BoxShape3D_11")
+
+[node name="RoofST" type="Area3D" parent="OutOfBounds"]
+position = Vector3(43, 10.175, -13)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofST"]
+shape = SubResource("BoxShape3D_12")
+
+[node name="RoofCG" type="Area3D" parent="OutOfBounds"]
+position = Vector3(43, 10.175, 7)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofCG"]
+shape = SubResource("BoxShape3D_13")
+
+[node name="RoofMHW" type="Area3D" parent="OutOfBounds"]
+position = Vector3(-26, 10.175, 3)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofMHW"]
+shape = SubResource("BoxShape3D_14")
+
+[node name="RoofMHE" type="Area3D" parent="OutOfBounds"]
+position = Vector3(22, 10.175, 3)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofMHE"]
+shape = SubResource("BoxShape3D_15")
+
+[node name="RoofCS" type="Area3D" parent="OutOfBounds"]
+position = Vector3(7, 10.175, 23)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofCS"]
+shape = SubResource("BoxShape3D_16")
+
+[node name="RoofRH" type="Area3D" parent="OutOfBounds"]
+position = Vector3(-24, 16.175, -10)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofRH"]
+shape = SubResource("BoxShape3D_17")
+
+[node name="RoofTH" type="Area3D" parent="OutOfBounds"]
+position = Vector3(12, 14.175, -10)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofTH"]
+shape = SubResource("BoxShape3D_18")
+
+[node name="RoofNEST" type="Area3D" parent="OutOfBounds"]
+position = Vector3(-30, 9.175, 35)
+script = ExtResource("16_out_of_bound")
+
+[node name="Shape" type="CollisionShape3D" parent="OutOfBounds/RoofNEST"]
+shape = SubResource("BoxShape3D_19")
+
+[node name="OverviewPoint" type="Marker3D" parent="." groups=["overview_point"]]
+position = Vector3(6, 48, 62)
+rotation = Vector3(-0.6414, 0.0935, 0)

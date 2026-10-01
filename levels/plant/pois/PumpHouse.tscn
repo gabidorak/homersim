@@ -1,0 +1,209 @@
+[gd_scene load_steps=17 format=3]
+
+[ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_pumphouse.tres" id="2_wall_pumphou"]
+[ext_resource type="Material" path="res://levels/plant/materials/floor_pumphouse.tres" id="3_floor_pumpho"]
+[ext_resource type="Material" path="res://levels/plant/materials/prop_machine.tres" id="4_prop_machine"]
+[ext_resource type="Script" path="res://levels/station_label.gd" id="5_station_labe"]
+[ext_resource type="PackedScene" path="res://interactables/repair_point/RepairPoint.tscn" id="6_repairpoint"]
+[ext_resource type="PackedScene" path="res://interactables/sabotage_point/SabotagePoint.tscn" id="7_sabotagepoin"]
+[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="8_cctvcamera"]
+[ext_resource type="Material" path="res://levels/plant/materials/prop_pipe.tres" id="9_prop_pipe"]
+[ext_resource type="Material" path="res://levels/plant/materials/prop_crate.tres" id="10_prop_crate"]
+[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="11_alarmbeacon"]
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
+size = Vector3(14.5, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_2"]
+size = Vector3(5.75, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_3"]
+size = Vector3(5.75, 4, 0.24)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
+size = Vector3(0.24, 4, 6.55)
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_5"]
+size = Vector3(0.24, 4, 5.9)
+
+[node name="PumpHouse" type="Node3D"]
+script = ExtResource("1_poi")
+display_name = "Pump House"
+bounds = Array[AABB]([AABB(-52, -1, -20, 14, 5, 14)])
+
+[node name="Shell" type="CSGCombiner3D" parent="."]
+use_collision = true
+
+[node name="FloorPH" type="CSGBox3D" parent="Shell"]
+position = Vector3(-45, -0.25, -13)
+size = Vector3(14, 0.5, 14)
+material = ExtResource("3_floor_pumpho")
+
+[node name="CeilingPH" type="CSGBox3D" parent="Shell"]
+position = Vector3(-45, 4.15, -13)
+size = Vector3(14, 0.3, 14)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Light" type="OmniLight3D" parent="Lights"]
+position = Vector3(-45, 3.4, -13)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.9
+omni_range = 8.8
+omni_attenuation = 0.8
+
+[node name="Wall" type="CSGBox3D" parent="Shell"]
+position = Vector3(-45, 2, -20)
+size = Vector3(14.5, 4, 0.5)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Occluders" type="Node3D" parent="."]
+
+[node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(-45, 2, -20)
+occluder = SubResource("BoxOccluder3D_1")
+
+[node name="Wall2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-49.375, 2, -6)
+size = Vector3(5.75, 4, 0.5)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(-49.375, 2, -6)
+occluder = SubResource("BoxOccluder3D_2")
+
+[node name="Wall3" type="CSGBox3D" parent="Shell"]
+position = Vector3(-45, 3.5, -6)
+size = Vector3(3, 1, 0.5)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Wall4" type="CSGBox3D" parent="Shell"]
+position = Vector3(-40.625, 2, -6)
+size = Vector3(5.75, 4, 0.5)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(-40.625, 2, -6)
+occluder = SubResource("BoxOccluder3D_3")
+
+[node name="Wall5" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52, 2, -19.925)
+size = Vector3(0.5, 4, 0.65)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Wall6" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52, 2.3, -19.25)
+size = Vector3(0.5, 3.4, 0.7)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Wall7" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52, 2, -15.625)
+size = Vector3(0.5, 4, 6.55)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(-52, 2, -15.625)
+occluder = SubResource("BoxOccluder3D_4")
+
+[node name="Wall8" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52, 2.3, -12)
+size = Vector3(0.5, 3.4, 0.7)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Wall9" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52, 2, -8.7)
+size = Vector3(0.5, 4, 5.9)
+material = ExtResource("2_wall_pumphou")
+
+[node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
+position = Vector3(-52, 2, -8.7)
+occluder = SubResource("BoxOccluder3D_5")
+
+[node name="VentSill" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.125, -0.25, -19.25)
+size = Vector3(0.25, 0.5, 0.7)
+material = ExtResource("3_floor_pumpho")
+
+[node name="VentSill2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.125, -0.25, -12)
+size = Vector3(0.25, 0.5, 0.7)
+material = ExtResource("3_floor_pumpho")
+
+[node name="CoolantPumps" type="Node3D" parent="."]
+position = Vector3(-45, 0, -12)
+rotation = Vector3(0, 0, 0)
+
+[node name="Machine" type="CSGBox3D" parent="CoolantPumps"]
+position = Vector3(0, 0.8, 0)
+size = Vector3(2, 1.6, 2)
+material = ExtResource("4_prop_machine")
+use_collision = true
+
+[node name="Label" type="Label3D" parent="CoolantPumps"]
+position = Vector3(0, 2.3, 0)
+billboard = 1
+font_size = 56
+outline_size = 12
+text = "pumps"
+script = ExtResource("5_station_labe")
+subsystem_id = &"pumps"
+
+[node name="RepairPoint" parent="CoolantPumps" instance=ExtResource("6_repairpoint")]
+position = Vector3(0, 1, 1.3)
+subsystem_id = &"pumps"
+
+[node name="SabotageA" parent="CoolantPumps" instance=ExtResource("7_sabotagepoin")]
+position = Vector3(-1.3, 0.3, 0)
+rotation = Vector3(0, -1.5708, 0)
+subsystem_id = &"pumps"
+
+[node name="SabotageB" parent="CoolantPumps" instance=ExtResource("7_sabotagepoin")]
+position = Vector3(1.3, 0.3, 0)
+rotation = Vector3(0, 1.5708, 0)
+subsystem_id = &"pumps"
+
+[node name="Camera3" parent="." instance=ExtResource("8_cctvcamera")]
+position = Vector3(-40, 0.4, -6.6)
+rotation = Vector3(0, 3.1416, 0)
+number = 3
+label = "Pump House"
+lens_height = 3
+lens_pitch_deg = 30
+lens_yaw_deg = 40
+
+[node name="Pump" type="CSGBox3D" parent="Shell"]
+position = Vector3(-49.75, 0.8, -15.25)
+size = Vector3(2.5, 1.6, 2.5)
+material = ExtResource("9_prop_pipe")
+
+[node name="Pump2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-49.75, 0.8, -9.75)
+size = Vector3(2.5, 1.6, 2.5)
+material = ExtResource("9_prop_pipe")
+
+[node name="PipeHigh" type="CSGBox3D" parent="Shell"]
+position = Vector3(-40.2, 2.2, -12.75)
+size = Vector3(0.6, 0.6, 10.5)
+material = ExtResource("9_prop_pipe")
+
+[node name="PipeHigh2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-45.75, 2.2, -7.1)
+size = Vector3(10.5, 0.6, 0.6)
+material = ExtResource("9_prop_pipe")
+
+[node name="Crate" type="CSGBox3D" parent="Shell"]
+position = Vector3(-41, 0.5, -8.9)
+size = Vector3(1.2, 1, 1.2)
+material = ExtResource("10_prop_crate")
+
+[node name="AlarmBeacon" parent="." instance=ExtResource("11_alarmbeacon")]
+position = Vector3(-45, 3.7, -7)
+
+[node name="Sign" type="Label3D" parent="."]
+position = Vector3(-45, 3.2, -14)
+billboard = 1
+text = "PUMP HOUSE"
+font_size = 90
+outline_size = 18

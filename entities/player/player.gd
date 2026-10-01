@@ -149,6 +149,11 @@ func max_speed() -> float:
 	return base * status.speed_multiplier() * inventory.speed_multiplier()
 
 
+## The CCTV chair we sit at, or null (while seated: no moving, interacting or abilities).
+func seated_console() -> CctvConsole:
+	return CctvConsole.of_peer(get_tree(), peer_id)
+
+
 ## The carrier's HandSocket while we are carried, else null.
 func carried_anchor() -> Node3D:
 	if status.carrier == 0 or not status.has(StatusComponent.Status.CARRIED):

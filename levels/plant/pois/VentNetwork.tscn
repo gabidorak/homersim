@@ -1,0 +1,1084 @@
+[gd_scene load_steps=52 format=3]
+
+[ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_ventnetwork.tres" id="2_wall_ventnet"]
+[ext_resource type="Material" path="res://levels/plant/materials/floor_ventnetwork.tres" id="3_floor_ventne"]
+[ext_resource type="Material" path="res://levels/plant/materials/duct.tres" id="4_duct"]
+[ext_resource type="Script" path="res://interactables/vent/vent_volume.gd" id="5_vent_volume"]
+[ext_resource type="Script" path="res://interactables/ladder/ladder.gd" id="6_ladder"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(7.9357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_4"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_9"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_10"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_11"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_12"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_13"]
+size = Vector3(7.6357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_14"]
+size = Vector3(7.9357, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_15"]
+size = Vector3(0.7, 0.6, 7.5563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_16"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_17"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_18"]
+size = Vector3(0.7, 0.6, 7.2562)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_19"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_20"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_21"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_22"]
+size = Vector3(0.7, 0.6, 7.5563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_23"]
+size = Vector3(0.7, 0.6, 7.5563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_24"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_25"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_26"]
+size = Vector3(0.7, 0.6, 7.2562)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_27"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_28"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_29"]
+size = Vector3(0.7, 0.6, 7.2563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_30"]
+size = Vector3(0.7, 0.6, 7.5563)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_31"]
+size = Vector3(0.7, 0.6, 3.1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_32"]
+size = Vector3(6.9833, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_33"]
+size = Vector3(6.6833, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_34"]
+size = Vector3(6.5333, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_35"]
+size = Vector3(7.15, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_36"]
+size = Vector3(6.85, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_37"]
+size = Vector3(6.85, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_38"]
+size = Vector3(6.85, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_39"]
+size = Vector3(6.7, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_40"]
+size = Vector3(1.7, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_41"]
+size = Vector3(3.75, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_42"]
+size = Vector3(0.7, 0.6, 8.25)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_43"]
+size = Vector3(0.7, 6.75, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_44"]
+size = Vector3(6.261, 0.6, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_45"]
+size = Vector3(0.7, 6.5, 0.7)
+
+[node name="VentNetwork" type="Node3D"]
+script = ExtResource("1_poi")
+display_name = "Vents"
+bounds = Array[AABB]([])
+
+[node name="Shell" type="CSGCombiner3D" parent="."]
+use_collision = true
+
+[node name="SouthLine1" type="CSGBox3D" parent="Shell"]
+position = Vector3(-49.2071, 0.3, 26.75)
+size = Vector3(8.0857, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-41.4464, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine3" type="CSGBox3D" parent="Shell"]
+position = Vector3(-33.9107, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine4" type="CSGBox3D" parent="Shell"]
+position = Vector3(-26.375, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine5" type="CSGBox3D" parent="Shell"]
+position = Vector3(-18.8393, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine6" type="CSGBox3D" parent="Shell"]
+position = Vector3(-11.3036, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine7" type="CSGBox3D" parent="Shell"]
+position = Vector3(-3.7679, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine8" type="CSGBox3D" parent="Shell"]
+position = Vector3(3.7679, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine9" type="CSGBox3D" parent="Shell"]
+position = Vector3(11.3036, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine10" type="CSGBox3D" parent="Shell"]
+position = Vector3(18.8393, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine11" type="CSGBox3D" parent="Shell"]
+position = Vector3(26.375, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine12" type="CSGBox3D" parent="Shell"]
+position = Vector3(33.9107, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine13" type="CSGBox3D" parent="Shell"]
+position = Vector3(41.4464, 0.3, 26.75)
+size = Vector3(7.6357, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine14" type="CSGBox3D" parent="Shell"]
+position = Vector3(49.2071, 0.3, 26.75)
+size = Vector3(8.0857, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="WestLine1" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, 23.3969)
+size = Vector3(1, 0.9, 7.7063)
+material = ExtResource("4_duct")
+
+[node name="WestLine2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, 16.0156)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="WestLine3" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, 8.8594)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="WestLine4" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, 1.7031)
+size = Vector3(1, 0.9, 7.2562)
+material = ExtResource("4_duct")
+
+[node name="WestLine5" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, -5.4531)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="WestLine6" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, -12.6094)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="WestLine7" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, -19.7656)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="WestLine8" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, -27.1469)
+size = Vector3(1, 0.9, 7.7063)
+material = ExtResource("4_duct")
+
+[node name="EastLine1" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, 23.3969)
+size = Vector3(1, 0.9, 7.7063)
+material = ExtResource("4_duct")
+
+[node name="EastLine2" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, 16.0156)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="EastLine3" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, 8.8594)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="EastLine4" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, 1.7031)
+size = Vector3(1, 0.9, 7.2562)
+material = ExtResource("4_duct")
+
+[node name="EastLine5" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, -5.4531)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="EastLine6" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, -12.6094)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="EastLine7" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, -19.7656)
+size = Vector3(1, 0.9, 7.2563)
+material = ExtResource("4_duct")
+
+[node name="EastLine8" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, -27.1469)
+size = Vector3(1, 0.9, 7.7063)
+material = ExtResource("4_duct")
+
+[node name="NestExit" type="CSGBox3D" parent="Shell"]
+position = Vector3(-30, 0.3, 28)
+size = Vector3(1, 0.9, 3.5)
+material = ExtResource("4_duct")
+
+[node name="PumpBranch1" type="CSGBox3D" parent="Shell"]
+position = Vector3(-49.6833, 0.3, -19.25)
+size = Vector3(7.1333, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="PumpBranch2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-42.875, 0.3, -19.25)
+size = Vector3(6.6833, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="PumpBranch3" type="CSGBox3D" parent="Shell"]
+position = Vector3(-36.3167, 0.3, -19.25)
+size = Vector3(6.6333, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="StorageBranch1" type="CSGBox3D" parent="Shell"]
+position = Vector3(49.6, 0.3, -19.25)
+size = Vector3(7.3, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="StorageBranch2" type="CSGBox3D" parent="Shell"]
+position = Vector3(42.625, 0.3, -19.25)
+size = Vector3(6.85, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="StorageBranch3" type="CSGBox3D" parent="Shell"]
+position = Vector3(35.875, 0.3, -19.25)
+size = Vector3(6.85, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="StorageBranch4" type="CSGBox3D" parent="Shell"]
+position = Vector3(29.125, 0.3, -19.25)
+size = Vector3(6.85, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="StorageBranch5" type="CSGBox3D" parent="Shell"]
+position = Vector3(22.4, 0.3, -19.25)
+size = Vector3(6.8, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="RiserFoot" type="CSGBox3D" parent="Shell"]
+position = Vector3(7.775, 0.3, 27.75)
+size = Vector3(2.15, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="RiserTop" type="CSGBox3D" parent="Shell"]
+position = Vector3(-0.4, 3.1, 27.75)
+size = Vector3(4.2, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="ControlDrop" type="CSGBox3D" parent="Shell"]
+position = Vector3(-2, 3.1, 24)
+size = Vector3(1, 0.9, 8.5)
+material = ExtResource("4_duct")
+
+[node name="Shaft" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 3.375, -30.5)
+size = Vector3(1, 7.05, 1)
+material = ExtResource("4_duct")
+
+[node name="RiserRamp" type="CSGBox3D" parent="Shell"]
+position = Vector3(4.3342, 1.6683, 27.75)
+rotation = Vector3(0, 0, -0.4636)
+size = Vector3(6.561, 0.9, 1)
+material = ExtResource("4_duct")
+
+[node name="SouthLine1Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-49.1321, 0.3, 26.75)
+size = Vector3(7.9357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine2Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-41.4464, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine3Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-33.9107, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine4Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-26.375, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine5Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-18.8393, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine6Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-11.3036, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine7Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-3.7679, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine8Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(3.7679, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine9Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(11.3036, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine10Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(18.8393, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine11Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(26.375, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine12Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(33.9107, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine13Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(41.4464, 0.3, 26.75)
+size = Vector3(7.6357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="SouthLine14Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(49.1321, 0.3, 26.75)
+size = Vector3(7.9357, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="WestLine1Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, 23.3219)
+size = Vector3(0.7, 0.6, 7.5563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="WestLine2Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, 16.0156)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="WestLine3Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, 8.8594)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="WestLine4Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, 1.7031)
+size = Vector3(0.7, 0.6, 7.2562)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="WestLine5Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, -5.4531)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="WestLine6Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, -12.6094)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="WestLine7Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, -19.7656)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="WestLine8Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.75, 0.3, -27.0719)
+size = Vector3(0.7, 0.6, 7.5563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="EastLine1Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, 23.3219)
+size = Vector3(0.7, 0.6, 7.5563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="EastLine2Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, 16.0156)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="EastLine3Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, 8.8594)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="EastLine4Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, 1.7031)
+size = Vector3(0.7, 0.6, 7.2562)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="EastLine5Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, -5.4531)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="EastLine6Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, -12.6094)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="EastLine7Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, -19.7656)
+size = Vector3(0.7, 0.6, 7.2563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="EastLine8Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 0.3, -27.0719)
+size = Vector3(0.7, 0.6, 7.5563)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="NestExitInside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-30, 0.3, 28)
+size = Vector3(0.7, 0.6, 4.5)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="PumpBranch1Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-49.6083, 0.3, -19.25)
+size = Vector3(6.9833, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="PumpBranch2Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-42.875, 0.3, -19.25)
+size = Vector3(6.6833, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="PumpBranch3Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-36.1667, 0.3, -19.25)
+size = Vector3(6.9333, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="StorageBranch1Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(49.525, 0.3, -19.25)
+size = Vector3(7.15, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="StorageBranch2Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(42.625, 0.3, -19.25)
+size = Vector3(6.85, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="StorageBranch3Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(35.875, 0.3, -19.25)
+size = Vector3(6.85, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="StorageBranch4Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(29.125, 0.3, -19.25)
+size = Vector3(6.85, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="StorageBranch5Inside" type="CSGBox3D" parent="Shell"]
+position = Vector3(22.25, 0.3, -19.25)
+size = Vector3(7.1, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="RiserFootInside" type="CSGBox3D" parent="Shell"]
+position = Vector3(7.85, 0.3, 27.75)
+size = Vector3(1.7, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="RiserTopInside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-0.475, 3.1, 27.75)
+size = Vector3(3.75, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="ControlDropInside" type="CSGBox3D" parent="Shell"]
+position = Vector3(-2, 3.1, 23.8)
+size = Vector3(0.7, 0.6, 8.6)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="ShaftInside" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.75, 3.375, -30.5)
+size = Vector3(0.7, 6.75, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="ShaftExitInside" type="CSGBox3D" parent="Shell"]
+position = Vector3(51.975, 6.375, -30.5)
+size = Vector3(0.95, 0.75, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="RiserRampInside" type="CSGBox3D" parent="Shell"]
+position = Vector3(4.3342, 1.6683, 27.75)
+rotation = Vector3(0, 0, -0.4636)
+size = Vector3(6.761, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.4, 0.3, -30)
+size = Vector3(0.5, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille2" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.4, 0.3, -12)
+size = Vector3(0.5, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille3" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.4, 0.3, 2)
+size = Vector3(0.5, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille4" type="CSGBox3D" parent="Shell"]
+position = Vector3(-52.4, 0.3, 20)
+size = Vector3(0.5, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille5" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.4, 0.3, -12)
+size = Vector3(0.5, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille6" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.4, 0.3, -2)
+size = Vector3(0.5, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille7" type="CSGBox3D" parent="Shell"]
+position = Vector3(52.4, 0.3, 14)
+size = Vector3(0.5, 0.6, 0.7)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille8" type="CSGBox3D" parent="Shell"]
+position = Vector3(6, 0.3, 26.4)
+size = Vector3(0.7, 0.6, 0.5)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille9" type="CSGBox3D" parent="Shell"]
+position = Vector3(40, 0.3, 26.4)
+size = Vector3(0.7, 0.6, 0.5)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="Grille10" type="CSGBox3D" parent="Shell"]
+position = Vector3(8, 0.3, 27.25)
+size = Vector3(0.7, 0.6, 0.5)
+material = ExtResource("4_duct")
+operation = 2
+
+[node name="VentExits" type="Node3D" parent="."]
+
+[node name="VentExit" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(-51.2, 0, -30)
+
+[node name="VentExit2" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(-51.2, 0, -19.25)
+
+[node name="VentExit3" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(-51.2, 0, -12)
+
+[node name="VentExit4" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(-51.2, 0, 2)
+
+[node name="VentExit5" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(-51.2, 0, 20)
+
+[node name="VentExit6" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(51.2, 0, -19.25)
+
+[node name="VentExit7" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(51.2, 0, -12)
+
+[node name="VentExit8" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(51.2, 0, -2)
+
+[node name="VentExit9" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(51.2, 0, 14)
+
+[node name="VentExit10" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(-30, 0, 25.2)
+
+[node name="VentExit11" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(6, 0, 25.2)
+
+[node name="VentExit12" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(40, 0, 25.2)
+
+[node name="VentExit13" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(-32, 0, -19.25)
+
+[node name="VentExit14" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(18, 0, -19.25)
+
+[node name="VentExit15" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(-2, 0, 18.75)
+
+[node name="VentExit16" type="Marker3D" parent="VentExits" groups=["vent_exits"]]
+position = Vector3(51.15, 6, -30.5)
+
+[node name="VentVolumes" type="Node3D" parent="."]
+
+[node name="SouthLine1" type="Area3D" parent="VentVolumes"]
+position = Vector3(-49.1321, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine1"]
+shape = SubResource("BoxShape3D_1")
+
+[node name="SouthLine2" type="Area3D" parent="VentVolumes"]
+position = Vector3(-41.4464, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine2"]
+shape = SubResource("BoxShape3D_2")
+
+[node name="SouthLine3" type="Area3D" parent="VentVolumes"]
+position = Vector3(-33.9107, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine3"]
+shape = SubResource("BoxShape3D_3")
+
+[node name="SouthLine4" type="Area3D" parent="VentVolumes"]
+position = Vector3(-26.375, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine4"]
+shape = SubResource("BoxShape3D_4")
+
+[node name="SouthLine5" type="Area3D" parent="VentVolumes"]
+position = Vector3(-18.8393, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine5"]
+shape = SubResource("BoxShape3D_5")
+
+[node name="SouthLine6" type="Area3D" parent="VentVolumes"]
+position = Vector3(-11.3036, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine6"]
+shape = SubResource("BoxShape3D_6")
+
+[node name="SouthLine7" type="Area3D" parent="VentVolumes"]
+position = Vector3(-3.7679, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine7"]
+shape = SubResource("BoxShape3D_7")
+
+[node name="SouthLine8" type="Area3D" parent="VentVolumes"]
+position = Vector3(3.7679, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine8"]
+shape = SubResource("BoxShape3D_8")
+
+[node name="SouthLine9" type="Area3D" parent="VentVolumes"]
+position = Vector3(11.3036, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine9"]
+shape = SubResource("BoxShape3D_9")
+
+[node name="SouthLine10" type="Area3D" parent="VentVolumes"]
+position = Vector3(18.8393, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine10"]
+shape = SubResource("BoxShape3D_10")
+
+[node name="SouthLine11" type="Area3D" parent="VentVolumes"]
+position = Vector3(26.375, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine11"]
+shape = SubResource("BoxShape3D_11")
+
+[node name="SouthLine12" type="Area3D" parent="VentVolumes"]
+position = Vector3(33.9107, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine12"]
+shape = SubResource("BoxShape3D_12")
+
+[node name="SouthLine13" type="Area3D" parent="VentVolumes"]
+position = Vector3(41.4464, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine13"]
+shape = SubResource("BoxShape3D_13")
+
+[node name="SouthLine14" type="Area3D" parent="VentVolumes"]
+position = Vector3(49.1321, 0.3, 26.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/SouthLine14"]
+shape = SubResource("BoxShape3D_14")
+
+[node name="WestLine1" type="Area3D" parent="VentVolumes"]
+position = Vector3(-52.75, 0.3, 23.3219)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/WestLine1"]
+shape = SubResource("BoxShape3D_15")
+
+[node name="WestLine2" type="Area3D" parent="VentVolumes"]
+position = Vector3(-52.75, 0.3, 16.0156)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/WestLine2"]
+shape = SubResource("BoxShape3D_16")
+
+[node name="WestLine3" type="Area3D" parent="VentVolumes"]
+position = Vector3(-52.75, 0.3, 8.8594)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/WestLine3"]
+shape = SubResource("BoxShape3D_17")
+
+[node name="WestLine4" type="Area3D" parent="VentVolumes"]
+position = Vector3(-52.75, 0.3, 1.7031)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/WestLine4"]
+shape = SubResource("BoxShape3D_18")
+
+[node name="WestLine5" type="Area3D" parent="VentVolumes"]
+position = Vector3(-52.75, 0.3, -5.4531)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/WestLine5"]
+shape = SubResource("BoxShape3D_19")
+
+[node name="WestLine6" type="Area3D" parent="VentVolumes"]
+position = Vector3(-52.75, 0.3, -12.6094)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/WestLine6"]
+shape = SubResource("BoxShape3D_20")
+
+[node name="WestLine7" type="Area3D" parent="VentVolumes"]
+position = Vector3(-52.75, 0.3, -19.7656)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/WestLine7"]
+shape = SubResource("BoxShape3D_21")
+
+[node name="WestLine8" type="Area3D" parent="VentVolumes"]
+position = Vector3(-52.75, 0.3, -27.0719)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/WestLine8"]
+shape = SubResource("BoxShape3D_22")
+
+[node name="EastLine1" type="Area3D" parent="VentVolumes"]
+position = Vector3(52.75, 0.3, 23.3219)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/EastLine1"]
+shape = SubResource("BoxShape3D_23")
+
+[node name="EastLine2" type="Area3D" parent="VentVolumes"]
+position = Vector3(52.75, 0.3, 16.0156)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/EastLine2"]
+shape = SubResource("BoxShape3D_24")
+
+[node name="EastLine3" type="Area3D" parent="VentVolumes"]
+position = Vector3(52.75, 0.3, 8.8594)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/EastLine3"]
+shape = SubResource("BoxShape3D_25")
+
+[node name="EastLine4" type="Area3D" parent="VentVolumes"]
+position = Vector3(52.75, 0.3, 1.7031)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/EastLine4"]
+shape = SubResource("BoxShape3D_26")
+
+[node name="EastLine5" type="Area3D" parent="VentVolumes"]
+position = Vector3(52.75, 0.3, -5.4531)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/EastLine5"]
+shape = SubResource("BoxShape3D_27")
+
+[node name="EastLine6" type="Area3D" parent="VentVolumes"]
+position = Vector3(52.75, 0.3, -12.6094)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/EastLine6"]
+shape = SubResource("BoxShape3D_28")
+
+[node name="EastLine7" type="Area3D" parent="VentVolumes"]
+position = Vector3(52.75, 0.3, -19.7656)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/EastLine7"]
+shape = SubResource("BoxShape3D_29")
+
+[node name="EastLine8" type="Area3D" parent="VentVolumes"]
+position = Vector3(52.75, 0.3, -27.0719)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/EastLine8"]
+shape = SubResource("BoxShape3D_30")
+
+[node name="NestExit" type="Area3D" parent="VentVolumes"]
+position = Vector3(-30, 0.3, 28)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/NestExit"]
+shape = SubResource("BoxShape3D_31")
+
+[node name="PumpBranch1" type="Area3D" parent="VentVolumes"]
+position = Vector3(-49.6083, 0.3, -19.25)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/PumpBranch1"]
+shape = SubResource("BoxShape3D_32")
+
+[node name="PumpBranch2" type="Area3D" parent="VentVolumes"]
+position = Vector3(-42.875, 0.3, -19.25)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/PumpBranch2"]
+shape = SubResource("BoxShape3D_33")
+
+[node name="PumpBranch3" type="Area3D" parent="VentVolumes"]
+position = Vector3(-36.3667, 0.3, -19.25)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/PumpBranch3"]
+shape = SubResource("BoxShape3D_34")
+
+[node name="StorageBranch1" type="Area3D" parent="VentVolumes"]
+position = Vector3(49.525, 0.3, -19.25)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/StorageBranch1"]
+shape = SubResource("BoxShape3D_35")
+
+[node name="StorageBranch2" type="Area3D" parent="VentVolumes"]
+position = Vector3(42.625, 0.3, -19.25)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/StorageBranch2"]
+shape = SubResource("BoxShape3D_36")
+
+[node name="StorageBranch3" type="Area3D" parent="VentVolumes"]
+position = Vector3(35.875, 0.3, -19.25)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/StorageBranch3"]
+shape = SubResource("BoxShape3D_37")
+
+[node name="StorageBranch4" type="Area3D" parent="VentVolumes"]
+position = Vector3(29.125, 0.3, -19.25)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/StorageBranch4"]
+shape = SubResource("BoxShape3D_38")
+
+[node name="StorageBranch5" type="Area3D" parent="VentVolumes"]
+position = Vector3(22.45, 0.3, -19.25)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/StorageBranch5"]
+shape = SubResource("BoxShape3D_39")
+
+[node name="RiserFoot" type="Area3D" parent="VentVolumes"]
+position = Vector3(7.85, 0.3, 27.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/RiserFoot"]
+shape = SubResource("BoxShape3D_40")
+
+[node name="RiserTop" type="Area3D" parent="VentVolumes"]
+position = Vector3(-0.475, 3.1, 27.75)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/RiserTop"]
+shape = SubResource("BoxShape3D_41")
+
+[node name="ControlDrop" type="Area3D" parent="VentVolumes"]
+position = Vector3(-2, 3.1, 23.975)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/ControlDrop"]
+shape = SubResource("BoxShape3D_42")
+
+[node name="Shaft" type="Area3D" parent="VentVolumes"]
+position = Vector3(52.75, 3.375, -30.5)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/Shaft"]
+shape = SubResource("BoxShape3D_43")
+
+[node name="RiserRamp" type="Area3D" parent="VentVolumes"]
+position = Vector3(4.3342, 1.6683, 27.75)
+rotation = Vector3(0, 0, -0.4636)
+script = ExtResource("5_vent_volume")
+
+[node name="Shape" type="CollisionShape3D" parent="VentVolumes/RiserRamp"]
+shape = SubResource("BoxShape3D_44")
+
+[node name="ShaftLadder" type="Area3D" parent="."]
+position = Vector3(52.75, 0, -30.5)
+rotation = Vector3(0, 1.5708, 0)
+script = ExtResource("6_ladder")
+
+[node name="Shape" type="CollisionShape3D" parent="ShaftLadder"]
+position = Vector3(0, 3.25, 0)
+shape = SubResource("BoxShape3D_45")
+
+[node name="ShaftLink" type="NavigationLink3D" parent="."]
+start_position = Vector3(52.75, 0, -29.5)
+end_position = Vector3(51.15, 6, -30.5)
+navigation_layers = 2
+
+[node name="DropLink" type="NavigationLink3D" parent="."]
+start_position = Vector3(-2, 2.8, 20.6)
+end_position = Vector3(-2, 0, 18.4)
+bidirectional = false
+navigation_layers = 2

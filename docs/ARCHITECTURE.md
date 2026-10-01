@@ -54,6 +54,7 @@ Supported CLI args (user args after `--`):
 - Test-only client flags since M2 (debug builds, `client/debug_hooks.gd` and `MovementComponent`): `--pref rat|supervisor|any`, `--auto-ready`, `--say TEXT`, `--auto-move`, `--debug-speed N`, `--screenshot PATH [--screenshot-delay S]`
 - Bot options since M3 (`tests/helpers/bot_client.gd`): `--bot-target SUBSYSTEM` (default `pumps`), `--bot-lever A|B` (critical subsystems), `--bot-delay S`. The bot scene lives under `tests/`, which is excluded from exports.
 - Since M4: `--bot-scenario capture|swarm|items|hack [--bot-part P]` runs a PvP scenario instead (`tests/helpers/pvp_bot.gd`); bots of one test coordinate only through replicated state and find each other by name.
+- Since M5: `--level plant|test` (debug builds; server and clients must match, the join handshake checks it) picks the level, default the plant. The M4 PvP tests use `--level test` (TestArena). `--bot-scenario plant` (CCTV, ladder, shaft, out of bounds). Server: `--no-heatmap` (no position log). Client, any build: `--debug-overlay` (F3 overlay on from the start).
 
 ### `server.cfg` (ConfigFile/INI)
 ```ini
@@ -136,14 +137,17 @@ Godot RPCs and synchronizers only work when the node exists **at the same path, 
      ├─ CaptureService        (grab, carry, cage, free, eliminate; server logic)
      ├─ ItemService           (request_place_trap, steal, dropped keycards, the Dynamic spawn function)
      ├─ World (Node3D)
-     │   ├─ Plant (levels/plant/Plant.tscn)
-     │   │   ├─ POIs (ReactorHall, TurbineHall, …) containing Interactables, hazards, spawn points
-     │   │   └─ NavigationRegion3D (later, for bots)
+     │   ├─ Plant (levels/plant/Plant.tscn, added by Session._enter_tree; TestArena with --level test)
+     │   │   ├─ WorldEnvironment, Moon
+     │   │   ├─ POIs (Yard, ReactorHall, TurbineHall, …, VentNetwork): Poi roots with geometry, lights,
+     │   │   │   Interactables, cameras, ladders, spawn points, occluders, NavigationLink3Ds
+     │   │   ├─ OutOfBounds (kill volumes)
+     │   │   └─ OverviewPoint (where the camera looks from with no body)
      │   ├─ Players (Node3D)  ← MultiplayerSpawner spawns Player.tscn, named by peer id
      │   └─ Dynamic (Node3D)  ← DynamicSpawner (MultiplayerSpawner) for traps, dropped keycards, later hazards
      ├─ ServerOnly (Node)     ← children added at runtime only when is_server():
-     │   ├─ HazardDirector, MovementValidator, ServerConsole
-     └─ ClientOnly (Node)     ← children added only on clients: OverviewCamera, SpectatorCam, CombatFeedback (sounds), HUD, Lobby, PostMatch, Chat UI; later PauseMenu, MinigameHost
+     │   ├─ MovementValidator, HeatmapRecorder (M5); later HazardDirector, ServerConsole
+     └─ ClientOnly (Node)     ← children added only on clients: OverviewCamera, SpectatorCam, CombatFeedback (sounds), HUD, Lobby, PostMatch, Chat UI, CctvView, DebugOverlay (M5); later PauseMenu, MinigameHost
 ```
 - `server/ServerMain.tscn` = boot logic (read config, `Net.host()`) and then adds `Session` to the root.
 - `client/MainMenu.tscn` → on a successful connection it frees the menu and adds `Session` to the root.
@@ -190,7 +194,13 @@ func _complete(p: Player) -> void             # server → emits completed
 - Facing convention: an interactable's +Z points away from its machine, toward where the player stands (`stand_position()`).
 - `CriticalLever`: set `partner_path` on one lever of a pair only. That one is the leader and runs the shared progress on the server: it advances only while both levers are held, pauses while one is, and resets when neither is.
 
-Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `RepairPoint`, `GrabHandle` and `StealHandle` (on player bodies), `Cage`, `KeycardReader` (on a keycard `Door`), `Pickup` (trap refill, donut, spare keycard, dropped keycard), later `CctvCamera`, `ConsoleAction` (control room). Not interactables: `Door` (a `Node3D` with a server-owned `open` and an `AnimatableBody3D` panel; normal doors open for anyone nearby), `Trap` (an `Area3D` the server watches), `VentVolume`.
+Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `RepairPoint`, `GrabHandle` and `StealHandle` (on player bodies), `Cage`, `KeycardReader` (on a keycard `Door`), `Pickup` (trap refill, donut, spare keycard, dropped keycard), `CctvCamera` (a junction box at the foot of a wall with a lens marker above; rats break it, supervisors repair it; synced `broken`), `CctvConsole` (the CCTV chair: synced `user`, the server pins the seated body, `request_stand_up`), later `ConsoleAction` (control room, M6). Not interactables: `Door` (a `Node3D` with a server-owned `open` and an `AnimatableBody3D` panel; normal doors open for anyone nearby), `Trap` (an `Area3D` the server watches), `VentVolume`, `Ladder` (an `Area3D`: MovementComponent climbs while inside), `OutOfBounds` (kill volumes: the owner puts its body back on the last safe spot).
+- Nodes in the `MatchManager.RESET_GROUP` group get `reset_for_match()` on the server at every match start (cameras, the CCTV chair).
+
+### Levels
+- `levels/plant/Plant.tscn` and its POI scenes are written by `tools/map/gen_plant.py` from the layout numbers in that script, which also draws `docs/map/plant_layout_v1.png`. See [docs/map/README.md](map/README.md). Each POI root is a `Poi` (`levels/poi.gd`) with world-space bounds; `Poi.name_at(tree, pos)` names the room at a position.
+- Client-only props build their visuals in `_ready` and skip the headless server: `CctvScreen` and `StatusBoard` (a `SubViewport` rendered on demand, only while on screen), `AlarmBeacon`.
+- The CCTV view (`client/cctv_view.gd`) switches the main view to a temporary camera at the selected lens instead of rendering a second viewport. The level itself has no `Camera3D` nodes: Godot makes a stray camera current on its own.
 `SabotagePoint` / `RepairPoint` hold an exported `subsystem_id`, and on `completed` they call `PlantSim.apply_damage(id, amount)` / `apply_repair(...)`.
 
 ### Minigames
@@ -260,7 +270,8 @@ The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_d
 | Level | Tool | What |
 |---|---|---|
 | Unit | GUT, headless | `plant_model`, `match_rules_model`, status stacking, team balance, data sanity |
-| Integration | Shell script launching separate headless processes (`tests/integration/*.sh`) | A server on a random port (`--exit-after-match --result-file`) plus bot clients (`--bot rat\|supervisor`) that connect, pick their role and ready up (the real ready vote, `min_players=2`: `--debug-start` would start before the preferences arrive), go to a sabotage point and complete it (plus a lever-pair variant). Since M4, `pvp_*.sh` run PvP scenarios: the capture chain, bites and the swarm bonus, items and traps, and a "hacked client" sending bad `request_*` calls. The scripts assert the result JSON, the exit code, the server log, and that the logs contain no errors. |
+| Integration | Shell script launching separate headless processes (`tests/integration/*.sh`) | A server on a random port (`--exit-after-match --result-file`) plus bot clients (`--bot rat\|supervisor`) that connect, pick their role and ready up (the real ready vote, `min_players=2`: `--debug-start` would start before the preferences arrive), go to a sabotage point and complete it (plus a lever-pair variant). Since M4, `pvp_*.sh` run PvP scenarios: the capture chain, bites and the swarm bonus, items and traps, and a "hacked client" sending bad `request_*` calls. The scripts assert the result JSON, the exit code, the server log, and that the logs contain no errors. Since M5 the match tests run on the plant, the PvP ones on the TestArena; `plant_cctv.sh` covers the CCTV, the ladder, the shaft and the kill volumes. |
+| Map check | `tests/integration/map_check.sh` (`tests/helpers/MapCheck.tscn`) | Bakes a navigation mesh per role from the level's collision and checks the GDD §7 rules: reachability, walk times, two rat routes per sabotage point, supervisors kept out of the vents and the nest. `--update-docs` refreshes the table in docs/map/README.md. |
 | Manual | Run Instances (editor: *Debug → Customize Run Instances*) | 1 instance with `-- --server --debug-start`, 3 instances with `-- --connect 127.0.0.1:7777` |
 | Network conditions | `tc netem` on Linux (`sudo tc qdisc add dev lo root netem delay 80ms 20ms loss 1%`) | Play with 80–150 ms latency before calling any PvP feature done |
 
@@ -299,17 +310,19 @@ homersim/
   entities/player/ Player.tscn player.gd  supervisor/ rat/   (role visuals + rigs)
   components/      movement/ camera/ status/ interactor/ abilities/ inventory/ animation/
   interactables/   interactable.gd sabotage_point/ critical_lever/ repair_point/ door/ cage/
-                   cctv/ console_action/ vent/ pickup/
+                   cctv/ console_action/ vent/ ladder/ pickup/ trap/ body_handles/
   minigames/       minigame.gd wrench_rhythm/ breaker_sequence/ valve_rotate/
   hazards/         hazard.gd steam_jet/ electric_puddle/ radiation_zone/ debris/ smoke/
-  levels/          test/TestArena.tscn  plant/Plant.tscn + plant/pois/*.tscn
+  levels/          poi.gd spawn_point.gd out_of_bounds.gd  test/TestArena.tscn
+                   plant/Plant.tscn + plant/pois/*.tscn + plant/materials/ + plant/props/ (generated by tools/map/gen_plant.py)
   data/            match_rules.tres plant_tuning.tres roles/ subsystems/ abilities/
                    (scripts: match_rules.gd role_data.gd plant_tuning.gd subsystem_data.gd)
   shaders/         toon.gdshader outline.gdshader
   assets/          third_party/<pack>/  generated/  audio/  fonts/  ui/
   addons/          gut/  (later: netfox/ …)
   tools/blender/   common.py pipe.py tank.py console.py valve.py … export_all.py
+  tools/map/       gen_plant.py (the graybox plant + its plan)   tools/heatmap.py (playtest position logs)
   tests/           unit/ integration/ helpers/bot_client.gd helpers/pvp_bot.gd
-  docs/            GDD.md ARCHITECTURE.md ASSETS.md milestones/
+  docs/            GDD.md ARCHITECTURE.md ASSETS.md milestones/ map/ playtests/
   .github/workflows/ci.yml  Dockerfile  server.cfg.example  CREDITS.md  README.md
 ```

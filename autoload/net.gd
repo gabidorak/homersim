@@ -80,6 +80,15 @@ func is_online() -> bool:
 		and peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED
 
 
+## Client: the round-trip time to the server in ms (ENet's estimate), -1 when not connected.
+func ping_ms() -> int:
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if is_server or enet == null or not is_online():
+		return -1
+	var server := enet.get_peer(1)
+	return int(server.get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME)) if server != null else -1
+
+
 ## Server: drop a client (no-op if it already left).
 func kick(peer_id: int) -> void:
 	if is_server and multiplayer.get_peers().has(peer_id):

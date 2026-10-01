@@ -111,7 +111,8 @@ func show_banner(text: String) -> void:
 func _update_player() -> void:
 	var alive := is_instance_valid(_player) and _player.is_inside_tree()
 	stamina_bar.visible = alive
-	crosshair.visible = alive and _player.role_data.camera_kind == RoleData.CameraKind.FIRST_PERSON
+	crosshair.visible = alive and _player.role_data.camera_kind == RoleData.CameraKind.FIRST_PERSON \
+		and _player.seated_console() == null
 	if Time.get_ticks_msec() > _banner_until_ms:
 		banner_label.text = ""
 	if not alive:

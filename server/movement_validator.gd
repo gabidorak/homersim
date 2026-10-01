@@ -53,8 +53,9 @@ func _physics_process(_delta: float) -> void:
 
 
 func _check(player: Player, previous: Vector3, seconds: float, now: int) -> void:
-	if now < player.validator_grace_until_ms or previous.y < MovementComponent.KILL_Y:
-		return  # server-imposed move, or the client put itself back after falling out of the world
+	if now < player.validator_grace_until_ms or previous.y < MovementComponent.KILL_Y \
+			or OutOfBounds.contains_point(get_tree(), previous):
+		return  # server-imposed move, or the client put itself back after leaving the map
 	var moved := Vector2(player.position.x - previous.x, player.position.z - previous.z).length()
 	var max_speed := player.max_speed()
 	if not player.status.can_act():

@@ -22,6 +22,11 @@ var _active := false
 
 func _ready() -> void:
 	position = Vector3(0, 8, 14)
+	var point := get_tree().get_first_node_in_group(OverviewCamera.POINT_GROUP) as Node3D
+	if point != null:
+		position = point.global_position
+		_yaw = point.global_rotation.y
+		_pitch = clampf(point.global_rotation.x, -MAX_PITCH, MAX_PITCH)
 
 
 func _process(delta: float) -> void:

@@ -1,7 +1,7 @@
 class_name PvpTuning
 extends Resource
 ## Player-vs-player numbers that aren't an ability (GDD §5): carrying, cages, stealing, pickups,
-## doors, traps. Saved as data/pvp_tuning.tres; keep it in sync with the GDD.
+## doors, CCTV, traps. Saved as data/pvp_tuning.tres; keep it in sync with the GDD.
 
 const PATH := "res://data/pvp_tuning.tres"
 
@@ -22,6 +22,10 @@ const PATH := "res://data/pvp_tuning.tres"
 @export var donut_duration_s := 20.0
 @export var donut_cooldown_s := 60.0  ## per supervisor
 @export var keycard_door_open_s := 3.0
+
+@export_group("CCTV")
+@export var cctv_break_hold_s := 2.0  ## rat hold to break a camera
+@export var cctv_repair_hold_s := 3.0  ## supervisor hold to repair it
 
 @export_group("Traps")
 @export var trap_charges := 3

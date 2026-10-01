@@ -154,40 +154,43 @@ These activate when a subsystem's health is below 50, and **affect both teams**.
 | Smoke (ventilation) | Fog in the vent network and the Control Room | Visibility drops to about 6 m |
 
 ## 7. Map: "Sunny Acres" plant
-One level, roughly **120 × 80 m**, two floors in places. A 2 m grid.
+One level, about **104 × 64 m** plus the sewer nest, two floors in places (catwalks, the vent roof). A 2 m grid. Layout v1 (M5, graybox) is drawn in [docs/map/plant_layout_v1.png](map/plant_layout_v1.png), with its rationale and measured paths in [docs/map/README.md](map/README.md).
 
 ```
               N
-   ┌───────────────┬──────────────┬───────────────┐
-   │  SUBSTATION   │ COOLING TOWER│   VENT ROOF   │   (outdoor / roof)
-   │  (outdoor)    │  (landmark)  │   (ladder)    │
-   ├───────┬───────┴──────┬───────┴───────┬───────┤
-   │ PUMP  │   REACTOR    │   TURBINE     │STORAGE│
-   │ HOUSE │    HALL      │    HALL       │       │
-   ├───────┤  (2 floors)  │  (catwalks)   ├───────┤
-   │ VALVE │              │               │ CAGE  │
-   │ CORR. ├──────┬───────┴───────┬───────┤ ROOM  │
-   │       │BREAK │ CONTROL ROOM  │ LOCKER│       │
-   │       │ ROOM │  (central)    │ ROOM  │       │
-   └───────┴──────┴───────────────┴───────┴───────┘
-            ▼ sewer grates / RAT NEST below (whole-map vent network)
+   ┌──────────────────────────────────────────────┬──────────────┐
+   │ SUBSTATION │      YARD (outdoor)  COOLING     │  VENT ROOF   │  6 m block:
+   │ (fenced)   │      lobby spawns     TOWER      │  (ladder,    │  ladder from the yard,
+   ├──────┬─────┴──────────┬────────────────────────┴──┬───────────┤  shaft for rats
+   │ PUMP │   REACTOR HALL │       TURBINE HALL        │  STORAGE  │
+   │HOUSE │   (10 m, catwalk 4 m)   (8 m, catwalk 3.5 m)├───────────┤
+   ├──────┤                │                           │           │
+   │      ├────────┬───────┴─────────┬─────────────────┤   CAGE    │
+   │VALVE │MAIN HALL WEST  │ CONTROL │ MAIN HALL EAST  │   ROOM    │
+   │CORR. ├────────────────┤  ROOM   ├─────────────────┤           │
+   │      │  BREAK ROOM    │ (hub)   │  LOCKER ROOM    │           │
+   │      ├────────────────┴─────────┴─────────────────┴───────────┤
+   │      │                SOUTH CORRIDOR                          │
+   └──────┴────────────────────────────────────────────────────────┘
+        ▼ vents run outside the walls  ·  RAT NEST (sealed sewer room) to the south
 ```
 | POI | Purpose | Notes |
 |---|---|---|
-| Control Room | Supervisor hub: status board, CCTV chair, remote actions | 2 doors and 1 vent. Windows overlook the Reactor Hall. |
-| Reactor Hall | Control rods (critical) | Big, vertical, glowing pool, catwalks |
-| Turbine Hall | Turbine (critical) | Long hall, noisy, catwalk shortcuts for rats |
-| Pump House | Coolant pumps | Cramped, lots of pipes for rats to run along |
-| Valve Corridor | Coolant valves | Long corridor with valve wheels and a keycard shortcut |
-| Substation | Power grid | Outdoor, fenced, puddles |
-| Vent Roof | Ventilation | Reached by ladder (supervisors) or the vent shaft (rats) |
-| Break Room | Supervisor spawn, donuts | Coffee machine, vending machine |
+| Control Room | Supervisor hub: status board, CCTV chair, wall screens, remote actions (M6) | 2 doors (west, east) and 1 vent (a one-way drop). Windows overlook the Reactor and Turbine Halls. |
+| Reactor Hall | Control rods (critical) | 10 m high, glowing pool, L-shaped catwalk at 4 m |
+| Turbine Hall | Turbine (critical) | Long hall, the turbine control desk behind the turbine, catwalk at 3.5 m, crates up for rats |
+| Pump House | Coolant pumps | Cramped, pipes for rats to run along |
+| Valve Corridor | Coolant valves | A long hall split by a valve rack; keycard shortcut to the Break Room |
+| Substation | Power grid | Outdoor, fenced, in the yard (puddles in M6) |
+| Vent Roof | Ventilation | Reached by the yard ladder (everyone) or the vent shaft (rats) |
+| Break Room | Supervisor spawn, donuts | Coffee and vending machines |
 | Storage | Trap refills, spare keycards | Shelves rats can hide on |
-| Cage Room | 2 cages, near the rats' routes but far from the nest | The tension spot |
-| Locker Room | Connector with a keycard door | Flavour |
-| Rat Nest | Rat spawn (sewer below the plant) | Unreachable for supervisors |
+| Cage Room | 2 cages, near two vent openings, far from the nest | The tension spot |
+| Locker Room | Connector with a keycard door (to the South Corridor) | Rows of lockers to hide between |
+| Main halls, South Corridor | Connectors | The nest's vent comes out in the South Corridor |
+| Rat Nest | Rat spawn (sewer south of the plant) | Sealed: the only way out is the vent. Unreachable for supervisors |
 
-**Design rules for the map**
+**Design rules for the map** (checked by `tests/integration/map_check.sh` on every build)
 - Every sabotage point can be reached by rats via ≥ 2 routes, and at least 1 of them is a vent.
 - From the Control Room, no sabotage point is more than 25 s away at supervisor walking speed.
 - The vent network has 1-way drop exits, so rats can't camp vents forever.
@@ -204,6 +207,8 @@ One level, roughly **120 × 80 m**, two floors in places. A 2 m grid.
 | Chat / team chat | Enter / T |
 | Scoreboard | Tab |
 | Emote | Z |
+| CCTV chair: previous / next camera, stand up | Q / E, Space |
+| Playtest tools: debug overlay, stopwatch | F3, F4 |
 
 ## 9. Audio and feedback
 - Global alarm music layers: calm, then warning, then critical (crossfade on alarm state).

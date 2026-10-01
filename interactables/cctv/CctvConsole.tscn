@@ -1,0 +1,44 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://interactables/cctv/cctv_console.gd" id="1_script"]
+
+[sub_resource type="BoxShape3D" id="shape"]
+size = Vector3(0.9, 1.1, 0.9)
+
+[sub_resource type="StandardMaterial3D" id="mat_chair"]
+albedo_color = Color(1, 0.79, 0.24, 1)
+
+[sub_resource type="BoxMesh" id="mesh_seat"]
+material = SubResource("mat_chair")
+size = Vector3(0.6, 0.12, 0.6)
+
+[sub_resource type="BoxMesh" id="mesh_back"]
+material = SubResource("mat_chair")
+size = Vector3(0.6, 0.7, 0.1)
+
+[sub_resource type="CylinderMesh" id="mesh_post"]
+material = SubResource("mat_chair")
+top_radius = 0.05
+bottom_radius = 0.25
+height = 0.45
+
+[node name="CctvConsole" type="Area3D"]
+script = ExtResource("1_script")
+
+[node name="Shape" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+shape = SubResource("shape")
+
+[node name="Seat" type="Marker3D" parent="."]
+
+[node name="SeatMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("mesh_seat")
+
+[node name="BackMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.3)
+mesh = SubResource("mesh_back")
+
+[node name="Post" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22, 0)
+mesh = SubResource("mesh_post")
