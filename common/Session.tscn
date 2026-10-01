@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://common/session.gd" id="1_session"]
 [ext_resource type="PackedScene" path="res://levels/test/TestArena.tscn" id="2_arena"]
@@ -6,6 +6,9 @@
 [ext_resource type="Script" path="res://common/chat_service.gd" id="4_chat"]
 [ext_resource type="Script" path="res://common/plant_sim.gd" id="5_plant"]
 [ext_resource type="Script" path="res://common/interaction_service.gd" id="6_interact"]
+[ext_resource type="Script" path="res://common/ability_service.gd" id="7_ability"]
+[ext_resource type="Script" path="res://common/capture_service.gd" id="8_capture"]
+[ext_resource type="Script" path="res://common/item_service.gd" id="9_item"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_match"]
 properties/0/path = NodePath(".:state")
@@ -69,6 +72,15 @@ script = ExtResource("6_interact")
 [node name="ChatService" type="Node" parent="."]
 script = ExtResource("4_chat")
 
+[node name="AbilityService" type="Node" parent="."]
+script = ExtResource("7_ability")
+
+[node name="CaptureService" type="Node" parent="."]
+script = ExtResource("8_capture")
+
+[node name="ItemService" type="Node" parent="."]
+script = ExtResource("9_item")
+
 [node name="World" type="Node3D" parent="."]
 
 [node name="TestArena" parent="World" instance=ExtResource("2_arena")]
@@ -77,6 +89,11 @@ script = ExtResource("4_chat")
 
 [node name="PlayerSpawner" type="MultiplayerSpawner" parent="World"]
 spawn_path = NodePath("../Players")
+
+[node name="Dynamic" type="Node3D" parent="World"]
+
+[node name="DynamicSpawner" type="MultiplayerSpawner" parent="World"]
+spawn_path = NodePath("../Dynamic")
 
 [node name="ServerOnly" type="Node" parent="."]
 

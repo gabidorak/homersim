@@ -1,9 +1,14 @@
 class_name ChatService
 extends Node
 ## Text chat. A client calls send(); the server checks the request (sender joined, length,
-## 1 message/s) and strips BBCode brackets, then relays on_message to the recipients.
-## An empty from_name marks a system message (joins, leaves, warnings).
-## M2: only the ALL channel. TEAM and GHOST arrive in M4.
+## 1 message/s, channel allowed) and strips BBCode brackets, then relays on_message to the
+## recipients. An empty from_name marks a system message (joins, leaves, warnings).
+##
+## Channels (routing is server-side, see route()):
+##   ALL    everyone
+##   TEAM   (T key) the sender's team, during a match only
+##   GHOST  eliminated players and spectators, during a match. Living players never receive it,
+##          and ghosts can't talk to the living: whatever channel a ghost picks becomes GHOST.
 
 enum Channel { ALL, TEAM, GHOST, SYSTEM }
 
@@ -29,6 +34,37 @@ static func rate_ok(last_ms: int, now_ms: int) -> bool:
 	return now_ms - last_ms >= MIN_INTERVAL_MS
 
 
+## Where a message goes. `members`: peer -> {"role": Role.Kind, "ghost": bool} for every joined
+## player (ghost = eliminated or spectating during a match). Returns
+## {"channel": Channel actually used, "to": Array[int], "error": String}; a non-empty error
+## means the message is refused.
+static func route(channel: int, sender: int, members: Dictionary, in_match: bool) -> Dictionary:
+	var me: Dictionary = members.get(sender, {})
+	if me.is_empty() or channel not in [Channel.ALL, Channel.TEAM, Channel.GHOST]:
+		return {"channel": channel, "to": [] as Array[int], "error": "not allowed"}
+	var ghost: bool = in_match and me.get("ghost", false)
+	if ghost:
+		channel = Channel.GHOST
+	elif channel == Channel.GHOST:
+		return {"channel": channel, "to": [] as Array[int], "error": "Only eliminated players can use the ghost chat."}
+	var role: Role.Kind = me.get("role", Role.Kind.NONE)
+	if channel == Channel.TEAM and (not in_match or role not in [Role.Kind.SUPERVISOR, Role.Kind.RAT]):
+		return {"channel": channel, "to": [] as Array[int], "error": "Team chat only works during a match."}
+	var to: Array[int] = []
+	for peer: int in members:
+		var m: Dictionary = members[peer]
+		match channel:
+			Channel.ALL:
+				to.append(peer)
+			Channel.TEAM:
+				if m.get("role", Role.Kind.NONE) == role:
+					to.append(peer)
+			Channel.GHOST:
+				if m.get("ghost", false):
+					to.append(peer)
+	return {"channel": channel, "to": to, "error": ""}
+
+
 ## Client: send a message.
 func send(text: String, channel: Channel = Channel.ALL) -> void:
 	request_send.rpc_id(1, text, channel)
@@ -39,6 +75,11 @@ func broadcast_system(text: String) -> void:
 	Log.info("chat", "* %s" % text)
 	for peer: int in Session.current.players:
 		on_message.rpc_id(peer, "", text, Channel.SYSTEM)
+
+
+## Server: a system message to one peer.
+func tell(peer_id: int, text: String) -> void:
+	on_message.rpc_id(peer_id, "", text, Channel.SYSTEM)
 
 
 ## Server: forget a peer that left.
@@ -52,23 +93,39 @@ func request_send(text: String, channel: int) -> void:
 		return
 	var peer := multiplayer.get_remote_sender_id()
 	var info: PlayerInfo = Session.current.players.get(peer)
-	if info == null or channel != Channel.ALL or text.length() > MAX_LENGTH:
-		return  # unknown sender, channel not available yet, or a client that ignores the limit
+	if info == null or text.length() > MAX_LENGTH:
+		return  # unknown sender, or a client that ignores the limit
 	var cleaned := clean(text)
 	if cleaned.is_empty():
 		return
+	var mm := Session.current.match_manager
+	var routed := route(channel, peer, mm.chat_members(), mm.in_match())
+	if routed["error"] != "":
+		Log.info("chat", "refused %s's message on channel %s: %s" % [info.name, channel, routed["error"]])
+		tell(peer, routed["error"])
+		return
 	var now := Time.get_ticks_msec()
 	if _last_sent_ms.has(peer) and not rate_ok(_last_sent_ms[peer], now):
-		on_message.rpc_id(peer, "", "Slow down: one message per second.", Channel.SYSTEM)
+		tell(peer, "Slow down: one message per second.")
 		return
 	_last_sent_ms[peer] = now
-	Log.info("chat", "%s: %s" % [info.name, cleaned])
-	for other: int in Session.current.players:
-		on_message.rpc_id(other, info.name, cleaned, channel)
+	var used: int = routed["channel"]
+	Log.info("chat", "%s%s: %s" % [_tag(used), info.name, cleaned])
+	for other: int in routed["to"]:
+		on_message.rpc_id(other, info.name, cleaned, used)
 
 
 @rpc("authority", "reliable")
 func on_message(from_name: String, text: String, channel: int) -> void:
-	Log.info("chat", ("* %s" % text) if from_name.is_empty() else ("%s: %s" % [from_name, text]))
+	Log.info("chat", ("* %s" % text) if from_name.is_empty() else ("%s%s: %s" % [_tag(channel), from_name, text]))
 	message_received.emit(from_name, text, channel)
 	Events.chat_message.emit(from_name, text, channel)
+
+
+static func _tag(channel: int) -> String:
+	match channel:
+		Channel.TEAM:
+			return "(team) "
+		Channel.GHOST:
+			return "(ghost) "
+	return ""

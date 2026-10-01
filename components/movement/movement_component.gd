@@ -5,7 +5,9 @@ extends Node
 ## BodySync replicates the result. WASD is relative to CameraRig.move_yaw(): where you look in
 ## first person, where the camera looks in third person (and the body turns to face its movement).
 ##
-## The server imposes movement through the RPCs at the bottom (freeze, teleport, knockback).
+## The server imposes movement through the RPCs at the bottom (freeze, teleport, knockback,
+## hanging from a carrier's hand). Speed = role speed × status (slows, donut) × inventory (a
+## stolen item); a supervisor carrying a rat walks at the role's carry speed and can't sprint.
 
 const COYOTE_S := 0.1  ## you can still jump this long after walking off a ledge
 const JUMP_BUFFER_S := 0.1  ## a jump pressed this long before landing still happens
@@ -24,6 +26,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _since_on_floor := INF
 var _since_jump_pressed := INF
 var _spawn_position := Vector3.ZERO
+var _anchor: Node3D  # set by attach_to(): we are carried, the body follows this node
 var _debug_speed := 1.0  # test-only: --debug-speed N (a fake speed hack for the validator)
 var _debug_auto_move := false  # test-only: --auto-move (walk forward without input)
 
@@ -51,6 +54,12 @@ func can_move() -> bool:
 
 
 func _physics_process(delta: float) -> void:
+	if _anchor != null:
+		if is_instance_valid(_anchor):
+			body.global_position = _anchor.global_position
+			body.velocity = Vector3.ZERO
+			return
+		_anchor = null  # the carrier vanished: fall from where we are
 	var data := body.role_data
 	var free := can_move()
 	var control := free and PlayerInput.has_control()
@@ -75,8 +84,10 @@ func _physics_process(delta: float) -> void:
 	elif free and _debug_auto_move:
 		input = Vector2.UP
 	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, body.rig.move_yaw())
-	sprinting = stamina.tick(delta, control and input != Vector2.ZERO and Input.is_action_pressed("sprint"))
-	var speed := (data.sprint_speed if sprinting else data.walk_speed) * status.speed_multiplier() * _debug_speed
+	var carrying := status.carrying != 0
+	sprinting = stamina.tick(delta, control and not carrying and input != Vector2.ZERO and Input.is_action_pressed("sprint"))
+	var base := data.carry_speed if carrying else (data.sprint_speed if sprinting else data.walk_speed)
+	var speed := base * status.speed_multiplier() * body.inventory.speed_multiplier() * _debug_speed
 	var target := dir * speed
 
 	var accel := ground_accel if on_floor else air_accel
@@ -114,6 +125,14 @@ func force_position(pos: Vector3) -> void:
 func apply_impulse(impulse: Vector3) -> void:
 	if _from_server():
 		body.velocity += impulse
+
+
+## Follow the node at `path` (a carrier's HandSocket); an empty path lets go.
+@rpc("any_peer", "reliable")
+func attach_to(path: NodePath) -> void:
+	if _from_server():
+		_anchor = get_node_or_null(path) as Node3D if not path.is_empty() else null
+		body.velocity = Vector3.ZERO
 
 
 func _from_server() -> bool:

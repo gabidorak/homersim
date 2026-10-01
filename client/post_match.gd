@@ -2,7 +2,8 @@ extends Control
 ## Post-match screen: winner banner, reason, and a stats table (MatchManager.result), shown
 ## during POST_MATCH until everyone is back in the lobby.
 
-const COLUMNS: Array[String] = ["Player", "Role", "Sabotages", "Repairs"]
+const COLUMNS: Array[String] = ["Player", "Role", "Sabotages", "Repairs", "Catches", "Frees", "Bites",
+	"Knockdowns", "Steals"]
 
 var _shown_result: Dictionary = {}
 
@@ -40,8 +41,8 @@ func _show(result: Dictionary) -> void:
 	for row: Dictionary in result.get("stats", []):
 		stats.add_child(_cell(str(row["name"]), false))
 		stats.add_child(_cell(Role.display_name(row["role"]), false))
-		stats.add_child(_cell(str(row["sabotages"]), false))
-		stats.add_child(_cell(str(row["repairs"]), false))
+		for key in MatchManager.STAT_KEYS:
+			stats.add_child(_cell(str(row.get(key, 0)), false))
 
 
 func _cell(text: String, header: bool) -> Label:

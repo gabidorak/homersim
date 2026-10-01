@@ -28,7 +28,7 @@ class Hold:
 
 
 var _holds: Dictionary[int, Hold] = {}  # server: peer → its hold (one at a time)
-var _rate: Dictionary[int, Vector2i] = {}  # server: peer → (second, requests in that second)
+var _rate := RateLimiter.new(MAX_REQUESTS_PER_S)
 
 @onready var session: Session = get_parent()
 
@@ -38,7 +38,7 @@ func _ready() -> void:
 	if Net.is_server:
 		session.player_removed.connect(func(peer_id: int) -> void:
 			_end(peer_id, "disconnected", false)
-			_rate.erase(peer_id))
+			_rate.forget(peer_id))
 
 
 ## Server: is `peer_id` holding something right now?
@@ -97,7 +97,7 @@ func _start(peer: int, target_path: NodePath) -> String:
 		return reason
 	if _holds.has(peer):
 		_end(peer, "switched target", true, false)
-	if target.kind == "hold":
+	if target.kind_for(player) == "hold":
 		_holds[peer] = Hold.new(target, player.global_position, Time.get_ticks_msec())
 		Log.info("interact", "%s started %s" % [player.display_name, short_path(target.get_path())])
 	target.begin(player)
@@ -162,17 +162,11 @@ static func short_path(path: NodePath) -> String:
 
 
 func _who(peer: int) -> String:
-	return session.players[peer].name if session.players.has(peer) else "peer %d" % peer
+	return session.name_of(peer)
 
 
 func _rate_ok(peer: int) -> bool:
-	var second := floori(Time.get_ticks_msec() / 1000.0)
-	var entry: Vector2i = _rate.get(peer, Vector2i(second, 0))
-	if entry.x != second:
-		entry = Vector2i(second, 0)
-	entry.y += 1
-	_rate[peer] = entry
-	return entry.y <= MAX_REQUESTS_PER_S
+	return _rate.allow(peer)
 
 
 # --- Server → client -----------------------------------------------------------------------

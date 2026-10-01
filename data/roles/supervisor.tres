@@ -1,7 +1,11 @@
-[gd_resource type="Resource" script_class="RoleData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="RoleData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://data/role_data.gd" id="1_role"]
+[ext_resource type="Script" path="res://data/ability_data.gd" id="1_ability_script"]
 [ext_resource type="PackedScene" path="res://entities/player/supervisor/SupervisorVisual.tscn" id="2_visual"]
+[ext_resource type="Resource" path="res://data/abilities/broom.tres" id="3_broom"]
+[ext_resource type="Resource" path="res://data/abilities/snap_trap.tres" id="4_snap"]
+[ext_resource type="Resource" path="res://data/abilities/cheese_lure.tres" id="5_lure"]
 
 [resource]
 script = ExtResource("1_role")
@@ -17,3 +21,7 @@ jump_height = 1.0
 can_use_vents = false
 camera_kind = 0
 visual_scene = ExtResource("2_visual")
+carry_speed = 3.2
+abilities = Array[ExtResource("1_ability_script")]([ExtResource("3_broom"), ExtResource("4_snap"), ExtResource("5_lure")])
+stun_immunity_s = 0.0
+knockdown_immunity_s = 3.0

@@ -1,7 +1,9 @@
-[gd_resource type="Resource" script_class="RoleData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="RoleData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://data/role_data.gd" id="1_role"]
+[ext_resource type="Script" path="res://data/ability_data.gd" id="1_ability_script"]
 [ext_resource type="PackedScene" path="res://entities/player/rat/RatVisual.tscn" id="2_visual"]
+[ext_resource type="Resource" path="res://data/abilities/bite.tres" id="3_bite"]
 
 [resource]
 script = ExtResource("1_role")
@@ -17,3 +19,6 @@ jump_height = 1.6
 can_use_vents = true
 camera_kind = 1
 visual_scene = ExtResource("2_visual")
+abilities = Array[ExtResource("1_ability_script")]([ExtResource("3_bite")])
+stun_immunity_s = 1.5
+knockdown_immunity_s = 0.0

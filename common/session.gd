@@ -5,9 +5,9 @@ extends Node
 ##
 ## It owns the join handshake, the player list, and spawning/despawning bodies (MatchManager
 ## decides who spawns where and as what). Children: MatchManager, PlantSim, InteractionService,
-## ChatService, World, and the
-## side-specific ServerOnly / ClientOnly nodes, filled at runtime. PlantSim and InteractionService
-## are reachable as `plant` and `interactions`.
+## ChatService, AbilityService, CaptureService, ItemService, World (level, Players, Dynamic), and
+## the side-specific ServerOnly / ClientOnly nodes, filled at runtime. The services are reachable
+## as `plant`, `interactions`, `abilities`, `captures` and `items`.
 ##
 ## Join flow:
 ##   client connects ─▶ request_join(name, version) ─▶ server validates
@@ -26,11 +26,16 @@ const LOBBY_SCENE: PackedScene = preload("res://client/Lobby.tscn")
 const HUD_SCENE: PackedScene = preload("res://client/HUD.tscn")
 const CHAT_SCENE: PackedScene = preload("res://client/Chat.tscn")
 const POST_MATCH_SCENE: PackedScene = preload("res://client/PostMatch.tscn")
+const SPECTATOR_CAM_SCENE: PackedScene = preload("res://client/SpectatorCam.tscn")
 ## Server: drop peers that connect but never send request_join.
 const PENDING_TIMEOUT_S := 5.0
 ## Server: delay before dropping a rejected peer, so on_join_rejected reaches it first
 ## (ENet discards queued packets when a peer is disconnected).
 const REJECT_DISCONNECT_DELAY_S := 0.5
+## Server, retire_bodies(): how long to wait for owners to confirm they stopped sending positions,
+## then a little more for packets they sent just before (unreliable, so they can trail the reply).
+const RETIRE_TIMEOUT_S := 1.0
+const RETIRE_GRACE_S := 0.1
 
 static var current: Session
 
@@ -49,8 +54,12 @@ var local_peer_id := 0
 ## before ours.
 var plant: PlantSim
 var interactions: InteractionService
+var abilities: AbilityService
+var captures: CaptureService
+var items: ItemService
 
 var _pending: Dictionary[int, bool] = {}  # server: connected peers that haven't joined yet
+var _retire_acks: Dictionary[int, bool] = {}  # server: peers asked to stop syncing -> confirmed
 var _leaving := false
 
 @onready var match_manager: MatchManager = $MatchManager
@@ -72,6 +81,9 @@ func _enter_tree() -> void:
 	current = self
 	plant = $PlantSim
 	interactions = $InteractionService
+	abilities = $AbilityService
+	captures = $CaptureService
+	items = $ItemService
 
 
 func _exit_tree() -> void:
@@ -103,6 +115,11 @@ func roster() -> Array[Dictionary]:
 	for info: PlayerInfo in players.values():
 		result.append(info.to_dict())
 	return result
+
+
+## A joined player's name, or "peer N" (for logs).
+func name_of(peer_id: int) -> String:
+	return players[peer_id].name if players.has(peer_id) else "peer %d" % peer_id
 
 
 func get_body(peer_id: int) -> Player:
@@ -185,7 +202,47 @@ func spawn_body(peer_id: int, role: Role.Kind, point: Node3D, locked: bool) -> P
 	}) as Player
 
 
-## Server: remove `peer_id`'s body if it has one. The spawner replicates the removal.
+## Server: remove the bodies of `peers` cleanly (awaitable). Despawning a body whose owner is still
+## sending positions makes those in-flight BodySync packets arrive for a node that no longer exists
+## (Godot logs "Ignoring sync data … for missing node"), on the server and, relayed, on other
+## clients. So first each owner is asked to stop syncing (on_retire_body), and the bodies go once
+## every owner confirmed, or after RETIRE_TIMEOUT_S, plus RETIRE_GRACE_S. Meanwhile they are LOCKED.
+func retire_bodies(peers: Array) -> void:
+	var waiting: Array[int] = []
+	for peer: int in peers:
+		var body := get_body(peer)
+		if body == null:
+			continue
+		body.status.apply(StatusComponent.Status.LOCKED)
+		if multiplayer.get_peers().has(peer):
+			_retire_acks[peer] = false
+			waiting.append(peer)
+			on_retire_body.rpc_id(peer)
+	if not waiting.is_empty():
+		var deadline := Time.get_ticks_msec() + int(RETIRE_TIMEOUT_S * 1000.0)
+		while Time.get_ticks_msec() < deadline and waiting.any(func(p: int) -> bool: return not _retire_acks.get(p, true)):
+			await get_tree().process_frame
+		for peer in waiting:
+			if not _retire_acks.get(peer, true):
+				Log.warn("session", "%s didn't confirm it stopped syncing, removing its body anyway" % name_of(peer))
+			_retire_acks.erase(peer)
+		await get_tree().create_timer(RETIRE_GRACE_S).timeout
+	for peer: int in peers:
+		despawn_body(peer)
+
+
+## Client → server: our body's BodySync is off (reply to on_retire_body).
+@rpc("any_peer", "reliable")
+func request_body_retired() -> void:
+	if not multiplayer.is_server():
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	if _retire_acks.has(peer):
+		_retire_acks[peer] = true
+
+
+## Server: remove `peer_id`'s body now if it has one. The spawner replicates the removal. Use
+## retire_bodies() while the owner is connected; this is for owners that are already gone.
 func despawn_body(peer_id: int) -> void:
 	var body := get_body(peer_id)
 	if body != null:
@@ -207,9 +264,10 @@ func _spawn_player(data: Variant) -> Node:
 	player.position = d["pos"]
 	player.rotation.y = d["yaw"]
 	player.set_multiplayer_authority(player.peer_id)  # recursive: the body, its components, BodySync…
-	# …except the status, which the server owns.
+	# …except the status and the inventory, which the server owns.
 	var status := player.get_node("StatusComponent") as StatusComponent
 	status.set_multiplayer_authority(1)
+	player.get_node("Inventory").set_multiplayer_authority(1)
 	player.get_node("StatusSync").set_multiplayer_authority(1)
 	if d["locked"]:
 		# Clients apply it too, so the body is frozen from its first frame instead of waiting
@@ -233,7 +291,7 @@ func request_debug_teleport(pos: Vector3) -> void:
 	if not debug_allowed() or body == null:
 		Log.warn("session", "refused a debug teleport from peer %d" % peer)
 		return
-	Log.info("session", "debug teleport of %s to %s" % [body.display_name, pos])
+	Log.info("session", "debug teleport of %s from %s to %s" % [body.display_name, body.global_position, pos])
 	body.server_force_position(pos)
 
 
@@ -255,6 +313,15 @@ func on_join_accepted(peer_id: int, roster_data: Array) -> void:
 	Log.info("session", "joined as %s, %d player(s) online" % [me.name if me else "?", players.size()])
 	roster_changed.emit()
 	joined.emit()
+
+
+## Server → owner: stop sending our body's position, it is about to be removed (retire_bodies).
+@rpc("authority", "reliable")
+func on_retire_body() -> void:
+	var body := get_body(local_peer_id)
+	if body != null:
+		(body.get_node("BodySync") as MultiplayerSynchronizer).public_visibility = false
+	request_body_retired.rpc_id(1)
 
 
 @rpc("authority", "reliable")
@@ -303,6 +370,10 @@ func _build_client_ui() -> void:
 	var overview := OverviewCamera.new()
 	overview.name = "OverviewCamera"
 	client_only.add_child(overview)
+	client_only.add_child(SPECTATOR_CAM_SCENE.instantiate())
+	var feedback := CombatFeedback.new()
+	feedback.name = "CombatFeedback"
+	client_only.add_child(feedback)
 	client_only.add_child(HUD_SCENE.instantiate())
 	client_only.add_child(LOBBY_SCENE.instantiate())
 	client_only.add_child(POST_MATCH_SCENE.instantiate())

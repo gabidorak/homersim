@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=28 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/dark_01.png" id="tex_dark"]
 [ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/light_01.png" id="tex_light"]
@@ -11,6 +11,10 @@
 [ext_resource type="PackedScene" path="res://interactables/sabotage_point/SabotagePoint.tscn" id="sabotage_point"]
 [ext_resource type="PackedScene" path="res://interactables/repair_point/RepairPoint.tscn" id="repair_point"]
 [ext_resource type="PackedScene" path="res://interactables/critical_lever/CriticalLever.tscn" id="critical_lever"]
+[ext_resource type="PackedScene" path="res://interactables/cage/Cage.tscn" id="cage"]
+[ext_resource type="PackedScene" path="res://interactables/door/Door.tscn" id="door"]
+[ext_resource type="PackedScene" path="res://interactables/door/KeycardDoor.tscn" id="keycard_door"]
+[ext_resource type="Script" path="res://interactables/pickup/pickup.gd" id="pickup"]
 
 [sub_resource type="StandardMaterial3D" id="mat_dark"]
 albedo_texture = ExtResource("tex_dark")
@@ -600,3 +604,45 @@ subsystem_id = &"valves"
 position = Vector3(1.3, 0.3, 0)
 rotation = Vector3(0, 1.5708, 0)
 subsystem_id = &"valves"
+
+[node name="PvP" type="Node3D" parent="."]
+
+[node name="CageA" parent="PvP" instance=ExtResource("cage")]
+position = Vector3(-2, 0.5, 12)
+
+[node name="CageB" parent="PvP" instance=ExtResource("cage")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 6, 0.5, -12)
+
+[node name="BreakRoomKeycardDoor" parent="PvP" instance=ExtResource("keycard_door")]
+position = Vector3(16, 0, 12)
+
+[node name="BreakRoomDoor" parent="PvP" instance=ExtResource("door")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 12, 0, 16)
+
+[node name="DonutCounter" type="CSGBox3D" parent="PvP"]
+position = Vector3(19.4, 0.45, 14.5)
+size = Vector3(1, 0.9, 2)
+material = SubResource("mat_light")
+use_collision = true
+
+[node name="Donuts" type="Area3D" parent="PvP"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 19.4, 1.0, 14.5)
+script = ExtResource("pickup")
+item = "donut"
+
+[node name="StorageSign" type="Label3D" parent="PvP"]
+position = Vector3(19, 3.2, 9)
+billboard = 1
+text = "STORAGE"
+font_size = 96
+outline_size = 18
+
+[node name="TrapRefill" type="Area3D" parent="PvP"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 19.4, 0.2, 8)
+script = ExtResource("pickup")
+item = "trap_refill"
+
+[node name="SpareKeycard" type="Area3D" parent="PvP"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 19.4, 0.45, 10)
+script = ExtResource("pickup")
+item = "spare_keycard"

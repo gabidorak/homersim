@@ -116,6 +116,12 @@ func reboot(index: int, peers: Array[int] = []) -> bool:
 	return true
 
 
+## The swarm bonus (MatchManager): straight onto the meltdown meter.
+func add_meltdown(amount: float) -> void:
+	_model.add_meltdown(amount)
+	_publish()
+
+
 func _on_tick() -> void:
 	if running:
 		_model.tick(TICK_S, _now())

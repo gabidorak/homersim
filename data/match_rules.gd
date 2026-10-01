@@ -12,6 +12,8 @@ extends Resource
 ## Supervisors per player count (index = player count). Counts past the end use the last entry.
 @export var supervisors_by_players := PackedInt32Array([1, 1, 1, 1, 1, 2, 2])
 @export var max_rats := 4  ## extra players become spectators
+@export var swarm_bonus := 15.0  ## meltdown % when every supervisor is knocked down at once
+@export var swarm_cooldown_s := 45.0
 
 
 func supervisors_for(player_count: int) -> int:

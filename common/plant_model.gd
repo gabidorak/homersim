@@ -51,6 +51,11 @@ func index_of(id: StringName) -> int:
 	return -1
 
 
+## Adds `amount` % to the meltdown meter (swarm bonus), clamped to 0..100.
+func add_meltdown(amount: float) -> void:
+	meltdown = clampf(meltdown + amount, 0.0, 100.0)
+
+
 ## Advances the simulation by `dt` seconds.
 func tick(dt: float, now: float) -> void:
 	var heat_in := 0.0

@@ -1,9 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://entities/player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://components/movement/movement_component.gd" id="2_move"]
 [ext_resource type="Script" path="res://components/status/status_component.gd" id="3_status"]
 [ext_resource type="Script" path="res://components/interactor/interactor_component.gd" id="4_interactor"]
+[ext_resource type="Script" path="res://components/abilities/ability_component.gd" id="5_abilities"]
+[ext_resource type="Script" path="res://components/inventory/inventory.gd" id="6_inventory"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_body"]
 properties/0/path = NodePath(".:sync_position")
@@ -20,6 +22,30 @@ properties/2/replication_mode = 1
 properties/0/path = NodePath("StatusComponent:flags")
 properties/0/spawn = true
 properties/0/replication_mode = 2
+properties/1/path = NodePath("StatusComponent:speed_factor")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+properties/2/path = NodePath("StatusComponent:carrier")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+properties/3/path = NodePath("StatusComponent:carrying")
+properties/3/spawn = true
+properties/3/replication_mode = 2
+properties/4/path = NodePath("Inventory:keycard")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+properties/5/path = NodePath("Inventory:stolen_item")
+properties/5/spawn = true
+properties/5/replication_mode = 2
+properties/6/path = NodePath("Inventory:trap_charges")
+properties/6/spawn = true
+properties/6/replication_mode = 2
+properties/7/path = NodePath("Inventory:spare_wait_left")
+properties/7/spawn = true
+properties/7/replication_mode = 2
+properties/8/path = NodePath("Inventory:donut_wait_left")
+properties/8/spawn = true
+properties/8/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
@@ -38,12 +64,27 @@ script = ExtResource("3_status")
 [node name="InteractorComponent" type="Node" parent="."]
 script = ExtResource("4_interactor")
 
+[node name="AbilityComponent" type="Node" parent="."]
+script = ExtResource("5_abilities")
+
+[node name="Inventory" type="Node" parent="."]
+script = ExtResource("6_inventory")
+
 [node name="NameTag" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, 0)
 billboard = 1
 text = "Player"
 font_size = 40
 outline_size = 10
+
+[node name="StatusTag" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 0)
+visible = false
+billboard = 1
+no_depth_test = true
+text = "status"
+font_size = 32
+outline_size = 8
 
 [node name="BodySync" type="MultiplayerSynchronizer" parent="."]
 replication_interval = 0.05

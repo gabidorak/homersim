@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ability_data.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+id = &"bite"
+display_name = "Bite"
+kind = 1
+input_action = &"primary"
+range = 1.2
+cone_deg = 360.0
+cooldown_s = 2.5
+status = 2
+status_duration = 3.0
+extra = {
+"knockdown_bites": 3,
+"knockdown_s": 4.0,
+"knockdown_window_s": 6.0,
+"slow_factor": 0.7
+}

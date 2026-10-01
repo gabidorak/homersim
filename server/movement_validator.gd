@@ -2,7 +2,8 @@ class_name MovementValidator
 extends Node
 ## Server sanity check of client-owned movement (ARCHITECTURE §3). Every CHECK_INTERVAL_S it
 ## compares each body's synced position with the previous sample: moving farther than the role's
-## top speed allows, or a non-rat body inside a VentVolume, earns a strike.
+## top speed allows (Player.max_speed(): carry speed, slows, donut, stolen item), or a non-rat body
+## inside a VentVolume, earns a strike. Carried and caged rats are skipped: the server moves them.
 ## v1 only logs strikes (no correction, no kick); kicks come in M9.
 ##
 ## Checking over 0.25 s rather than every tick absorbs network jitter: BodySync packets arrive
@@ -37,6 +38,9 @@ func _physics_process(_delta: float) -> void:
 		if player == null or player.is_queued_for_deletion():
 			continue
 		var sample: Dictionary = _samples.get(player.peer_id, {})
+		if player.status.has(StatusComponent.Status.CARRIED) or player.status.has(StatusComponent.Status.CAGED):
+			_samples.erase(player.peer_id)  # moved by the server; start fresh once released
+			continue
 		if sample.get("body", 0) != player.get_instance_id():
 			_samples[player.peer_id] = {"body": player.get_instance_id(), "pos": player.position, "ms": now}
 			continue  # new body (spawn, respawn): start fresh
@@ -52,7 +56,7 @@ func _check(player: Player, previous: Vector3, seconds: float, now: int) -> void
 	if now < player.validator_grace_until_ms or previous.y < MovementComponent.KILL_Y:
 		return  # server-imposed move, or the client put itself back after falling out of the world
 	var moved := Vector2(player.position.x - previous.x, player.position.z - previous.z).length()
-	var max_speed := player.role_data.sprint_speed * player.status.speed_multiplier()
+	var max_speed := player.max_speed()
 	if not player.status.can_act():
 		max_speed = 0.0
 	var allowed := allowed_distance(max_speed, seconds)

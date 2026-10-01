@@ -16,6 +16,19 @@ enum CameraKind { FIRST_PERSON, THIRD_PERSON }
 @export var stamina_regen_delay_s := 1.0  ## pause after sprinting before the bar refills
 @export var jump_height := 1.0  ## m
 @export var can_use_vents := false
+@export var carry_speed := 0.0  ## m/s while carrying a rat (no sprint); 0 = can't carry
+@export_group("Combat")
+@export var abilities: Array[AbilityData] = []
+@export var stun_immunity_s := 0.0  ## immune to stuns this long after one ends
+@export var knockdown_immunity_s := 0.0  ## immune to knockdowns this long after one ends
 @export_group("Presentation")
 @export var visual_scene: PackedScene
 @export var camera_kind := CameraKind.FIRST_PERSON
+
+
+## The ability with this id, or null.
+func ability(id: StringName) -> AbilityData:
+	for a in abilities:
+		if a.id == id:
+			return a
+	return null

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="PvpTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/pvp_tuning.gd" id="1_pvp"]
+
+[resource]
+script = ExtResource("1_pvp")
+carry_max_s = 8.0
+drop_invulnerable_s = 1.5
+free_hold_s = 4.0
+freed_invulnerable_s = 3.0
+captures_to_eliminate = 2
+steal_hold_s = 1.0
+stolen_item_speed = 0.9
+spare_keycard_delay_s = 30.0
+donut_speed = 1.2
+donut_duration_s = 20.0
+donut_cooldown_s = 60.0
+keycard_door_open_s = 3.0
+trap_charges = 3
+trap_min_spacing = 0.6

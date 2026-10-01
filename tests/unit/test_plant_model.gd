@@ -148,3 +148,10 @@ func test_index_of() -> void:
 	assert_eq(model.index_of(&"rods"), 0)
 	assert_eq(model.index_of(&"ventilation"), 5)
 	assert_eq(model.index_of(&"nope"), -1)
+
+
+func test_add_meltdown_is_clamped() -> void:
+	model.add_meltdown(15.0)
+	assert_eq(model.meltdown, 15.0)
+	model.add_meltdown(95.0)
+	assert_eq(model.meltdown, 100.0)

@@ -53,6 +53,7 @@ Supported CLI args (user args after `--`):
 - Test only (honoured only in debug builds): `--allow-debug` (enables debug RPCs such as teleport), `--test-duration S`, `--exit-after-match`, `--result-file path`, `--bot rat|supervisor` (headless scripted client)
 - Test-only client flags since M2 (debug builds, `client/debug_hooks.gd` and `MovementComponent`): `--pref rat|supervisor|any`, `--auto-ready`, `--say TEXT`, `--auto-move`, `--debug-speed N`, `--screenshot PATH [--screenshot-delay S]`
 - Bot options since M3 (`tests/helpers/bot_client.gd`): `--bot-target SUBSYSTEM` (default `pumps`), `--bot-lever A|B` (critical subsystems), `--bot-delay S`. The bot scene lives under `tests/`, which is excluded from exports.
+- Since M4: `--bot-scenario capture|swarm|items|hack [--bot-part P]` runs a PvP scenario instead (`tests/helpers/pvp_bot.gd`); bots of one test coordinate only through replicated state and find each other by name.
 
 ### `server.cfg` (ConfigFile/INI)
 ```ini
@@ -74,7 +75,7 @@ Every key of `[match]` other than `rules` overrides the `MatchRules` property of
 | Thing | Authority | How it's replicated |
 |---|---|---|
 | Own player position, rotation, look pitch, anim state | Owning client | `BodySync` MultiplayerSynchronizer (unreliable, ~20 Hz, interpolated on others) |
-| Player status (stunned, carried, caged, items, role) | Server | `StatusSync` MultiplayerSynchronizer, authority = 1 (reliable "on change") |
+| Player status and items (status flags, speed factor, carry links, keycard, stolen item, trap charges) | Server | `StatusSync` MultiplayerSynchronizer, authority = 1 (reliable "on change"); it covers `StatusComponent` and `Inventory` |
 | Plant state (healths, core_temp, meltdown, alarm) | Server | `PlantSync` on PlantSim (~5 Hz, plus on change) |
 | Match state, timer, scores | Server | `MatchSync` plus `@rpc` events (`match_started`, `match_ended`) |
 | Interactable state (progress, cooldowns, door open) | Server | One synchronizer per interactable, or events |
@@ -85,6 +86,8 @@ Every key of `[match]` other than `rules` overrides the `MatchRules` property of
 - Zero input lag with no prediction or reconciliation code, which matters a lot for a first networked game.
 - Cost: a cheater could teleport. Mitigation is the **server sanity check** in `server/movement_validator.gd`: every physics tick, for every player, compare the new synced position to the previous one. If `distance > max_speed(role, status) * dt * 1.5 + 0.5`, or if a supervisor is inside a rat-only volume, the server sends `force_position` back to the owner and logs a strike. 10 strikes = kick.
 - **Server-imposed movement** (knockback, being carried, teleport to cage) is sent to the owning client as an RPC on its `MovementComponent`: `apply_impulse(v)`, `set_locked(bool)`, `attach_to(path)`, `force_position(p)`. The owner applies it. The validator allows a temporary tolerance window afterwards. These RPCs are `any_peer` (the node's authority is the owner, not the server) and check that the sender is peer 1. Call them through `Player.server_*` helpers, which also open the validator window.
+- A **carried** rat's owner follows the carrier's `HandSocket` (`attach_to`); every other peer draws it there too (`Player.carried_anchor()`), and it has no collision layer while carried. The validator skips carried and caged bodies, and any status change opens a grace window (the owner may still be moving at the old speed until StatusSync reaches it).
+- Remote bodies glide toward their synced position, except for jumps over 2 m (teleports, cage, release), which snap: gliding would sweep the body through bars and shove other players.
 - The **countdown freeze** uses the `LOCKED` status instead: the spawn function applies it on every peer, so the body is frozen from its first frame, and the server clears it when the countdown ends.
 
 If movement cheating or feel becomes a real problem, `MovementComponent` is the only place that needs to change to adopt netfox prediction.
@@ -128,16 +131,19 @@ Godot RPCs and synchronizers only work when the node exists **at the same path, 
      ├─ MatchManager          (shared script; logic guarded by is_server(), synced state readable by clients)
      ├─ PlantSim              (same idea)
      ├─ InteractionService    (request_* RPC handlers; clients only call them)
-     ├─ ChatService
+     ├─ ChatService           (ALL / TEAM / GHOST routing, server-side)
+     ├─ AbilityService        (broom and bite: request_use_ability, cosmetic on_* events, cooldowns)
+     ├─ CaptureService        (grab, carry, cage, free, eliminate; server logic)
+     ├─ ItemService           (request_place_trap, steal, dropped keycards, the Dynamic spawn function)
      ├─ World (Node3D)
      │   ├─ Plant (levels/plant/Plant.tscn)
      │   │   ├─ POIs (ReactorHall, TurbineHall, …) containing Interactables, hazards, spawn points
      │   │   └─ NavigationRegion3D (later, for bots)
      │   ├─ Players (Node3D)  ← MultiplayerSpawner spawns Player.tscn, named by peer id
-     │   └─ Dynamic (Node3D)  ← MultiplayerSpawner for traps, dropped items, hazards
+     │   └─ Dynamic (Node3D)  ← DynamicSpawner (MultiplayerSpawner) for traps, dropped keycards, later hazards
      ├─ ServerOnly (Node)     ← children added at runtime only when is_server():
      │   ├─ HazardDirector, MovementValidator, ServerConsole
-     └─ ClientOnly (Node)     ← children added only on clients: HUD, Chat UI, PauseMenu, MinigameHost, SpectatorCam
+     └─ ClientOnly (Node)     ← children added only on clients: OverviewCamera, SpectatorCam, CombatFeedback (sounds), HUD, Lobby, PostMatch, Chat UI; later PauseMenu, MinigameHost
 ```
 - `server/ServerMain.tscn` = boot logic (read config, `Net.host()`) and then adds `Session` to the root.
 - `client/MainMenu.tscn` → on a successful connection it frees the menu and adds `Session` to the root.
@@ -150,16 +156,18 @@ Player (CharacterBody3D, name = str(peer_id))
  ├─ Visual (Node3D)           (role model instanced at spawn: supervisor.tscn / rat.tscn)
  ├─ CameraRig                 (FirstPersonRig or ThirdPersonRig, only active for the local player)
  ├─ MovementComponent         (reads RoleData stats + status modifiers)
- ├─ StatusComponent           (stun, slow, knockdown, carried, caged, eliminated, invulnerable, revealed; server-authoritative)
+ ├─ StatusComponent           (server-authoritative; rules in StatusRules, pure logic: expiry, immunity windows, speed factors, bite counting)
  ├─ InteractorComponent       (raycast/area focus, hold logic, sends intents)
- ├─ AbilityComponent          (list of AbilityData resources: broom, bite, trap…)
- ├─ Inventory                 (keycard, stolen item, trap charges)
- ├─ AnimationController       (drives AnimationTree from movement + status)
- ├─ NameTag (Label3D)
+ ├─ AbilityComponent          (RoleData.abilities: LMB primary, RMB trap preview + place, Q switch; cooldowns)
+ ├─ Inventory                 (keycard, stolen item, trap charges, spare-keycard and donut waits; server-authoritative)
+ ├─ AnimationController       (later: drives AnimationTree from movement + status)
+ ├─ GrabHandle / StealHandle  (added by setup(): rats get a GrabHandle, supervisors a StealHandle on their back)
+ ├─ HandSocket (Node3D)       (supervisors: where a carried rat hangs)
+ ├─ NameTag, StatusTag (Label3D)
  ├─ BodySync (MultiplayerSynchronizer, authority = owner peer)
  └─ StatusSync (MultiplayerSynchronizer, authority = 1)
 ```
-- Spawn flow: the server picks a spawn point and calls `MultiplayerSpawner.spawn({peer, role, pos})`. A custom `spawn_function` builds the player, sets `name = str(peer)`, and calls `set_multiplayer_authority(peer)` on the body and BodySync but **not** on StatusSync.
+- Spawn flow: the server picks a spawn point and calls `MultiplayerSpawner.spawn({peer, role, pos})`. A custom `spawn_function` builds the player, sets `name = str(peer)`, and calls `set_multiplayer_authority(peer)` on the body and BodySync but **not** on StatusSync, StatusComponent or Inventory.
 - Only the local player enables `CameraRig`, input processing and HUD binding (`is_multiplayer_authority()`).
 
 ### Interactables
@@ -172,15 +180,17 @@ Player (CharacterBody3D, name = str(peer_id))
 signal completed(player: Player)
 
 func can_interact(p: Player) -> bool          # role, status, cooldown, distance, LOS
+func kind_for(p: Player) -> String            # per role: a cage is instant for supervisors, a hold for rats
 func begin(p: Player) -> void                 # server
 func cancel(p: Player) -> void                # server
 func _complete(p: Player) -> void             # server → emits completed
 ```
-- Each interactable builds its own `Sync` MultiplayerSynchronizer in `_ready` (synced `progress` 0..1 and `holder_count`), so no subclass scene can forget it.
+- Each interactable builds its own `Sync` MultiplayerSynchronizer in `_ready` (synced `progress` 0..1 and `holder_count`, plus whatever `_synced_properties()` adds, like a cage's `occupants`), so no subclass scene can forget it. Interactables without a progress ring (instant ones, the handles on player bodies) set `needs_sync = false`; the steal ring is a local estimate.
+- Instant interactions need a fresh press of E for each use.
 - Facing convention: an interactable's +Z points away from its machine, toward where the player stands (`stand_position()`).
 - `CriticalLever`: set `partner_path` on one lever of a pair only. That one is the leader and runs the shared progress on the server: it advances only while both levers are held, pauses while one is, and resets when neither is.
 
-Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `RepairPoint`, `Door` / `KeycardDoor`, `Cage`, `CctvCamera`, `ConsoleAction` (control room), `Vent` (rat-only trigger volume), `Pickup` (trap refill, donut, spare keycard).
+Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `RepairPoint`, `GrabHandle` and `StealHandle` (on player bodies), `Cage`, `KeycardReader` (on a keycard `Door`), `Pickup` (trap refill, donut, spare keycard, dropped keycard), later `CctvCamera`, `ConsoleAction` (control room). Not interactables: `Door` (a `Node3D` with a server-owned `open` and an `AnimatableBody3D` panel; normal doors open for anyone nearby), `Trap` (an `Area3D` the server watches), `VentVolume`.
 `SabotagePoint` / `RepairPoint` hold an exported `subsystem_id`, and on `completed` they call `PlantSim.apply_damage(id, amount)` / `apply_repair(...)`.
 
 ### Minigames
@@ -203,8 +213,11 @@ Its replicated state (`MatchSync`, on change): `state`, `countdown_left` (COUNTD
 LOBBY ──ready vote / --debug-start──▶ ROLE_ASSIGN ─▶ COUNTDOWN(10s) ─▶ PLAYING ─▶ POST_MATCH(15s) ─▶ LOBBY
                                                         ▲ players < 2 during ROLE_ASSIGN/COUNTDOWN → abort to LOBBY
 ```
-- Owns `time_left`, `state`, the roles and the stats (sabotages and repairs per player). Checks win conditions each frame with `MatchRulesModel.check_winner`, in this order: meltdown ≥ 100 → rats win; all rats caged, eliminated or gone → supervisors win; all supervisors gone → rats win; `time_left ≤ 0` → supervisors win. A team only counts as "gone" if it had players when PLAYING began, so solo debug matches run until the timer.
+- Owns `time_left`, `state`, the roles and the stats (`STAT_KEYS`: sabotages, repairs, catches, frees, bites, knockdowns, steals per player; services call `add_stat`). Checks win conditions each frame with `MatchRulesModel.check_winner`, in this order: meltdown ≥ 100 → rats win; all rats caged, eliminated or gone → supervisors win; all supervisors gone → rats win; `time_left ≤ 0` → supervisors win. A team only counts as "gone" if it had players when PLAYING began, so solo debug matches run until the timer.
 - **Late join** during PLAYING: the player becomes a spectator until the next match.
+- **Body swaps** (lobby → role bodies, back to the lobby, elimination) go through `Session.retire_bodies(peers)`: each owner is first told to stop sending positions (`on_retire_body`, which turns its BodySync off) and the bodies are despawned once all owners confirm (or after 1 s) plus 0.1 s. Despawning straight away let in-flight BodySync packets reach a freed node ("Ignoring sync data … for missing node"). The state machine pauses during a swap; a swap overtaken by another (a player leaves mid-swap) stops after its await.
+- **Elimination** (CaptureService, a rat's 2nd capture): `eliminate(peer)` sets the roster entry's `eliminated` flag and despawns the body. Eliminated players and spectators are *ghosts* (`is_ghost`): SpectatorCam, ghost chat only.
+- **Swarm bonus**: every supervisor body knocked down at once → `PlantSim.add_meltdown(swarm_bonus)`, on the rising edge, at most once per `swarm_cooldown_s`.
 - **Disconnect** during PLAYING: the body is despawned. If a team is empty, the other team wins.
 
 ### PlantSim (`common/plant_sim.gd`)
@@ -224,7 +237,8 @@ data/
   roles/supervisor.tres     # RoleData: height, radius, walk, sprint, stamina, jump, abilities[]
   roles/rat.tres
   subsystems/rods.tres …    # SubsystemData: id, display_name, heat_weight, critical, hazard_kind, icon
-  abilities/broom.tres …    # AbilityData: range, cone_deg, cooldown, status, status_duration
+  abilities/broom.tres …    # AbilityData: id, kind, input_action, range, cone_deg, cooldown_s, status, status_duration, extra
+  pvp_tuning.tres           # PvpTuning: carry time, invulnerability windows, free/steal holds, spare keycard delay, donut, doors, trap charges
   plant_tuning.tres         # PlantTuning: the subsystem list, cooling rate, thresholds, meltdown rates, sabotage/repair amounts and hold times
 ```
 The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_data_sanity.gd`) loads every resource and asserts value ranges.
@@ -246,7 +260,7 @@ The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_d
 | Level | Tool | What |
 |---|---|---|
 | Unit | GUT, headless | `plant_model`, `match_rules_model`, status stacking, team balance, data sanity |
-| Integration | Shell script launching separate headless processes (`tests/integration/*.sh`) | A server on a random port (`--exit-after-match --result-file`) plus bot clients (`--bot rat\|supervisor`) that connect, pick their role and ready up (the real ready vote, `min_players=2`: `--debug-start` would start before the preferences arrive), go to a sabotage point and complete it (plus a lever-pair variant). The scripts assert the result JSON, the exit code, and that the logs contain no errors. |
+| Integration | Shell script launching separate headless processes (`tests/integration/*.sh`) | A server on a random port (`--exit-after-match --result-file`) plus bot clients (`--bot rat\|supervisor`) that connect, pick their role and ready up (the real ready vote, `min_players=2`: `--debug-start` would start before the preferences arrive), go to a sabotage point and complete it (plus a lever-pair variant). Since M4, `pvp_*.sh` run PvP scenarios: the capture chain, bites and the swarm bonus, items and traps, and a "hacked client" sending bad `request_*` calls. The scripts assert the result JSON, the exit code, the server log, and that the logs contain no errors. |
 | Manual | Run Instances (editor: *Debug → Customize Run Instances*) | 1 instance with `-- --server --debug-start`, 3 instances with `-- --connect 127.0.0.1:7777` |
 | Network conditions | `tc netem` on Linux (`sudo tc qdisc add dev lo root netem delay 80ms 20ms loss 1%`) | Play with 80–150 ms latency before calling any PvP feature done |
 
@@ -276,6 +290,7 @@ homersim/
   autoload/        net.gd events.gd config.gd log.gd cli.gd
   common/          Session.tscn session.gd match_manager.gd match_rules_model.gd
                    plant_sim.gd plant_model.gd interaction_service.gd chat_service.gd role.gd
+                   ability_service.gd capture_service.gd item_service.gd hit_check.gd rate_limiter.gd
   server/          ServerMain.tscn server_main.gd hazard_director.gd movement_validator.gd server_console.gd
   client/          MainMenu.tscn ServerBrowser.tscn Settings.tscn HUD.tscn Chat.tscn Scoreboard.tscn
                    PostMatch.tscn SpectatorCam.tscn MinigameHost.tscn
@@ -292,7 +307,7 @@ homersim/
   assets/          third_party/<pack>/  generated/  audio/  fonts/  ui/
   addons/          gut/  (later: netfox/ …)
   tools/blender/   common.py pipe.py tank.py console.py valve.py … export_all.py
-  tests/           unit/ integration/ helpers/bot_client.gd
+  tests/           unit/ integration/ helpers/bot_client.gd helpers/pvp_bot.gd
   docs/            GDD.md ARCHITECTURE.md ASSETS.md milestones/
   .github/workflows/ci.yml  Dockerfile  server.cfg.example  CREDITS.md  README.md
 ```

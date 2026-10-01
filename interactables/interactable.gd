@@ -24,6 +24,9 @@ signal completed(player: Player)  ## server
 @export var duration_s := 4.0  ## hold time; subclasses may vary it (hold_duration())
 @export var prompt := "Use"
 @export var reach := 0.0  ## m; 0 = the role's default
+## False for interactables that don't need a synced progress ring (instant ones, the handles on
+## player bodies). Set it in _init.
+var needs_sync := true
 
 # --- Replicated by the Sync child (server → clients) ------------------------------------
 var progress := 0.0  ## 0..1
@@ -48,8 +51,11 @@ func _ready() -> void:
 ## Like every static node's synchronizer it must exist before the client connects: it does,
 ## because the whole Session (level included) is added before Net.join().
 func _add_sync() -> void:
+	var properties := _synced_properties()
+	if properties.is_empty():
+		return
 	var config := SceneReplicationConfig.new()
-	for property: String in ["progress", "holder_count"]:
+	for property in properties:
 		var path := NodePath(".:%s" % property)
 		config.add_property(path)
 		config.property_set_spawn(path, true)
@@ -58,6 +64,13 @@ func _add_sync() -> void:
 	sync.name = "Sync"
 	sync.replication_config = config
 	add_child(sync)
+
+
+## The properties the Sync child replicates (on change). Subclasses may add their own.
+func _synced_properties() -> Array[String]:
+	if not needs_sync:
+		return []
+	return ["progress", "holder_count"]
 
 
 # --- Shared helpers ----------------------------------------------------------------------
@@ -102,6 +115,11 @@ func hold_duration() -> float:
 	return duration_s
 
 
+## "instant", "hold" or "minigame" for this player (a cage is instant for supervisors, a hold for rats).
+func kind_for(_player: Player) -> String:
+	return kind
+
+
 ## The prompt line for the local player ("Sabotage Coolant pumps", "Cooling down: 12 s").
 func prompt_for(_player: Player) -> String:
 	return prompt
@@ -133,7 +151,7 @@ func can_interact(player: Player) -> String:
 
 
 func begin(player: Player) -> void:
-	if kind == "instant":
+	if kind_for(player) == "instant":
 		_complete(player)
 		return
 	holders[player.peer_id] = 0.0

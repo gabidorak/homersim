@@ -83,3 +83,53 @@ func test_plant_tuning_matches_gdd() -> void:
 	assert_true(t.min_temp <= t.nominal_temp and t.nominal_temp < t.warning_temp)
 	assert_true(t.warning_temp < t.critical_temp and t.critical_temp < t.max_temp)
 	assert_true(t.meltdown_recover_temp < t.meltdown_start_temp)
+
+
+func test_abilities_match_gdd() -> void:
+	var sup := Role.data(Role.Kind.SUPERVISOR)
+	var rat := Role.data(Role.Kind.RAT)
+	var broom := sup.ability(&"broom")
+	assert_eq([broom.kind, broom.range, broom.cone_deg, broom.cooldown_s], [AbilityData.Kind.MELEE_STUN, 2.0, 70.0, 1.2])
+	assert_eq([broom.status, broom.status_duration], [StatusComponent.Status.STUNNED, 2.0])
+	var bite := rat.ability(&"bite")
+	assert_eq([bite.kind, bite.range, bite.cooldown_s], [AbilityData.Kind.BITE, 1.2, 2.5])
+	assert_eq([bite.status_duration, bite.extra["slow_factor"]], [3.0, 0.7])
+	assert_eq([bite.extra["knockdown_bites"], bite.extra["knockdown_window_s"], bite.extra["knockdown_s"]], [3, 6.0, 4.0])
+	var snap := sup.ability(&"snap_trap")
+	assert_eq([snap.kind, snap.status, snap.status_duration, snap.extra["trap_kind"]],
+		[AbilityData.Kind.TRAP, StatusComponent.Status.STUNNED, 3.0, "snap"])
+	var lure := sup.ability(&"cheese_lure")
+	assert_eq([lure.kind, lure.status, lure.status_duration, lure.extra["trap_kind"]],
+		[AbilityData.Kind.TRAP, StatusComponent.Status.REVEALED, 10.0, "lure"])
+	assert_null(rat.ability(&"broom"), "abilities are per role")
+	assert_null(sup.ability(&"bite"))
+
+
+func test_every_ability_is_sane() -> void:
+	for kind: Role.Kind in [Role.Kind.SUPERVISOR, Role.Kind.RAT]:
+		for a in Role.data(kind).abilities:
+			assert_ne(a.id, &"", "id")
+			assert_false(a.display_name.is_empty(), "%s display name" % a.id)
+			assert_true(a.range > 0.0 and a.cooldown_s > 0.0 and a.status_duration > 0.0, String(a.id))
+			assert_true(a.input_action in [&"primary", &"secondary"], String(a.id))
+			assert_true(InputMap.has_action(a.input_action), "%s: input action exists" % a.id)
+			assert_between(a.cone_deg, 1.0, 360.0, String(a.id))
+
+
+func test_role_combat_stats_match_gdd() -> void:
+	var sup := Role.data(Role.Kind.SUPERVISOR)
+	var rat := Role.data(Role.Kind.RAT)
+	assert_eq([sup.carry_speed, sup.stun_immunity_s, sup.knockdown_immunity_s], [3.2, 0.0, 3.0])
+	assert_eq([rat.carry_speed, rat.stun_immunity_s, rat.knockdown_immunity_s], [0.0, 1.5, 0.0])
+	assert_true(sup.carry_speed < sup.walk_speed, "carrying is slower than walking")
+
+
+func test_pvp_tuning_matches_gdd() -> void:
+	var t := PvpTuning.load_default()
+	assert_eq([t.carry_max_s, t.drop_invulnerable_s, t.free_hold_s, t.freed_invulnerable_s], [8.0, 1.5, 4.0, 3.0])
+	assert_eq(t.captures_to_eliminate, 2)
+	assert_eq([t.steal_hold_s, t.stolen_item_speed, t.spare_keycard_delay_s], [1.0, 0.9, 30.0])
+	assert_eq([t.donut_speed, t.donut_duration_s, t.donut_cooldown_s, t.keycard_door_open_s], [1.2, 20.0, 60.0, 3.0])
+	assert_eq(t.trap_charges, 3)
+	var m: MatchRules = load(Config.DEFAULT_MATCH_RULES)
+	assert_eq([m.swarm_bonus, m.swarm_cooldown_s], [15.0, 45.0])

@@ -34,3 +34,15 @@ jobs:
 
       - name: Critical sabotage test (lever pair, reboot, repairs)
         run: tests/integration/critical_lever.sh
+
+      - name: PvP capture chain (broom, grab, cage, free, eliminate, ghost chat)
+        run: tests/integration/pvp_capture.sh
+
+      - name: PvP bites (carrier drop, knockdown, swarm bonus, immunity)
+        run: tests/integration/pvp_swarm.sh
+
+      - name: PvP items (steal, keycard door, traps, pickups, spare keycard)
+        run: tests/integration/pvp_items.sh
+
+      - name: PvP hacked-client requests are all refused
+        run: tests/integration/pvp_hack.sh

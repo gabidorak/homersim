@@ -4,7 +4,8 @@ extends Node
 ##   first person (supervisor): what the camera looks at, via a ray from the screen centre
 ##   third person (rat): the nearest interactable within reach, in front of the body or camera
 ## Holding E on an available target sends request_interact_start, then a heartbeat every 0.25 s;
-## releasing E (or losing the target) sends request_interact_stop. The server decides everything
+## releasing E (or losing the target) sends request_interact_stop. An instant target (grab, cage,
+## pickups, keycard readers) only gets the start request, and E must be released before the next. The server decides everything
 ## else and reports the end of every hold through server_ended_hold(). After a hold ends on the
 ## server's side, E must be released before a new hold starts.
 ## Runs only on the owning client. HUD reads `target`, `holding` and prompt_text().
@@ -21,6 +22,7 @@ var holding: Interactable  ## the hold we asked the server for
 var bot_hold: Interactable
 
 var _since_heartbeat := 0.0
+var _held_s := 0.0  # local estimate, for holds whose interactable has no synced progress
 var _needs_release := false
 
 @onready var body: Player = get_parent()
@@ -42,6 +44,7 @@ func _physics_process(delta: float) -> void:
 	if holding == null and wants and target != null and target.is_available(body) and body.status.can_act():
 		_start(target)
 	if holding != null:
+		_held_s += delta
 		_since_heartbeat += delta
 		if _since_heartbeat >= InteractionService.HEARTBEAT_S:
 			_since_heartbeat = 0.0
@@ -58,9 +61,14 @@ func prompt_text() -> String:
 	return "[E] %s" % text
 
 
-## 0..1 for the progress ring (the server's synced progress of what we hold).
+## 0..1 for the progress ring: the server's synced progress of what we hold, or a local estimate
+## for interactables without a synced ring (the steal handle on a supervisor's back).
 func hold_progress() -> float:
-	return holding.progress if holding != null and is_instance_valid(holding) else 0.0
+	if holding == null or not is_instance_valid(holding):
+		return 0.0
+	if holding.needs_sync:
+		return holding.progress
+	return clampf(_held_s / maxf(holding.hold_duration(), 0.01), 0.0, 1.0)
 
 
 ## Called (through InteractionService.on_hold_ended) when the server ends or refuses our hold.
@@ -74,9 +82,13 @@ func server_ended_hold(target_path: NodePath, reason: String) -> void:
 
 
 func _start(t: Interactable) -> void:
+	_service().request_interact_start.rpc_id(1, t.get_path())
+	if t.kind_for(body) == "instant":
+		_needs_release = true  # one press, one use
+		return
 	holding = t
 	_since_heartbeat = 0.0
-	_service().request_interact_start.rpc_id(1, t.get_path())
+	_held_s = 0.0
 
 
 func _stop() -> void:
@@ -99,8 +111,12 @@ func _look_target() -> Interactable:
 	if camera == null:
 		return null
 	var from := camera.global_position
+	var exclude: Array[RID] = [body.get_rid()]
+	for child in body.get_children():  # the handles on our own body
+		if child is Interactable:
+			exclude.append((child as Interactable).get_rid())
 	var query := PhysicsRayQueryParameters3D.create(from, from - camera.global_basis.z * LOOK_RAY_LENGTH,
-		PhysicsLayers.WORLD | PhysicsLayers.TRIGGERS, [body.get_rid()])
+		PhysicsLayers.WORLD | PhysicsLayers.TRIGGERS, exclude)
 	query.collide_with_areas = true
 	var hit := body.get_world_3d().direct_space_state.intersect_ray(query)
 	var found := hit.get("collider") as Interactable
@@ -117,7 +133,7 @@ func _nearby_target() -> Interactable:
 	var best_distance := INF
 	for node in get_tree().get_nodes_in_group(Interactable.GROUP):
 		var candidate := node as Interactable
-		if not candidate.role_allowed(body):
+		if not candidate.role_allowed(body) or body.is_ancestor_of(candidate):
 			continue
 		var distance := candidate.distance_to_player(body)
 		if distance > candidate.reach_for(body.role) or distance >= best_distance:

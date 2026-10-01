@@ -11,7 +11,8 @@ extends Node
 ##               Critical subsystem: lever --bot-lever (A or B), held until the pair completes.
 ##   supervisor: waits until the target is damaged, teleports to its repair point and holds
 ##               until it is back to full health (a reboot first if needed).
-## --bot-delay waits S extra seconds after PLAYING starts. Before each hold it checks that the interactor's own targeting picks the right thing.
+## --bot-delay waits S extra seconds after PLAYING starts.
+## --bot-scenario NAME [--bot-part P] runs a PvP scenario instead (tests/helpers/pvp_bot.gd, M4). Before each hold it checks that the interactor's own targeting picks the right thing.
 ## Then it idles. It quits when the server goes away.
 
 var _target := &"pumps"
@@ -50,7 +51,12 @@ func _on_joined() -> void:
 func _on_state_changed(state: MatchManager.State) -> void:
 	if state == MatchManager.State.PLAYING and not _acted:
 		_acted = true
-		if _role == Role.Kind.RAT:
+		if Cli.has_arg("bot-scenario"):
+			var pvp := PvpBot.new()
+			pvp.name = "PvpBot"
+			add_child(pvp)
+			pvp.run(self, Cli.get_str("bot-scenario"))
+		elif _role == Role.Kind.RAT:
 			_run_rat()
 		elif _role == Role.Kind.SUPERVISOR:
 			_run_supervisor()

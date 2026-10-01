@@ -99,13 +99,13 @@ Worked check: three systems fully broken (rods + pumps + valves) gives +6 units/
 
 Abilities:
 - **Broom swing** (LMB): 2.0 m range, 70° cone, 1.2 s cooldown, **stuns a rat for 2.0 s** (rats get 1.5 s of stun immunity after a stun ends).
-- **Grab** (E on a stunned rat): carry the rat. It escapes on its own after **8 s**, and a single bite from another rat makes the supervisor drop it.
+- **Grab** (E on a stunned rat): carry the rat at carry speed. It escapes on its own after **8 s**, and a single bite from another rat makes the supervisor drop it (so does getting stunned or knocked down). A dropped rat lands at the carrier's feet with **1.5 s of invulnerability**.
 - **Cage** (E at a cage while carrying): the rat is caged. See [elimination](#53-capture-and-elimination).
-- **Traps** (RMB to place, 3 charges, refill at Storage):
-  - *Snap trap*: stuns the rat that steps on it for 3 s and plays a loud SNAP heard by every supervisor.
+- **Traps** (hold RMB to aim, release to place, Q to switch the kind; 3 charges shared by both kinds, refill at Storage; within 2 m, on the floor, at least 0.6 m apart). Only the placing supervisor sees the aiming preview:
+  - *Snap trap*: stuns the rat that steps on it for 3 s and plays a loud SNAP heard by every supervisor. A rat that can't be stunned right then (invulnerable, stun immunity) doesn't set it off.
   - *Cheese lure*: when a rat touches it, that rat is outlined through walls for supervisors for 10 s.
 - **Donut** (Break Room counter): +20% move speed for 20 s, 60 s cooldown per supervisor.
-- **Keycard**: opens keycard doors (supervisor shortcuts). Every supervisor spawns with one.
+- **Keycard**: opens keycard doors (supervisor shortcuts) for **3 s**. Every supervisor spawns with one. Normal doors open by themselves for anyone nearby (rats push them).
 
 ### 5.2 Rat
 | Stat | Value |
@@ -119,7 +119,7 @@ Abilities:
 Abilities:
 - **Bite** (LMB): 1.2 m range, 2.5 s cooldown. It **slows a supervisor by 30% for 3 s**. **3 bites within 6 s (any rats) = knockdown for 4 s**, followed by 3 s of knockdown immunity.
 - **Steal** (E behind a supervisor, 1 s hold): takes the supervisor's keycard (or broom, from M6). The rat carries it and moves 10% slower. If the rat is stunned, it drops the item. A supervisor without a keycard can get a spare from the Storage locker after a 30 s delay.
-- **Free a caged rat** (hold E for 4 s at a cage).
+- **Free a caged rat** (hold E for 4 s at a cage). One hold frees one rat, the one caged first.
 - **Break a CCTV camera** (hold E for 2 s). A supervisor fixes it with a 3 s hold.
 - **Squeak emote** (Z): purely for fun.
 
@@ -133,13 +133,13 @@ Abilities:
 ### 5.4 Status effects (shared system)
 | Status | Source | Effect |
 |---|---|---|
-| Stunned | Broom, trap, hazards | No movement or actions |
+| Stunned | Broom, trap, hazards | No movement or actions. Can't be re-applied while active (no stun-lock chains) |
 | Slowed (stacks multiply, floor at 40%) | Bite, radiation, puddle | Speed × factor |
 | Knocked down | 3 bites, debris | Ragdoll-ish fall, no actions |
 | Carried | Grabbed by a supervisor | The rat's position follows the carrier's hand |
 | Caged | Cage | Locked in the cage |
 | Eliminated | 2nd capture | Spectator |
-| Invulnerable | Freed from cage, post-knockdown | Ignores stun/bite/knockdown |
+| Invulnerable | Freed from cage, dropped by a carrier | Ignores stun/bite/knockdown (supervisors get 3 s of knockdown immunity instead; bites during it slow but don't count) |
 | Revealed | Cheese lure, radiation | Outline visible to the enemy team through walls |
 
 ## 6. Hazards

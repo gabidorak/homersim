@@ -8,7 +8,7 @@ A goofy, cartoon-style **asymmetric multiplayer** game set in a nuclear power pl
 
 Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows**.
 
-> Status: **M3 implemented, waiting for its first playtest** (plant simulation with six subsystems, sabotage points, critical lever pairs, hold repairs and reboots, meltdown meter, match timer, winner and post-match stats, full HUD with alarms). Next: playtest it with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), then [M4](docs/milestones/M4-pvp.md).
+> Status: **M4 implemented, M3 and M4 still waiting for a playtest**. M3: plant simulation with six subsystems, sabotage points, critical lever pairs, repairs and reboots, meltdown meter, match timer, winner and post-match stats, HUD with alarms. M4: broom stuns, bites and knockdowns, grab / carry / cage / free / eliminate, spectating, team and ghost chat, keycard stealing and doors, snap traps and cheese lures, donuts, swarm bonus. Next: playtest with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), including a run at 100 ms of simulated latency, then [M5](docs/milestones/M5-map-graybox.md).
 
 ## Documents
 | Doc | What's inside |
@@ -54,7 +54,9 @@ tools/dev/run_local.sh 3
 ```
 Server settings live in `server.cfg` (copy [server.cfg.example](server.cfg.example)); CLI args override them.
 In game: WASD, mouse, Space to jump, Shift to sprint, **hold E** to sabotage (rats) or repair (supervisors),
-Enter to chat. Esc frees the mouse (to click the lobby buttons), a click captures it again. Rats win when the
+Enter to chat, T to chat with your team. Supervisors: LMB swings the broom, E grabs a stunned rat and cages it, hold RMB
+then release to place a trap (Q switches snap trap / cheese lure). Rats: LMB bites, hold E behind a supervisor to steal
+its keycard, hold E at a cage to free a friend. Eliminated rats spectate (LMB / RMB cycle players, WASD flies). Esc frees the mouse (to click the lobby buttons), a click captures it again. Rats win when the
 meltdown meter hits 100%; supervisors win when the shift timer runs out first. The match starts when at least 3 players are in and more than half of
 them are ready; `--debug-start N` on the server skips the vote once N players joined.
 
@@ -67,11 +69,16 @@ tests/integration/join_smoke.sh       # headless server + clients: join, full, v
 tests/integration/lobby_smoke.sh      # lobby: prefs, ready vote, roles, countdown, chat, validator, team left
 tests/integration/run_match_loop.sh   # full match with 2 bots: sabotage, cancels, repair, timer, winner, result JSON
 tests/integration/critical_lever.sh   # 2 rat bots on a lever pair, then reboot + repairs
+tests/integration/pvp_capture.sh      # broom, grab, carry, cage, free, eliminate, ghost and team chat (3 bots)
+tests/integration/pvp_swarm.sh        # bite makes a carrier drop, 3 rats knock down a supervisor, swarm bonus (4 bots)
+tests/integration/pvp_items.sh        # steal, keycard door lockout, dropped keycard, traps, donut, spare keycard (~1 min)
+tests/integration/pvp_hack.sh         # a "hacked client" sends ~25 bad requests; the server must refuse them all
 # test-only client flags (debug builds): --pref rat|supervisor|any, --auto-ready, --say TEXT,
 #   --auto-move, --debug-speed N (fake speed hack), --screenshot PATH [--screenshot-delay S]
 # test-only server flags (debug builds): --allow-debug (debug RPCs such as teleport), --test-duration S,
 #   --exit-after-match, --result-file PATH
 # scripted bot client (debug builds): --bot rat|supervisor [--bot-target ID] [--bot-lever A|B] [--bot-delay S]
+#   PvP scenarios: --bot-scenario capture|swarm|items|hack [--bot-part P]
 godot -- --connect 127.0.0.1:7777 --game-version 0.0.0   # debug builds only: fake an old client
 # simulate a bad network on localhost (needs sudo, remove it afterwards!)
 sudo tc qdisc add dev lo root netem delay 100ms 20ms loss 1%
