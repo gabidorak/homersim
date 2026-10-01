@@ -1,0 +1,33 @@
+# Godot 4
+.godot/
+.import/
+export.cfg
+export_credentials.cfg
+*.translation
+
+# Builds
+build/
+dist/
+*.x86_64
+*.exe
+*.pck
+*.zip
+
+# Mono/C# (not used, but harmless)
+.mono/
+data_*/
+mono_crash.*.json
+
+# Blender
+*.blend1
+*.blend2
+
+# Local config
+server.cfg
+user_settings.cfg
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp

@@ -1,0 +1,219 @@
+# Game Design Document: HomerSim (working title)
+
+> Every number in this document is a **starting value**. They are mirrored 1:1 in the `data/*.tres` resources (see [ARCHITECTURE.md § Data-driven tuning](ARCHITECTURE.md#7-data-driven-tuning)). Tune them there and update this file after each playtest.
+
+## 1. Pitch
+It's the night shift at the **"Sunny Acres" Nuclear Plant** (placeholder name; all names and characters are original, nothing borrowed from existing shows). A few underpaid, donut-loving **Supervisors** only have to keep the reactor stable until the shift ends. Meanwhile a gang of **Rats** has moved into the sewers and has *ideas*.
+
+- Genre: asymmetric team PvP, 2–6 players, rounds of 8–10 minutes.
+- Feel: slapstick, readable, chaotic. Think Hello Neighbor's look, Chained Together's goofiness, and Dead by Daylight's asymmetry, without the horror.
+- Platforms: Windows and Linux. Each match runs on a dedicated server.
+
+## 2. Teams and win conditions
+| | Supervisors | Rats |
+|---|---|---|
+| Count | 1–2 | 3–4 |
+| Camera | First person | Third person |
+| Goal | Survive the shift: timer reaches 0 with meltdown < 100% | Fill the meltdown meter to 100% |
+| Alternate win | **All rats are caged or eliminated at the same time** | – |
+
+**Swarm bonus** (replaces the "swarm win" in the original plan): if **all** supervisors are knocked down at the same moment, meltdown instantly gets **+15%** (at most once every 45 s). A hard win condition would be far too easy to reach against a single supervisor.
+
+**Team auto-balance** (when nobody picks): 2–3 players → 1 supervisor; 4–6 players → 1 supervisor plus a second one if there are 5 or more players. Rats are capped at 4.
+
+| Players | Supervisors | Rats |
+|---|---|---|
+| 2 | 1 | 1 (debug only) |
+| 3 | 1 | 2 |
+| 4 | 1 | 3 |
+| 5 | 2 | 3 |
+| 6 | 2 | 4 |
+
+When there is a single supervisor, the *match timer* drops to 8 min (otherwise 9 min) to compensate.
+
+## 3. Match flow
+1. **Lobby**: players join the server, set a name, and pick a preferred role (Supervisor / Rat / Any). Text chat is available. The match starts when the host-less "ready" vote passes (more than 50% ready and at least 3 players), or immediately with the `--debug-start` flag.
+2. **Role assign** (instant): roles are assigned from preferences plus the balance table above.
+3. **Countdown, 10 s**: everyone is spawned and frozen. Supervisors start in the Break Room, rats in the Rat Nest.
+4. **Playing, 9:00** (8:00 with one supervisor).
+5. **Post-match, 15 s**: winner banner and stats (sabotages, repairs, catches, bites, hazard hits). Then everyone returns to the lobby.
+
+## 4. Plant simulation
+There are six subsystems, each with `health` from 0 to 100 that starts at 100.
+
+| # | Subsystem | Location | `heat_weight` | Sabotage | Hazard when health < 50 |
+|---|---|---|---|---|---|
+| 1 | Control rods | Reactor Hall | 3.0 | **Critical** (2 rats) | Radiation zone |
+| 2 | Coolant pumps | Pump House | 2.5 | Normal | Steam jets |
+| 3 | Coolant valves | Valve Corridor | 2.0 | Normal | Steam jets |
+| 4 | Turbine | Turbine Hall | 1.5 | **Critical** (2 rats) | Flying debris |
+| 5 | Power grid | Substation | 1.5 | Normal | Electrified puddles |
+| 6 | Ventilation | Roof | 1.0 | Normal | Smoke (low visibility) |
+
+### 4.1 Core temperature
+`core_temp` is an abstract number from 300 to 1000 (300 = nominal).
+```
+damage_i      = (100 - health_i) / 100                      # 0..1
+heat_in       = Σ damage_i * heat_weight_i                  # units/s
+heat_in      *= 0.5 if SCRAM active
+cooling       = 1.5 if core_temp > 300 else 0               # units/s
+core_temp    += (heat_in - cooling) * dt ; clamp(300, 1000)
+```
+### 4.2 Meltdown meter (0–100%)
+```
+if core_temp > 700:  meltdown += 1.0 %/s * (core_temp - 700) / 100
+if core_temp < 400:  meltdown -= 0.25 %/s           # slow recovery, never below 0
+```
+Worked check: three systems fully broken (rods + pumps + valves) gives +6 units/s, so 300 → 700 takes about 67 s. At ~800 the meter fills at about 1%/s, so meltdown arrives roughly 2.5–3 min after a sustained heavy assault. With good repairs, supervisors should hover at 500–700.
+
+**Alarm states** drive lights, music and HUD: `NORMAL` < 500 ≤ `WARNING` < 700 ≤ `CRITICAL`.
+
+### 4.3 Sabotage (rats)
+- **Normal** sabotage point: hold for **4 s** (cancelled by any movement, stun, or being hit), then **−50 health**.
+- **Critical** sabotage (2 levers about 6 m apart): both levers must be held at the same time for **6 s**, then **−100 health**.
+- Each subsystem has a **20 s sabotage cooldown** after a successful sabotage (shown as sparks), so rats have to spread out.
+- Each subsystem has 2 sabotage points (normal) or 1 lever pair (critical).
+
+### 4.4 Repair (supervisors)
+- **Minigame repair** (M6): about 4–6 s of play gives **+50 health**. A failed minigame gives +10 and a 3 s lockout.
+- **Hold repair** (fallback used from M3, and also when the minigame is disabled): hold for **6 s**, then **+35 health**.
+- Subsystems with health 0 must first be "rebooted": a hold of 3 s before repairs can start.
+
+### 4.5 Control room actions (supervisors)
+| Action | Effect | Cooldown | Requirement |
+|---|---|---|---|
+| Emergency coolant | `core_temp −150` | 90 s | Power grid health ≥ 25 |
+| Partial SCRAM | `heat_in × 0.5` for 30 s | 120 s | Costs **+30 s** on the match timer (the shift gets longer) |
+| CCTV | View 8 cameras (cycle with Q/E), while the body stays vulnerable in the chair | – | The camera must not be broken |
+| Plant status board | Always visible in the room: per-subsystem health and alarm lights | – | – |
+
+## 5. Roles
+### 5.1 Supervisor
+| Stat | Value |
+|---|---|
+| Height | 1.8 m (capsule radius 0.35) |
+| Walk / sprint | 4.0 / 6.0 m/s |
+| Stamina | 5 s of sprint, regenerates in 4 s after a 1 s delay |
+| Jump | 1.0 m |
+| Carry speed | 3.2 m/s (no sprint) |
+
+Abilities:
+- **Broom swing** (LMB): 2.0 m range, 70° cone, 1.2 s cooldown, **stuns a rat for 2.0 s** (rats get 1.5 s of stun immunity after a stun ends).
+- **Grab** (E on a stunned rat): carry the rat. It escapes on its own after **8 s**, and a single bite from another rat makes the supervisor drop it.
+- **Cage** (E at a cage while carrying): the rat is caged. See [elimination](#53-capture-and-elimination).
+- **Traps** (RMB to place, 3 charges, refill at Storage):
+  - *Snap trap*: stuns the rat that steps on it for 3 s and plays a loud SNAP heard by every supervisor.
+  - *Cheese lure*: when a rat touches it, that rat is outlined through walls for supervisors for 10 s.
+- **Donut** (Break Room counter): +20% move speed for 20 s, 60 s cooldown per supervisor.
+- **Keycard**: opens keycard doors (supervisor shortcuts). Every supervisor spawns with one.
+
+### 5.2 Rat
+| Stat | Value |
+|---|---|
+| Height | 0.5 m (capsule radius 0.2), with a chunky cartoon silhouette |
+| Walk / sprint | 5.0 / 7.5 m/s |
+| Stamina | 3 s of sprint, regenerates in 3 s |
+| Jump | 1.6 m (so rats can reach tables, crates and pipe runs) |
+| Vents | Can enter vents (0.7 m openings). Supervisors cannot. |
+
+Abilities:
+- **Bite** (LMB): 1.2 m range, 2.5 s cooldown. It **slows a supervisor by 30% for 3 s**. **3 bites within 6 s (any rats) = knockdown for 4 s**, followed by 3 s of knockdown immunity.
+- **Steal** (E behind a supervisor, 1 s hold): takes the supervisor's keycard (or broom, from M6). The rat carries it and moves 10% slower. If the rat is stunned, it drops the item. A supervisor without a keycard can get a spare from the Storage locker after a 30 s delay.
+- **Free a caged rat** (hold E for 4 s at a cage).
+- **Break a CCTV camera** (hold E for 2 s). A supervisor fixes it with a 3 s hold.
+- **Squeak emote** (Z): purely for fun.
+
+### 5.3 Capture and elimination
+- 1st capture: the rat is **caged**. Rats in a cage can't act but can chat and spectate through the cage's camera.
+- Freed rats leave the cage with **3 s of invulnerability**.
+- 2nd capture: the rat is **eliminated** and becomes a free-cam spectator with access to the **ghost chat** (only eliminated players read it).
+- If every rat that isn't eliminated is caged, **supervisors win immediately**.
+- Supervisors are never eliminated. A knockdown is their worst state.
+
+### 5.4 Status effects (shared system)
+| Status | Source | Effect |
+|---|---|---|
+| Stunned | Broom, trap, hazards | No movement or actions |
+| Slowed (stacks multiply, floor at 40%) | Bite, radiation, puddle | Speed × factor |
+| Knocked down | 3 bites, debris | Ragdoll-ish fall, no actions |
+| Carried | Grabbed by a supervisor | The rat's position follows the carrier's hand |
+| Caged | Cage | Locked in the cage |
+| Eliminated | 2nd capture | Spectator |
+| Invulnerable | Freed from cage, post-knockdown | Ignores stun/bite/knockdown |
+| Revealed | Cheese lure, radiation | Outline visible to the enemy team through walls |
+
+## 6. Hazards
+These activate when a subsystem's health is below 50, and **affect both teams**.
+
+| Hazard | Behaviour | Effect |
+|---|---|---|
+| Steam jets (pumps, valves) | Cycle: on for 3 s, off for 3 s. 2–4 jets per POI. | Knockback impulse of 6 m/s plus a 1 s stun |
+| Electrified puddles (grid) | Pools of water light up for 2 s every 5 s | 1.5 s stun, then 50% slow for 2 s |
+| Radiation zone (rods) | Glowing zone; exposure builds over 5 s | 20% slow while inside, **Revealed** while inside and for 5 s after leaving |
+| Turbine debris | A falling bolt or panel every 8 s, with a 1 s visual warning | Knockdown (supervisor) or 2 s stun (rat) |
+| Smoke (ventilation) | Fog in the vent network and the Control Room | Visibility drops to about 6 m |
+
+## 7. Map: "Sunny Acres" plant
+One level, roughly **120 × 80 m**, two floors in places. A 2 m grid.
+
+```
+              N
+   ┌───────────────┬──────────────┬───────────────┐
+   │  SUBSTATION   │ COOLING TOWER│   VENT ROOF   │   (outdoor / roof)
+   │  (outdoor)    │  (landmark)  │   (ladder)    │
+   ├───────┬───────┴──────┬───────┴───────┬───────┤
+   │ PUMP  │   REACTOR    │   TURBINE     │STORAGE│
+   │ HOUSE │    HALL      │    HALL       │       │
+   ├───────┤  (2 floors)  │  (catwalks)   ├───────┤
+   │ VALVE │              │               │ CAGE  │
+   │ CORR. ├──────┬───────┴───────┬───────┤ ROOM  │
+   │       │BREAK │ CONTROL ROOM  │ LOCKER│       │
+   │       │ ROOM │  (central)    │ ROOM  │       │
+   └───────┴──────┴───────────────┴───────┴───────┘
+            ▼ sewer grates / RAT NEST below (whole-map vent network)
+```
+| POI | Purpose | Notes |
+|---|---|---|
+| Control Room | Supervisor hub: status board, CCTV chair, remote actions | 2 doors and 1 vent. Windows overlook the Reactor Hall. |
+| Reactor Hall | Control rods (critical) | Big, vertical, glowing pool, catwalks |
+| Turbine Hall | Turbine (critical) | Long hall, noisy, catwalk shortcuts for rats |
+| Pump House | Coolant pumps | Cramped, lots of pipes for rats to run along |
+| Valve Corridor | Coolant valves | Long corridor with valve wheels and a keycard shortcut |
+| Substation | Power grid | Outdoor, fenced, puddles |
+| Vent Roof | Ventilation | Reached by ladder (supervisors) or the vent shaft (rats) |
+| Break Room | Supervisor spawn, donuts | Coffee machine, vending machine |
+| Storage | Trap refills, spare keycards | Shelves rats can hide on |
+| Cage Room | 2 cages, near the rats' routes but far from the nest | The tension spot |
+| Locker Room | Connector with a keycard door | Flavour |
+| Rat Nest | Rat spawn (sewer below the plant) | Unreachable for supervisors |
+
+**Design rules for the map**
+- Every sabotage point can be reached by rats via ≥ 2 routes, and at least 1 of them is a vent.
+- From the Control Room, no sabotage point is more than 25 s away at supervisor walking speed.
+- The vent network has 1-way drop exits, so rats can't camp vents forever.
+- 8 CCTV cameras cover the key rooms, with blind spots on purpose.
+
+## 8. Controls (defaults, rebindable in M8)
+| Action | Key |
+|---|---|
+| Move / look | WASD / mouse |
+| Jump / sprint / crouch* | Space / Shift / Ctrl (*rats: squeeze) |
+| Primary (broom / bite) | LMB |
+| Secondary (trap / –) | RMB |
+| Interact (hold) | E |
+| Chat / team chat | Enter / T |
+| Scoreboard | Tab |
+| Emote | Z |
+
+## 9. Audio and feedback
+- Global alarm music layers: calm, then warning, then critical (crossfade on alarm state).
+- Every action has an exaggerated SFX: bonk, squeak, SNAP, hiss, and a donut munch.
+- HUD: timer, meltdown meter, core temperature gauge, subsystem icons (health colour), status effect icons, and an interaction progress ring.
+
+## 10. Post-1.0 ideas
+- Proximity voice chat (Opus via a Godot addon, or a GDExtension).
+- Steam release (GodotSteam lobbies, achievements).
+- HTTP master server list plus a matchmaking/orchestration service.
+- Client-side prediction with the netfox addon.
+- More maps (oil rig, dam), new rat classes (fat rat, tech rat), cosmetics (hats!).
+- Bots to fill empty slots.
