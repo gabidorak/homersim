@@ -1,88 +1,94 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
-[ext_resource type="Material" path="res://levels/plant/materials/wall_substation.tres" id="2_wall_substat"]
-[ext_resource type="Material" path="res://levels/plant/materials/floor_substation.tres" id="3_floor_substa"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_machine.tres" id="4_prop_machine"]
-[ext_resource type="Script" path="res://levels/station_label.gd" id="5_station_labe"]
-[ext_resource type="PackedScene" path="res://interactables/repair_point/RepairPoint.tscn" id="6_repairpoint"]
-[ext_resource type="PackedScene" path="res://interactables/sabotage_point/SabotagePoint.tscn" id="7_sabotagepoin"]
-[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="8_cctvcamera"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_metal.tres" id="9_prop_metal"]
-[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="10_alarmbeacon"]
+[ext_resource type="ArrayMesh" path="res://levels/plant/baked/Substation_shell.res" id="2_substation_s"]
+[ext_resource type="ConcavePolygonShape3D" path="res://levels/plant/baked/Substation_shell_col.res" id="3_substation_s"]
+[ext_resource type="Script" path="res://levels/plant/props/plant_prop.gd" id="4_plant_prop"]
+[ext_resource type="PackedScene" path="res://assets/generated/machine_grid.glb" id="5_machine_grid"]
+[ext_resource type="Script" path="res://levels/station_label.gd" id="6_station_labe"]
+[ext_resource type="PackedScene" path="res://interactables/repair_point/RepairPoint.tscn" id="7_repairpoint"]
+[ext_resource type="PackedScene" path="res://interactables/sabotage_point/SabotagePoint.tscn" id="8_sabotagepoin"]
+[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="9_cctvcamera"]
+[ext_resource type="PackedScene" path="res://assets/generated/transformer.glb" id="10_transformer"]
+[ext_resource type="PackedScene" path="res://assets/generated/insulator_post.glb" id="11_insulator_po"]
+[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="12_alarmbeacon"]
+[ext_resource type="Script" path="res://hazards/electric_puddle/electric_puddle.gd" id="13_electric_pud"]
+[ext_resource type="PackedScene" path="res://assets/generated/warning_sign_high_voltage.glb" id="14_warning_sign"]
+[ext_resource type="PackedScene" path="res://assets/generated/cable_spool.glb" id="15_cable_spool"]
+[ext_resource type="Script" path="res://levels/ambient_sound.gd" id="16_ambient_soun"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(2, 1.6, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2"]
+size = Vector3(2.4, 1.8, 2.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3"]
+size = Vector3(2.4, 1.8, 2.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_4"]
+size = Vector3(2.4, 1.8, 2.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5"]
+size = Vector3(1, 2.5, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6"]
+size = Vector3(1.1, 1, 1.1)
 
 [node name="Substation" type="Node3D"]
 script = ExtResource("1_poi")
 display_name = "Substation"
 bounds = Array[AABB]([AABB(-52, -1, -38, 22, 5, 14)])
 
-[node name="Shell" type="CSGCombiner3D" parent="."]
-use_collision = true
+[node name="Shell" type="StaticBody3D" parent="."]
 
-[node name="Fence" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, 1.5, -35.375)
-size = Vector3(0.5, 3, 5.75)
-material = ExtResource("2_wall_substat")
+[node name="Mesh" type="MeshInstance3D" parent="Shell"]
+mesh = ExtResource("2_substation_s")
 
-[node name="Fence2" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, 2.8, -31)
-size = Vector3(0.5, 0.4, 3)
-material = ExtResource("2_wall_substat")
-
-[node name="Fence3" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, 1.5, -26.625)
-size = Vector3(0.5, 3, 5.75)
-material = ExtResource("2_wall_substat")
-
-[node name="Fence4" type="CSGBox3D" parent="Shell"]
-position = Vector3(-47.375, 1.5, -24)
-size = Vector3(9.75, 3, 0.5)
-material = ExtResource("2_wall_substat")
-
-[node name="Fence5" type="CSGBox3D" parent="Shell"]
-position = Vector3(-41, 2.8, -24)
-size = Vector3(3, 0.4, 0.5)
-material = ExtResource("2_wall_substat")
-
-[node name="Fence6" type="CSGBox3D" parent="Shell"]
-position = Vector3(-34.625, 1.5, -24)
-size = Vector3(9.75, 3, 0.5)
-material = ExtResource("2_wall_substat")
+[node name="Collision" type="CollisionShape3D" parent="Shell"]
+shape = ExtResource("3_substation_s")
 
 [node name="PowerGrid" type="Node3D" parent="."]
 position = Vector3(-41, 0, -30)
 rotation = Vector3(0, 0, 0)
 
-[node name="Machine" type="CSGBox3D" parent="PowerGrid"]
+[node name="Body" type="StaticBody3D" parent="PowerGrid"]
+
+[node name="Box" type="CollisionShape3D" parent="PowerGrid/Body"]
 position = Vector3(0, 0.8, 0)
-size = Vector3(2, 1.6, 2)
-material = ExtResource("4_prop_machine")
-use_collision = true
+shape = SubResource("BoxShape3D_1")
+
+[node name="Machine" parent="PowerGrid" instance=ExtResource("5_machine_grid")]
+position = Vector3(0, 0, 0)
+script = ExtResource("4_plant_prop")
+subsystem_id = &"grid"
+motion = "switches"
+axis = Vector3(1, 0, 0)
 
 [node name="Label" type="Label3D" parent="PowerGrid"]
-position = Vector3(0, 2.3, 0)
+position = Vector3(0, 2.6, 0)
 billboard = 1
 font_size = 56
 outline_size = 12
 text = "grid"
-script = ExtResource("5_station_labe")
+script = ExtResource("6_station_labe")
 subsystem_id = &"grid"
 
-[node name="RepairPoint" parent="PowerGrid" instance=ExtResource("6_repairpoint")]
+[node name="RepairPoint" parent="PowerGrid" instance=ExtResource("7_repairpoint")]
 position = Vector3(0, 1, 1.3)
 subsystem_id = &"grid"
 
-[node name="SabotageA" parent="PowerGrid" instance=ExtResource("7_sabotagepoin")]
+[node name="SabotageA" parent="PowerGrid" instance=ExtResource("8_sabotagepoin")]
 position = Vector3(-1.3, 0.3, 0)
 rotation = Vector3(0, -1.5708, 0)
 subsystem_id = &"grid"
 
-[node name="SabotageB" parent="PowerGrid" instance=ExtResource("7_sabotagepoin")]
+[node name="SabotageB" parent="PowerGrid" instance=ExtResource("8_sabotagepoin")]
 position = Vector3(1.3, 0.3, 0)
 rotation = Vector3(0, 1.5708, 0)
 subsystem_id = &"grid"
 
-[node name="Camera5" parent="." instance=ExtResource("8_cctvcamera")]
+[node name="Camera5" parent="." instance=ExtResource("9_cctvcamera")]
 position = Vector3(-33, 0.4, -37.4)
 rotation = Vector3(0, 0, 0)
 number = 5
@@ -91,27 +97,40 @@ lens_height = 2.4
 lens_pitch_deg = 25
 lens_yaw_deg = -45
 
-[node name="Transformer" type="CSGBox3D" parent="Shell"]
+[node name="PropCollision" type="StaticBody3D" parent="."]
+
+[node name="Box" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-48.8, 0.9, -35.3)
-size = Vector3(2.4, 1.8, 2.4)
-material = ExtResource("4_prop_machine")
+shape = SubResource("BoxShape3D_2")
 
-[node name="Transformer2" type="CSGBox3D" parent="Shell"]
+[node name="Transformer" parent="." instance=ExtResource("10_transformer")]
+position = Vector3(-48.8, 0, -35.3)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Box2" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-48.8, 0.9, -26.8)
-size = Vector3(2.4, 1.8, 2.4)
-material = ExtResource("4_prop_machine")
+shape = SubResource("BoxShape3D_3")
 
-[node name="Transformer3" type="CSGBox3D" parent="Shell"]
+[node name="Transformer2" parent="." instance=ExtResource("10_transformer")]
+position = Vector3(-48.8, 0, -26.8)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Box3" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-34.8, 0.9, -35.3)
-size = Vector3(2.4, 1.8, 2.4)
-material = ExtResource("4_prop_machine")
+shape = SubResource("BoxShape3D_4")
 
-[node name="Pylon" type="CSGBox3D" parent="Shell"]
-position = Vector3(-34, 0.5, -27)
-size = Vector3(1, 1, 1)
-material = ExtResource("9_prop_metal")
+[node name="Transformer3" parent="." instance=ExtResource("10_transformer")]
+position = Vector3(-34.8, 0, -35.3)
+rotation = Vector3(0, 1.5708, 0)
 
-[node name="AlarmBeacon" parent="." instance=ExtResource("10_alarmbeacon")]
+[node name="Box4" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(-34, 1.25, -27)
+shape = SubResource("BoxShape3D_5")
+
+[node name="Pylon" parent="." instance=ExtResource("11_insulator_po")]
+position = Vector3(-34, 0, -27)
+
+[node name="AlarmBeacon" parent="." instance=ExtResource("12_alarmbeacon")]
 position = Vector3(-41, 3, -24.5)
 
 [node name="Sign" type="Label3D" parent="."]
@@ -120,3 +139,50 @@ billboard = 1
 text = "SUBSTATION"
 font_size = 90
 outline_size = 18
+
+[node name="ElectricPuddle" type="Area3D" parent="."]
+position = Vector3(-41, 0, -25.9)
+script = ExtResource("13_electric_pud")
+subsystem_id = &"grid"
+size = Vector3(3, 0.5, 2.2)
+
+[node name="ElectricPuddle2" type="Area3D" parent="."]
+position = Vector3(-32.6, 0, -31)
+script = ExtResource("13_electric_pud")
+subsystem_id = &"grid"
+size = Vector3(2.6, 0.5, 3)
+phase = 1.7
+
+[node name="ElectricPuddle3" type="Area3D" parent="."]
+position = Vector3(-46, 0, -33)
+script = ExtResource("13_electric_pud")
+subsystem_id = &"grid"
+size = Vector3(3, 0.5, 3)
+phase = 3.3
+
+[node name="Dressing" parent="." instance=ExtResource("14_warning_sign")]
+position = Vector3(-30.25, 1.8, -27)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Dressing2" parent="." instance=ExtResource("14_warning_sign")]
+position = Vector3(-45, 1.8, -24.25)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Dressing3" parent="." instance=ExtResource("15_cable_spool")]
+position = Vector3(-51, 0, -25.4)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Box5" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(-51, 0.5, -25.4)
+shape = SubResource("BoxShape3D_6")
+
+[node name="Ambient" type="Marker3D" parent="."]
+position = Vector3(-46, 1.5, -32)
+script = ExtResource("16_ambient_soun")
+sound = "hum_electric"
+
+[node name="Ambient2" type="Marker3D" parent="."]
+position = Vector3(-35, 1.5, -35)
+script = ExtResource("16_ambient_soun")
+sound = "hum_electric"
+volume_db = -4

@@ -1,10 +1,18 @@
-[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/dark_01.png" id="1_tex"]
+[ext_resource type="Shader" path="res://shaders/toon_world.gdshader" id="1_shader"]
 
 [resource]
-albedo_texture = ExtResource("1_tex")
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-uv1_triplanar = true
-uv1_world_triplanar = true
-albedo_color = Color(0.82, 0.8, 0.72, 1)
+shader = ExtResource("1_shader")
+shader_parameter/pattern = 1
+shader_parameter/base_color = Color(0.6466, 0.6127, 0.5393, 1)
+shader_parameter/trim_color = Color(0.2447, 0.4329, 0.4361, 1)
+shader_parameter/line_color = Color(0.1059, 0.1059, 0.1216, 1)
+shader_parameter/line_strength = 0.35
+shader_parameter/cell = Vector2(1, 1)
+shader_parameter/checker_strength = 0.08
+shader_parameter/band_low = 0.02
+shader_parameter/band_high = 0.14
+shader_parameter/band_soft = 0.09
+shader_parameter/shade_mid = 0.66
+shader_parameter/rim_strength = 0

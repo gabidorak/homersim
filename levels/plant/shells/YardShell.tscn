@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://levels/plant/materials/floor_yard.tres" id="1_floor_yard"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_yard.tres" id="2_wall_yard"]
+
+[node name="YardShell" type="CSGCombiner3D"]
+use_collision = true
+
+[node name="FloorYARD" type="CSGBox3D" parent="."]
+position = Vector3(-14, -0.25, -29)
+size = Vector3(76, 0.5, 18)
+material = ExtResource("1_floor_yard")
+
+[node name="Wall" type="CSGBox3D" parent="."]
+position = Vector3(-52, 1.5, -34.3)
+size = Vector3(0.5, 3, 7.9)
+material = ExtResource("2_wall_yard")
+
+[node name="Wall2" type="CSGBox3D" parent="."]
+position = Vector3(-52, 1.8, -30)
+size = Vector3(0.5, 2.4, 0.7)
+material = ExtResource("2_wall_yard")
+
+[node name="Wall3" type="CSGBox3D" parent="."]
+position = Vector3(-52, 1.5, -24.7)
+size = Vector3(0.5, 3, 9.9)
+material = ExtResource("2_wall_yard")
+
+[node name="VentSill" type="CSGBox3D" parent="."]
+position = Vector3(-52.125, -0.25, -30)
+size = Vector3(0.25, 0.5, 0.7)
+material = ExtResource("1_floor_yard")
+
+[node name="Wall4" type="CSGBox3D" parent="."]
+position = Vector3(-14, 1.5, -38)
+size = Vector3(76.5, 3, 0.5)
+material = ExtResource("2_wall_yard")

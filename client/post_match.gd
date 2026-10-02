@@ -3,7 +3,7 @@ extends Control
 ## during POST_MATCH until everyone is back in the lobby.
 
 const COLUMNS: Array[String] = ["Player", "Role", "Sabotages", "Repairs", "Catches", "Frees", "Bites",
-	"Knockdowns", "Steals"]
+	"Knockdowns", "Steals", "Hazard hits"]
 
 var _shown_result: Dictionary = {}
 

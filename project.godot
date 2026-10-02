@@ -41,6 +41,12 @@ window/stretch/aspect="expand"
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
+[importer_defaults]
+
+scene={
+"import_script/path": "res://tools/godot/toon_import.gd"
+}
+
 [input]
 
 move_forward={
@@ -150,6 +156,7 @@ debug_stopwatch={
 3d_physics/layer_1="world"
 3d_physics/layer_2="players"
 3d_physics/layer_3="triggers"
+3d_physics/layer_4="audio"
 
 [physics]
 

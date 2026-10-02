@@ -1,48 +1,12 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://components/camera/first_person_rig.gd" id="1_rig"]
-
-[sub_resource type="StandardMaterial3D" id="mat_wood"]
-albedo_color = Color(0.6, 0.4, 0.2, 1)
-
-[sub_resource type="BoxMesh" id="mesh_handle"]
-material = SubResource("mat_wood")
-size = Vector3(0.035, 1.1, 0.035)
-
-[sub_resource type="StandardMaterial3D" id="mat_bristles"]
-albedo_color = Color(0.9, 0.75, 0.3, 1)
-
-[sub_resource type="BoxMesh" id="mesh_bristles"]
-material = SubResource("mat_bristles")
-size = Vector3(0.32, 0.2, 0.08)
-
-[sub_resource type="StandardMaterial3D" id="mat_skin"]
-albedo_color = Color(1, 0.84, 0.15, 1)
-
-[sub_resource type="BoxMesh" id="mesh_hand"]
-material = SubResource("mat_skin")
-size = Vector3(0.09, 0.09, 0.12)
 
 [node name="CameraRig" type="Node3D"]
 script = ExtResource("1_rig")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 fov = 80.0
-near = 0.05
+near = 0.03
 
 [node name="Arms" type="Node3D" parent="Camera3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.42, -0.45, -0.6)
-
-[node name="Hand" type="MeshInstance3D" parent="Camera3D/Arms"]
-cast_shadow = 0
-mesh = SubResource("mesh_hand")
-
-[node name="Handle" type="MeshInstance3D" parent="Camera3D/Arms"]
-transform = Transform3D(0.916, 0.348, 0.199, -0.401, 0.795, 0.455, 0, -0.497, 0.868, 0.104, 0.239, -0.149)
-cast_shadow = 0
-mesh = SubResource("mesh_handle")
-
-[node name="Bristles" type="MeshInstance3D" parent="Camera3D/Arms/Handle"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
-cast_shadow = 0
-mesh = SubResource("mesh_bristles")

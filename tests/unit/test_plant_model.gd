@@ -155,3 +155,24 @@ func test_add_meltdown_is_clamped() -> void:
 	assert_eq(model.meltdown, 15.0)
 	model.add_meltdown(95.0)
 	assert_eq(model.meltdown, 100.0)
+
+
+func test_emergency_coolant_drops_the_core_but_not_below_minimum() -> void:
+	model.core_temp = 650.0
+	model.emergency_coolant(tuning.coolant_amount)
+	assert_eq(model.core_temp, 500.0)
+	model.emergency_coolant(tuning.coolant_amount)
+	model.emergency_coolant(tuning.coolant_amount)
+	assert_eq(model.core_temp, tuning.min_temp)
+
+
+func test_scram_runs_for_its_duration() -> void:
+	model.scram(now, tuning.scram_duration_s)
+	assert_eq(model.scram_left(now), 30.0)
+	_break([&"rods", &"pumps", &"valves"])
+	_run(30.0)  # halved: (3.75 - 1.5) per second
+	assert_almost_eq(model.core_temp, 300.0 + 2.25 * 30.0, 1.0)
+	assert_eq(model.scram_left(now), 0.0)
+	var before := model.core_temp
+	_run(10.0)  # full heat again: (7.5 - 1.5) per second
+	assert_almost_eq(model.core_temp, before + 6.0 * 10.0, 0.5)

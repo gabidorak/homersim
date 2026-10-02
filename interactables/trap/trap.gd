@@ -44,29 +44,4 @@ func _on_body_entered(node: Node3D) -> void:
 
 
 func _build_look() -> void:
-	var mat := StandardMaterial3D.new()
-	var mesh := MeshInstance3D.new()
-	if trap_kind == "snap":
-		var plate := BoxMesh.new()
-		plate.size = Vector3(0.4, 0.04, 0.25)
-		mat.albedo_color = Color(0.65, 0.5, 0.3)
-		plate.material = mat
-		mesh.mesh = plate
-		var bar := MeshInstance3D.new()
-		var bar_mesh := BoxMesh.new()
-		bar_mesh.size = Vector3(0.36, 0.03, 0.03)
-		var metal := StandardMaterial3D.new()
-		metal.albedo_color = Color(0.8, 0.8, 0.85)
-		metal.metallic = 0.8
-		bar_mesh.material = metal
-		bar.mesh = bar_mesh
-		bar.position = Vector3(0, 0.04, -0.08)
-		add_child(bar)
-	else:
-		var wedge := PrismMesh.new()
-		wedge.size = Vector3(0.3, 0.18, 0.2)
-		mat.albedo_color = Color(1, 0.85, 0.2)
-		wedge.material = mat
-		mesh.mesh = wedge
-	mesh.position.y = 0.05
-	add_child(mesh)
+	Art.add(self, "snap_trap" if trap_kind == "snap" else "cheese_lure", Transform3D.IDENTITY)

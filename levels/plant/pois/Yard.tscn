@@ -1,14 +1,20 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
-[ext_resource type="Material" path="res://levels/plant/materials/wall_yard.tres" id="2_wall_yard"]
-[ext_resource type="Material" path="res://levels/plant/materials/floor_yard.tres" id="3_floor_yard"]
-[ext_resource type="Material" path="res://levels/plant/materials/cooling_tower.tres" id="4_cooling_towe"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_crate.tres" id="5_prop_crate"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_pipe.tres" id="6_prop_pipe"]
-[ext_resource type="Script" path="res://levels/spawn_point.gd" id="7_spawn_point"]
-[ext_resource type="Material" path="res://levels/plant/materials/ladder.tres" id="8_ladder"]
-[ext_resource type="Script" path="res://interactables/ladder/ladder.gd" id="9_ladder"]
+[ext_resource type="ArrayMesh" path="res://levels/plant/baked/Yard_shell.res" id="2_yard_shell"]
+[ext_resource type="ConcavePolygonShape3D" path="res://levels/plant/baked/Yard_shell_col.res" id="3_yard_shell_c"]
+[ext_resource type="PackedScene" path="res://assets/generated/vent_grille.glb" id="4_vent_grille"]
+[ext_resource type="PackedScene" path="res://assets/generated/cooling_tower.glb" id="5_cooling_towe"]
+[ext_resource type="PackedScene" path="res://assets/generated/crate.glb" id="6_crate"]
+[ext_resource type="PackedScene" path="res://assets/generated/barrels_cluster.glb" id="7_barrels_clus"]
+[ext_resource type="Script" path="res://levels/spawn_point.gd" id="8_spawn_point"]
+[ext_resource type="PackedScene" path="res://assets/generated/ladder_7m.glb" id="9_ladder_7m"]
+[ext_resource type="Script" path="res://interactables/ladder/ladder.gd" id="10_ladder"]
+[ext_resource type="PackedScene" path="res://assets/generated/floodlight.glb" id="11_floodlight"]
+[ext_resource type="PackedScene" path="res://assets/generated/trash_bags.glb" id="12_trash_bags"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_cone.glb" id="13_k_cone"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_barrel.glb" id="14_k_barrel"]
+[ext_resource type="Script" path="res://levels/ambient_sound.gd" id="15_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
 size = Vector3(0.24, 3, 7.9)
@@ -19,26 +25,49 @@ size = Vector3(0.24, 3, 9.9)
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_3"]
 size = Vector3(76.5, 3, 0.24)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_4"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_4"]
+radius = 6
+height = 22
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5"]
+size = Vector3(1.5, 1.2, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6"]
+size = Vector3(2, 1, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(1.5, 1, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8"]
 size = Vector3(1, 7, 0.75)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_9"]
+size = Vector3(0.5, 5, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_10"]
+size = Vector3(0.5, 5, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_11"]
+size = Vector3(0.5, 5, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_12"]
+size = Vector3(0.5, 5, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_13"]
+size = Vector3(0.7, 0.9, 0.7)
 
 [node name="Yard" type="Node3D"]
 script = ExtResource("1_poi")
 display_name = "Yard"
 bounds = Array[AABB]([AABB(-52, -1, -38, 76, 4, 18)])
 
-[node name="Shell" type="CSGCombiner3D" parent="."]
-use_collision = true
+[node name="Shell" type="StaticBody3D" parent="."]
 
-[node name="FloorYARD" type="CSGBox3D" parent="Shell"]
-position = Vector3(-14, -0.25, -29)
-size = Vector3(76, 0.5, 18)
-material = ExtResource("3_floor_yard")
+[node name="Mesh" type="MeshInstance3D" parent="Shell"]
+mesh = ExtResource("2_yard_shell")
 
-[node name="Wall" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52, 1.5, -34.3)
-size = Vector3(0.5, 3, 7.9)
-material = ExtResource("2_wall_yard")
+[node name="Collision" type="CollisionShape3D" parent="Shell"]
+shape = ExtResource("3_yard_shell_c")
 
 [node name="Occluders" type="Node3D" parent="."]
 
@@ -46,55 +75,49 @@ material = ExtResource("2_wall_yard")
 position = Vector3(-52, 1.5, -34.3)
 occluder = SubResource("BoxOccluder3D_1")
 
-[node name="Wall2" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52, 1.8, -30)
-size = Vector3(0.5, 2.4, 0.7)
-material = ExtResource("2_wall_yard")
-
-[node name="Wall3" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52, 1.5, -24.7)
-size = Vector3(0.5, 3, 9.9)
-material = ExtResource("2_wall_yard")
-
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-52, 1.5, -24.7)
 occluder = SubResource("BoxOccluder3D_2")
 
-[node name="VentSill" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52.125, -0.25, -30)
-size = Vector3(0.25, 0.5, 0.7)
-material = ExtResource("3_floor_yard")
-
-[node name="Wall4" type="CSGBox3D" parent="Shell"]
-position = Vector3(-14, 1.5, -38)
-size = Vector3(76.5, 3, 0.5)
-material = ExtResource("2_wall_yard")
+[node name="VentGrille" parent="." instance=ExtResource("4_vent_grille")]
+position = Vector3(-51.75, 0, -30)
+rotation = Vector3(0, 1.5708, 0)
 
 [node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-14, 1.5, -38)
 occluder = SubResource("BoxOccluder3D_3")
 
-[node name="CoolingTower" type="CSGCylinder3D" parent="Shell"]
+[node name="PropCollision" type="StaticBody3D" parent="."]
+
+[node name="Cylinder" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-2, 11, -32)
-radius = 6
-height = 22
-sides = 24
-material = ExtResource("4_cooling_towe")
+shape = SubResource("CylinderShape3D_4")
 
-[node name="Crate" type="CSGBox3D" parent="Shell"]
+[node name="CoolingTower" parent="." instance=ExtResource("5_cooling_towe")]
+position = Vector3(-2, 0, -32)
+
+[node name="Box" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-19.25, 0.6, -35.75)
-size = Vector3(1.5, 1.2, 1.5)
-material = ExtResource("5_prop_crate")
+shape = SubResource("BoxShape3D_5")
 
-[node name="Crate2" type="CSGBox3D" parent="Shell"]
+[node name="Crate" parent="." instance=ExtResource("6_crate")]
+position = Vector3(-19.25, 0, -35.75)
+scale = Vector3(1.5, 1.2, 1.5)
+
+[node name="Box2" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(9, 0.5, -36.25)
-size = Vector3(2, 1, 1.5)
-material = ExtResource("5_prop_crate")
+shape = SubResource("BoxShape3D_6")
 
-[node name="Barrels" type="CSGBox3D" parent="Shell"]
+[node name="Crate2" parent="." instance=ExtResource("6_crate")]
+position = Vector3(9, 0, -36.25)
+scale = Vector3(2, 1, 1.5)
+
+[node name="Box3" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-23.25, 0.5, -30.25)
-size = Vector3(1.5, 1, 1.5)
-material = ExtResource("6_prop_pipe")
+shape = SubResource("BoxShape3D_7")
+
+[node name="Barrels" parent="." instance=ExtResource("7_barrels_clus")]
+position = Vector3(-23.25, 0, -30.25)
 
 [node name="Lights" type="Node3D" parent="."]
 
@@ -129,137 +152,51 @@ omni_attenuation = 0.8
 [node name="Spawn1" type="Marker3D" parent="."]
 position = Vector3(18, 0, -22)
 rotation = Vector3(0, 1.5708, 0)
-script = ExtResource("7_spawn_point")
+script = ExtResource("8_spawn_point")
 role = 0
 
 [node name="Spawn2" type="Marker3D" parent="."]
 position = Vector3(18, 0, -25)
 rotation = Vector3(0, 1.5708, 0)
-script = ExtResource("7_spawn_point")
+script = ExtResource("8_spawn_point")
 role = 0
 
 [node name="Spawn3" type="Marker3D" parent="."]
 position = Vector3(18, 0, -28)
 rotation = Vector3(0, 1.5708, 0)
-script = ExtResource("7_spawn_point")
+script = ExtResource("8_spawn_point")
 role = 0
 
 [node name="Spawn4" type="Marker3D" parent="."]
 position = Vector3(14, 0, -22)
 rotation = Vector3(0, 1.5708, 0)
-script = ExtResource("7_spawn_point")
+script = ExtResource("8_spawn_point")
 role = 0
 
 [node name="Spawn5" type="Marker3D" parent="."]
 position = Vector3(14, 0, -25)
 rotation = Vector3(0, 1.5708, 0)
-script = ExtResource("7_spawn_point")
+script = ExtResource("8_spawn_point")
 role = 0
 
 [node name="Spawn6" type="Marker3D" parent="."]
 position = Vector3(14, 0, -28)
 rotation = Vector3(0, 1.5708, 0)
-script = ExtResource("7_spawn_point")
+script = ExtResource("8_spawn_point")
 role = 0
 
-[node name="LadderRail" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 3.5, -29.45)
-size = Vector3(0.08, 7, 0.08)
-material = ExtResource("8_ladder")
-
-[node name="LadderRail2" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 3.5, -28.55)
-size = Vector3(0.08, 7, 0.08)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 0.37, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung2" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 0.72, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung3" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 1.07, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung4" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 1.42, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung5" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 1.77, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung6" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 2.12, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung7" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 2.47, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung8" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 2.82, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung9" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 3.17, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung10" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 3.52, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung11" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 3.87, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung12" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 4.22, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung13" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 4.57, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung14" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 4.92, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung15" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 5.27, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
-
-[node name="LadderRung16" type="CSGBox3D" parent="."]
-position = Vector3(23.67, 5.62, -29)
-size = Vector3(0.04, 0.04, 0.9)
-material = ExtResource("8_ladder")
+[node name="LadderArt" parent="." instance=ExtResource("9_ladder_7m")]
+position = Vector3(23.67, 0, -29)
+rotation = Vector3(0, 1.5708, 0)
 
 [node name="Ladder" type="Area3D" parent="."]
 position = Vector3(23.375, 0, -29)
 rotation = Vector3(0, -1.5708, 0)
-script = ExtResource("9_ladder")
+script = ExtResource("10_ladder")
 
 [node name="Shape" type="CollisionShape3D" parent="Ladder"]
 position = Vector3(0, 3.5, 0)
-shape = SubResource("BoxShape3D_4")
+shape = SubResource("BoxShape3D_8")
 
 [node name="NavLink" type="NavigationLink3D" parent="."]
 start_position = Vector3(22.55, 0, -29)
@@ -272,3 +209,61 @@ billboard = 1
 text = "YARD"
 font_size = 90
 outline_size = 18
+
+[node name="Dressing" parent="." instance=ExtResource("11_floodlight")]
+position = Vector3(-40, 0, -21.2)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Box4" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(-40, 2.5, -21.2)
+shape = SubResource("BoxShape3D_9")
+
+[node name="Dressing2" parent="." instance=ExtResource("11_floodlight")]
+position = Vector3(-14, 0, -21.2)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Box5" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(-14, 2.5, -21.2)
+shape = SubResource("BoxShape3D_10")
+
+[node name="Dressing3" parent="." instance=ExtResource("11_floodlight")]
+position = Vector3(10, 0, -21.2)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Box6" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(10, 2.5, -21.2)
+shape = SubResource("BoxShape3D_11")
+
+[node name="Dressing4" parent="." instance=ExtResource("11_floodlight")]
+position = Vector3(16, 0, -37.2)
+
+[node name="Box7" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(16, 2.5, -37.2)
+shape = SubResource("BoxShape3D_12")
+
+[node name="Dressing5" parent="." instance=ExtResource("12_trash_bags")]
+position = Vector3(-50.8, 0, -37)
+
+[node name="Dressing6" parent="." instance=ExtResource("13_k_cone")]
+position = Vector3(-10, 0, -22)
+
+[node name="Dressing7" parent="." instance=ExtResource("13_k_cone")]
+position = Vector3(-9.2, 0, -22.4)
+
+[node name="Dressing8" parent="." instance=ExtResource("14_k_barrel")]
+position = Vector3(20, 0, -37.2)
+
+[node name="Box8" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(20, 0.45, -37.2)
+shape = SubResource("BoxShape3D_13")
+
+[node name="Ambient" type="Marker3D" parent="."]
+position = Vector3(-25, 2, -32)
+script = ExtResource("15_ambient_soun")
+sound = "crickets"
+
+[node name="Ambient2" type="Marker3D" parent="."]
+position = Vector3(12, 2, -35)
+script = ExtResource("15_ambient_soun")
+sound = "crickets"
+volume_db = -3

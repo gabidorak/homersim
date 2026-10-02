@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://shaders/toon_world.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/pattern = 2
+shader_parameter/base_color = Color(0.4173, 0.4737, 0.5114, 1)
+shader_parameter/trim_color = Color(0.2392, 0.2902, 0.3333, 1)
+shader_parameter/line_color = Color(0.1059, 0.1059, 0.1216, 1)
+shader_parameter/line_strength = 0.5
+shader_parameter/cell = Vector2(0.25, 0.25)
+shader_parameter/band_low = 0.02
+shader_parameter/band_high = 0.14
+shader_parameter/band_soft = 0.09
+shader_parameter/shade_mid = 0.66
+shader_parameter/rim_strength = 0

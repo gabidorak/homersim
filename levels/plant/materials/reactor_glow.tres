@@ -1,7 +1,15 @@
-[gd_resource type="StandardMaterial3D" format=3]
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://shaders/toon_world.gdshader" id="1_shader"]
 
 [resource]
-albedo_color = Color(0.6, 1, 0.18, 1)
-emission_enabled = true
-emission = Color(0.61, 1, 0.18, 1)
-emission_energy_multiplier = 2.5
+shader = ExtResource("1_shader")
+shader_parameter/pattern = 5
+shader_parameter/base_color = Color(0.6118, 1, 0.1804, 1)
+shader_parameter/emission = Color(0.6118, 1, 0.1804, 1)
+shader_parameter/emission_energy = 1.6
+shader_parameter/band_low = 0.02
+shader_parameter/band_high = 0.14
+shader_parameter/band_soft = 0.09
+shader_parameter/shade_mid = 0.66
+shader_parameter/rim_strength = 0

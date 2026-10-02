@@ -1,5 +1,7 @@
 [gd_scene load_steps=8 format=3]
 
+[ext_resource type="PackedScene" path="res://assets/generated/cage.glb" id="2_cage"]
+
 [ext_resource type="Script" path="res://interactables/cage/cage.gd" id="1_script"]
 
 [sub_resource type="BoxShape3D" id="shape_area"]
@@ -14,16 +16,6 @@ size = Vector3(1.5, 1.3, 0.06)
 [sub_resource type="BoxShape3D" id="shape_roof"]
 size = Vector3(1.5, 0.06, 1.5)
 
-[sub_resource type="StandardMaterial3D" id="mat_bars"]
-transparency = 1
-cull_mode = 2
-albedo_color = Color(0.55, 0.6, 0.65, 0.35)
-metallic = 0.6
-
-[sub_resource type="BoxMesh" id="mesh_cage"]
-material = SubResource("mat_bars")
-size = Vector3(1.5, 1.3, 1.5)
-
 [node name="Cage" type="Area3D"]
 script = ExtResource("1_script")
 
@@ -31,9 +23,8 @@ script = ExtResource("1_script")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, -0.8)
 shape = SubResource("shape_area")
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, -0.8)
-mesh = SubResource("mesh_cage")
+[node name="Model" parent="." instance=ExtResource("2_cage")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -0.8)
 
 [node name="Bars" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, -0.8)

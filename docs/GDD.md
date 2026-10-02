@@ -75,17 +75,23 @@ Worked check: three systems fully broken (rods + pumps + valves) gives +6 units/
 - Each subsystem has 2 sabotage points (normal) or 1 lever pair (critical).
 
 ### 4.4 Repair (supervisors)
-- **Minigame repair** (M6): about 4–6 s of play gives **+50 health**. A failed minigame gives +10 and a 3 s lockout.
-- **Hold repair** (fallback used from M3, and also when the minigame is disabled): hold for **6 s**, then **+35 health**.
-- Subsystems with health 0 must first be "rebooted": a hold of 3 s before repairs can start.
+- **Minigame repair** (M6, the default): about 4–6 s of play gives **+50 health**. A failed minigame gives +10 and **jams that repair point for 3 s** (for everyone). Results that arrive less than **3 s** after the minigame opened are refused as a hack. Being bitten, stunned or knocked down, or stepping away (0.5 m), closes the minigame. Esc gives up (no penalty). One supervisor at a time per repair point.
+  - *Wrench rhythm* (pumps, turbine): click while the sweeping marker is in the green zone, 3 times in a row (3 misses or 12 s lose).
+  - *Breaker sequence* (grid, ventilation): watch 4–5 of 6 breakers flash, then flip them in order (one wrong breaker or 10 s lose).
+  - *Valve rotate* (valves, rods): drag in circles to turn the wheel into the green band (1.25–2.5 turns), hold it there 1 s (15 s limit).
+  - Difficulty grows with the damage (faster marker, narrower zone, longer sequence, more turns).
+- **Hold repair** (accessibility option, the M3 fallback; client flag `--hold-repairs` until the M8 settings toggle): hold for **6 s**, then **+35 health**. The server accepts both.
+- Subsystems with health 0 must first be "rebooted": a hold of 3 s before repairs can start (either way).
 
 ### 4.5 Control room actions (supervisors)
 | Action | Effect | Cooldown | Requirement |
 |---|---|---|---|
 | Emergency coolant | `core_temp −150` | 90 s | Power grid health ≥ 25 |
-| Partial SCRAM | `heat_in × 0.5` for 30 s | 120 s | Costs **+30 s** on the match timer (the shift gets longer) |
+| Partial SCRAM | `heat_in × 0.5` for 30 s | 120 s | Costs **+30 s** on the match timer (the shift gets longer). A big red button under a flip cover: the 1st press lifts the cover (it drops after 5 s), the 2nd fires |
 | CCTV | View 8 cameras (cycle with Q/E), while the body stays vulnerable in the chair | – | The camera must not be broken |
-| Plant status board | Always visible in the room: per-subsystem health and alarm lights | – | – |
+| Plant status board | Always visible in the room: per-subsystem health and alarm lights, the actions' cooldowns and SCRAM time | – | – |
+
+Each action's console has its own screen with its cooldown. The HUD shows the SCRAM time left and the seconds SCRAM added to the shift under the timer.
 
 ## 5. Roles
 ### 5.1 Supervisor
@@ -143,15 +149,15 @@ Abilities:
 | Revealed | Cheese lure, radiation | Outline visible to the enemy team through walls |
 
 ## 6. Hazards
-These activate when a subsystem's health is below 50, and **affect both teams**.
+These activate when a subsystem's health drops **below 50**, switch off again once it is back to **60 or more** (hysteresis, so they don't flicker), and **affect both teams**. Numbers live in `data/hazard_tuning.tres`. A hazard hits each body at most once per live window; carried, caged and frozen bodies are never hit. Note that one normal sabotage leaves a subsystem at exactly 50: it takes a second sabotage (or a critical one) to start its hazards.
 
 | Hazard | Behaviour | Effect |
 |---|---|---|
-| Steam jets (pumps, valves) | Cycle: on for 3 s, off for 3 s. 2–4 jets per POI. | Knockback impulse of 6 m/s plus a 1 s stun |
-| Electrified puddles (grid) | Pools of water light up for 2 s every 5 s | 1.5 s stun, then 50% slow for 2 s |
-| Radiation zone (rods) | Glowing zone; exposure builds over 5 s | 20% slow while inside, **Revealed** while inside and for 5 s after leaving |
-| Turbine debris | A falling bolt or panel every 8 s, with a 1 s visual warning | Knockdown (supervisor) or 2 s stun (rat) |
-| Smoke (ventilation) | Fog in the vent network and the Control Room | Visibility drops to about 6 m |
+| Steam jets (pumps, valves) | Cycle: on for 3 s, off for 3 s, a puff 0.6 s before each blast. 3 jets per POI, taking turns (phases). | Knockback of 6 m/s away from the nozzle (plus 3 m/s up) and a 1 s stun |
+| Electrified puddles (grid) | 3 pools of water light up for 2 s every 5 s (a flicker just before) | 1.5 s stun, then 50% slow for 2 s |
+| Radiation zone (rods) | Glowing zone around the reactor pool (not the levers); exposure builds 1 s per second inside and drains as fast outside, up to 5 s. Geiger clicks speed up with exposure | Once exposure reaches 5 s: 20% slow while inside, **Revealed** while inside and for 5 s after leaving |
+| Turbine debris | A falling bolt or panel every 8 s at a random spot in the Turbine Hall, with a 1 s warning circle | Within 1.5 m: knockdown for 3 s (supervisor) or 2 s stun (rat) |
+| Smoke (ventilation) | Fog in the vent network and the Control Room (cosmetic only) | Visibility drops to about 6 m |
 
 ## 7. Map: "Sunny Acres" plant
 One level, about **104 × 64 m** plus the sewer nest, two floors in places (catwalks, the vent roof). A 2 m grid. Layout v1 (M5, graybox) is drawn in [docs/map/plant_layout_v1.png](map/plant_layout_v1.png), with its rationale and measured paths in [docs/map/README.md](map/README.md).
@@ -208,10 +214,11 @@ One level, about **104 × 64 m** plus the sewer nest, two floors in places (catw
 | Scoreboard | Tab |
 | Emote | Z |
 | CCTV chair: previous / next camera, stand up | Q / E, Space |
+| Repair minigames: play / give up | Mouse / Esc |
 | Playtest tools: debug overlay, stopwatch | F3, F4 |
 
 ## 9. Audio and feedback
-- Global alarm music layers: calm, then warning, then critical (crossfade on alarm state).
+- Global alarm music layers: calm, then warning, then critical (crossfade on alarm state). Room lights shift to amber (WARNING) and pulse red (CRITICAL); the HUD's edge tint flashes when the alarm gets worse.
 - Every action has an exaggerated SFX: bonk, squeak, SNAP, hiss, and a donut munch.
 - HUD: timer, meltdown meter, core temperature gauge, subsystem icons (health colour), status effect icons, and an interaction progress ring.
 

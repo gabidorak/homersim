@@ -10,3 +10,4 @@ short_name = "GRD"
 heat_weight = 1.5
 critical = false
 hazard_kind = 4
+minigame = "breaker_sequence"

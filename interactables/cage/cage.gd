@@ -14,6 +14,11 @@ var occupants := PackedInt32Array()  ## caged peers, oldest first
 
 @onready var bars: StaticBody3D = $Bars
 @onready var _label: Label3D = get_node_or_null("Label")
+@onready var _door: Node3D = Art.part(get_node_or_null("Model"), "Door")
+
+const DOOR_OPEN := -1.7  ## radians about Y: swung out
+var _shown_count := 0
+var _door_tween: Tween
 
 
 func _init() -> void:
@@ -127,6 +132,25 @@ func _physics_process(_delta: float) -> void:
 func _process(_delta: float) -> void:
 	if _label != null:
 		_label.text = "CAGE" if occupants.is_empty() else "CAGE (%d)" % occupants.size()
+	# Cosmetic: the door swings open and slams when a rat goes in or gets out.
+	if occupants.size() != _shown_count:
+		var caged := occupants.size() > _shown_count
+		_shown_count = occupants.size()
+		_swing_door(caged)
+
+
+func _swing_door(caged: bool) -> void:
+	if _door == null or Art.headless():
+		return
+	if _door_tween != null:
+		_door_tween.kill()
+	_door_tween = create_tween()
+	_door_tween.tween_property(_door, "rotation:y", DOOR_OPEN, 0.18).set_ease(Tween.EASE_OUT)
+	_door_tween.tween_interval(0.35 if caged else 0.8)
+	_door_tween.tween_property(_door, "rotation:y", 0.0, 0.12).set_ease(Tween.EASE_IN)
+	var front := global_position + global_basis.z * 0.1
+	Sfx.play_at(self, "cage_open", front, -4.0)
+	_door_tween.tween_callback(func() -> void: Sfx.play_at(self, "cage_slam", front))
 
 
 func _name_of(peer_id: int) -> String:

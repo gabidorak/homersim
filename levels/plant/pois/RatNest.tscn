@@ -1,11 +1,19 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
-[ext_resource type="Material" path="res://levels/plant/materials/wall_ratnest.tres" id="2_wall_ratnest"]
-[ext_resource type="Material" path="res://levels/plant/materials/floor_ratnest.tres" id="3_floor_ratnes"]
-[ext_resource type="Material" path="res://levels/plant/materials/sewer_water.tres" id="4_sewer_water"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_crate.tres" id="5_prop_crate"]
+[ext_resource type="ArrayMesh" path="res://levels/plant/baked/RatNest_shell.res" id="2_ratnest_shel"]
+[ext_resource type="ConcavePolygonShape3D" path="res://levels/plant/baked/RatNest_shell_col.res" id="3_ratnest_shel"]
+[ext_resource type="PackedScene" path="res://assets/generated/junk_pile.glb" id="4_junk_pile"]
+[ext_resource type="PackedScene" path="res://assets/generated/junk_pile_tall.glb" id="5_junk_pile_ta"]
 [ext_resource type="Script" path="res://levels/spawn_point.gd" id="6_spawn_point"]
+[ext_resource type="PackedScene" path="res://assets/generated/rat_bed.glb" id="7_rat_bed"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_cheese.glb" id="8_k_cheese"]
+[ext_resource type="PackedScene" path="res://assets/generated/trash_bags.glb" id="9_trash_bags"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_pizza_box.glb" id="10_k_pizza_box"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_soda_can.glb" id="11_k_soda_can"]
+[ext_resource type="PackedScene" path="res://assets/generated/papers.glb" id="12_papers"]
+[ext_resource type="PackedScene" path="res://assets/generated/donut.glb" id="13_donut"]
+[ext_resource type="Script" path="res://levels/ambient_sound.gd" id="14_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
 size = Vector3(5.9, 3, 0.24)
@@ -22,23 +30,24 @@ size = Vector3(0.24, 3, 10.5)
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_5"]
 size = Vector3(0.24, 3, 10.5)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_6"]
+size = Vector3(1.5, 0.8, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(1.5, 1.2, 2)
+
 [node name="RatNest" type="Node3D"]
 script = ExtResource("1_poi")
 display_name = "Rat Nest"
 bounds = Array[AABB]([AABB(-36, -1, 30, 12, 4, 10)])
 
-[node name="Shell" type="CSGCombiner3D" parent="."]
-use_collision = true
+[node name="Shell" type="StaticBody3D" parent="."]
 
-[node name="FloorNEST" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, -0.25, 35)
-size = Vector3(12, 0.5, 10)
-material = ExtResource("3_floor_ratnes")
+[node name="Mesh" type="MeshInstance3D" parent="Shell"]
+mesh = ExtResource("2_ratnest_shel")
 
-[node name="CeilingNEST" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, 3.15, 35)
-size = Vector3(12, 0.3, 10)
-material = ExtResource("2_wall_ratnest")
+[node name="Collision" type="CollisionShape3D" parent="Shell"]
+shape = ExtResource("3_ratnest_shel")
 
 [node name="Lights" type="Node3D" parent="."]
 
@@ -49,77 +58,44 @@ light_energy = 0.9
 omni_range = 8
 omni_attenuation = 0.8
 
-[node name="Wall" type="CSGBox3D" parent="Shell"]
-position = Vector3(-33.3, 1.5, 30)
-size = Vector3(5.9, 3, 0.5)
-material = ExtResource("2_wall_ratnest")
-
 [node name="Occluders" type="Node3D" parent="."]
 
 [node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-33.3, 1.5, 30)
 occluder = SubResource("BoxOccluder3D_1")
 
-[node name="Wall2" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, 1.8, 30)
-size = Vector3(0.7, 2.4, 0.5)
-material = ExtResource("2_wall_ratnest")
-
-[node name="Wall3" type="CSGBox3D" parent="Shell"]
-position = Vector3(-26.7, 1.5, 30)
-size = Vector3(5.9, 3, 0.5)
-material = ExtResource("2_wall_ratnest")
-
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-26.7, 1.5, 30)
 occluder = SubResource("BoxOccluder3D_2")
-
-[node name="VentSill" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, -0.25, 29.875)
-size = Vector3(0.7, 0.5, 0.25)
-material = ExtResource("3_floor_ratnes")
-
-[node name="Wall4" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, 1.5, 40)
-size = Vector3(12.5, 3, 0.5)
-material = ExtResource("2_wall_ratnest")
 
 [node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-30, 1.5, 40)
 occluder = SubResource("BoxOccluder3D_3")
 
-[node name="Wall5" type="CSGBox3D" parent="Shell"]
-position = Vector3(-36, 1.5, 35)
-size = Vector3(0.5, 3, 10.5)
-material = ExtResource("2_wall_ratnest")
-
 [node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-36, 1.5, 35)
 occluder = SubResource("BoxOccluder3D_4")
-
-[node name="Wall6" type="CSGBox3D" parent="Shell"]
-position = Vector3(-24, 1.5, 35)
-size = Vector3(0.5, 3, 10.5)
-material = ExtResource("2_wall_ratnest")
 
 [node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-24, 1.5, 35)
 occluder = SubResource("BoxOccluder3D_5")
 
-[node name="Sludge" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, 0.025, 37.375)
-size = Vector3(11.5, 0.05, 4.75)
-material = ExtResource("4_sewer_water")
+[node name="PropCollision" type="StaticBody3D" parent="."]
 
-[node name="Junk" type="CSGBox3D" parent="Shell"]
+[node name="Box" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-34.75, 0.4, 32)
-size = Vector3(1.5, 0.8, 2)
-material = ExtResource("5_prop_crate")
+shape = SubResource("BoxShape3D_6")
 
-[node name="Junk2" type="CSGBox3D" parent="Shell"]
+[node name="Junk" parent="." instance=ExtResource("4_junk_pile")]
+position = Vector3(-34.75, 0, 32)
+
+[node name="Box2" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-25.25, 0.6, 38)
-size = Vector3(1.5, 1.2, 2)
-material = ExtResource("5_prop_crate")
+shape = SubResource("BoxShape3D_7")
+
+[node name="Junk2" parent="." instance=ExtResource("5_junk_pile_ta")]
+position = Vector3(-25.25, 0, 38)
+rotation = Vector3(0, 3.1416, 0)
 
 [node name="Rat1" type="Marker3D" parent="."]
 position = Vector3(-32, 0, 34)
@@ -158,3 +134,44 @@ billboard = 1
 text = "RAT NEST"
 font_size = 72
 outline_size = 18
+
+[node name="Dressing" parent="." instance=ExtResource("7_rat_bed")]
+position = Vector3(-32.6, 0, 33.3)
+rotation = Vector3(0, 0.3491, 0)
+
+[node name="Dressing2" parent="." instance=ExtResource("7_rat_bed")]
+position = Vector3(-27.4, 0, 33.4)
+rotation = Vector3(0, -0.2618, 0)
+
+[node name="Dressing3" parent="." instance=ExtResource("7_rat_bed")]
+position = Vector3(-32.7, 0, 38)
+rotation = Vector3(0, 2.9671, 0)
+
+[node name="Dressing4" parent="." instance=ExtResource("7_rat_bed")]
+position = Vector3(-27.2, 0, 38.1)
+rotation = Vector3(0, 3.3161, 0)
+
+[node name="Dressing5" parent="." instance=ExtResource("8_k_cheese")]
+position = Vector3(-26, 0, 31)
+rotation = Vector3(0, 0.5236, 0)
+
+[node name="Dressing6" parent="." instance=ExtResource("9_trash_bags")]
+position = Vector3(-35, 0, 39)
+
+[node name="Dressing7" parent="." instance=ExtResource("10_k_pizza_box")]
+position = Vector3(-30, 0, 39.3)
+
+[node name="Dressing8" parent="." instance=ExtResource("11_k_soda_can")]
+position = Vector3(-29, 0, 31.4)
+
+[node name="Dressing9" parent="." instance=ExtResource("12_papers")]
+position = Vector3(-30.5, 0.05, 36)
+rotation = Vector3(0, 0.6981, 0)
+
+[node name="Dressing10" parent="." instance=ExtResource("13_donut")]
+position = Vector3(-29.4, 0.05, 35.7)
+
+[node name="Ambient" type="Marker3D" parent="."]
+position = Vector3(-30, 1.5, 36)
+script = ExtResource("14_ambient_soun")
+sound = "drip"

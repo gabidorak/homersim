@@ -5,9 +5,9 @@ extends Node
 ##
 ## It owns the join handshake, the player list, and spawning/despawning bodies (MatchManager
 ## decides who spawns where and as what). Children: MatchManager, PlantSim, InteractionService,
-## ChatService, AbilityService, CaptureService, ItemService, World (level, Players, Dynamic), and
-## the side-specific ServerOnly / ClientOnly nodes, filled at runtime. The services are reachable
-## as `plant`, `interactions`, `abilities`, `captures` and `items`.
+## ChatService, AbilityService, CaptureService, ItemService, MinigameService, World (level, Players,
+## Dynamic), and the side-specific ServerOnly / ClientOnly nodes, filled at runtime. The services are
+## reachable as `plant`, `interactions`, `abilities`, `captures`, `items` and `minigames`.
 ##
 ## The level (World's first child) is added in _enter_tree: the plant, or the TestArena sandbox in
 ## debug builds started with `--level test` (the PvP integration tests use it). Server and clients
@@ -63,6 +63,7 @@ var interactions: InteractionService
 var abilities: AbilityService
 var captures: CaptureService
 var items: ItemService
+var minigames: MinigameService
 var level: Node3D  ## the loaded level scene (Plant or TestArena)
 
 var _pending: Dictionary[int, bool] = {}  # server: connected peers that haven't joined yet
@@ -103,6 +104,7 @@ func _enter_tree() -> void:
 	abilities = $AbilityService
 	captures = $CaptureService
 	items = $ItemService
+	minigames = $MinigameService
 	if level == null:
 		# Before the children enter the tree, so the level's interactables exist (with their
 		# synchronizers) before a client connects.
@@ -114,6 +116,9 @@ func _enter_tree() -> void:
 func _exit_tree() -> void:
 	if current == self:
 		current = null
+	Sfx.clear_cache()
+	Vfx.clear_cache()
+	Art.clear_cache()
 
 
 func _ready() -> void:
@@ -131,6 +136,9 @@ func _ready() -> void:
 		var heatmap := HeatmapRecorder.new()
 		heatmap.name = "HeatmapRecorder"
 		server_only.add_child(heatmap)
+		var hazards := HazardDirector.new()
+		hazards.name = "HazardDirector"
+		server_only.add_child(hazards)
 	else:
 		Net.connected.connect(_on_connected)
 		Net.connection_failed.connect(_leave_to_menu)
@@ -325,6 +333,20 @@ func request_debug_teleport(pos: Vector3) -> void:
 	body.server_force_position(pos)
 
 
+## Test-only (M6 bots): put the plant in a state that would take minutes of play. `what`:
+## "health" sets subsystem `id`'s health to `value` (0 also takes it offline), "core_temp" sets the
+## core temperature. Refused unless debug_allowed() on the server.
+@rpc("any_peer", "reliable")
+func request_debug_plant(what: String, id: StringName, value: float) -> void:
+	if not multiplayer.is_server():
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	if not debug_allowed() or not plant.debug_set(what, id, value):
+		Log.warn("session", "refused a debug plant change from peer %d (%s %s %s)" % [peer, what, id, value])
+		return
+	Log.info("session", "debug plant change by %s: %s %s = %s" % [name_of(peer), what, id, value])
+
+
 # --- Client side ------------------------------------------------------------
 
 func _on_connected() -> void:
@@ -411,6 +433,15 @@ func _build_client_ui() -> void:
 	var cctv := CctvView.new()
 	cctv.name = "CctvView"
 	client_only.add_child(cctv)
+	var minigame_host := MinigameHost.new()
+	minigame_host.name = "MinigameHost"
+	client_only.add_child(minigame_host)
+	var alarm := AlarmEffects.new()
+	alarm.name = "AlarmEffects"
+	client_only.add_child(alarm)
+	var music := MusicDirector.new()
+	music.name = "MusicDirector"
+	client_only.add_child(music)
 	var overlay := DebugOverlay.new()
 	overlay.name = "DebugOverlay"
 	client_only.add_child(overlay)

@@ -15,6 +15,8 @@ var open := false
 
 var _open_until := 0.0  # server clock
 var _closed_position := Vector3.ZERO
+var _shown_open := false
+var _lamps: Array[Node3D] = []  # keycard readers' lamps: red when locked, green when open
 
 @onready var panel: AnimatableBody3D = $Panel
 @onready var sensor: Area3D = get_node_or_null("Sensor")
@@ -31,6 +33,11 @@ func _ready() -> void:
 	sync.name = "Sync"
 	sync.replication_config = config
 	add_child(sync)
+	for reader in find_children("Reader*", "Area3D", false, false):
+		var lamp := Art.part(reader, "Lamp")
+		if lamp != null:
+			_lamps.append(lamp)
+	_set_lamps(false)
 	if sensor != null:
 		sensor.collision_layer = 0
 		sensor.collision_mask = PhysicsLayers.PLAYERS
@@ -53,6 +60,16 @@ func _physics_process(delta: float) -> void:
 		open = wanted
 	var target := _closed_position + (open_offset if open else Vector3.ZERO)
 	panel.position = panel.position.move_toward(target, slide_speed * delta)
+	if open != _shown_open:  # cosmetic: the slide sound and the readers' lamps
+		_shown_open = open
+		Sfx.play_at(self, "door_open" if open else "door_close", global_position + Vector3.UP * 1.3)
+		_set_lamps(open)
+
+
+func _set_lamps(is_open: bool) -> void:
+	for lamp in _lamps:
+		Art.set_tint(lamp, Color(0.3, 1, 0.4) if is_open else Color(1, 0.2, 0.15))
+		Art.set_glow(lamp, 1.5)
 
 
 func _now() -> float:

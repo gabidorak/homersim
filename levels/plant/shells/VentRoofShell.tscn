@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://levels/plant/materials/wall_ventroof.tres" id="1_wall_ventroo"]
+[ext_resource type="Material" path="res://levels/plant/materials/floor_ventroof.tres" id="2_floor_ventro"]
+
+[node name="VentRoofShell" type="CSGCombiner3D"]
+use_collision = true
+
+[node name="Fence" type="CSGBox3D" parent="."]
+position = Vector3(38, 7.25, -38)
+size = Vector3(28.5, 2.5, 0.5)
+material = ExtResource("1_wall_ventroo")
+
+[node name="Fence2" type="CSGBox3D" parent="."]
+position = Vector3(52, 7.25, -34.55)
+size = Vector3(0.5, 2.5, 7.4)
+material = ExtResource("1_wall_ventroo")
+
+[node name="Fence3" type="CSGBox3D" parent="."]
+position = Vector3(52, 7.625, -30.5)
+size = Vector3(0.5, 1.75, 0.7)
+material = ExtResource("1_wall_ventroo")
+
+[node name="Fence4" type="CSGBox3D" parent="."]
+position = Vector3(52, 7.25, -24.95)
+size = Vector3(0.5, 2.5, 10.4)
+material = ExtResource("1_wall_ventroo")
+
+[node name="Fence5" type="CSGBox3D" parent="."]
+position = Vector3(43, 7.25, -20)
+size = Vector3(18.5, 2.5, 0.5)
+material = ExtResource("1_wall_ventroo")
+
+[node name="Block" type="CSGBox3D" parent="."]
+position = Vector3(38, 2.75, -29)
+size = Vector3(28.5, 6.5, 18.5)
+material = ExtResource("2_floor_ventro")

@@ -12,8 +12,10 @@ extends Node
 ##   supervisor: waits until the target is damaged, teleports to its repair point and holds
 ##               until it is back to full health (a reboot first if needed).
 ## --bot-delay waits S extra seconds after PLAYING starts.
-## --bot-scenario NAME [--bot-part P] runs a PvP scenario instead (tests/helpers/pvp_bot.gd, M4). Before each hold it checks that the interactor's own targeting picks the right thing.
-## Then it idles. It quits when the server goes away.
+## --bot-scenario NAME [--bot-part P] runs a PvP scenario instead (tests/helpers/pvp_bot.gd, M4), or
+## an M6 one (hazards, minigame, control: tests/helpers/m6_bot.gd). Before each hold it checks that the interactor's own targeting picks the right thing.
+## Then it tells the server it is done (request_debug_done: once every bot is, the match ends
+## without waiting for --test-duration) and idles. It quits when the server goes away.
 
 var _target := &"pumps"
 var _role := Role.Kind.NONE
@@ -23,6 +25,7 @@ var _acted := false
 
 func _ready() -> void:
 	_role = Role.from_text(Cli.get_str("bot"))
+	Config.minigame_repairs = false  # bots hold to repair; the minigame scenario turns this back on
 	_target = StringName(Cli.get_str("bot-target", "pumps"))
 	var addr := Net.parse_address(Cli.get_str("connect", "127.0.0.1:7777"))
 	_session = (load("res://common/Session.tscn") as PackedScene).instantiate()
@@ -51,15 +54,22 @@ func _on_joined() -> void:
 func _on_state_changed(state: MatchManager.State) -> void:
 	if state == MatchManager.State.PLAYING and not _acted:
 		_acted = true
-		if Cli.has_arg("bot-scenario"):
+		if Cli.get_str("bot-scenario") in ["hazards", "minigame", "control"]:
+			var m6 := M6Bot.new()
+			m6.name = "M6Bot"
+			add_child(m6)
+			await m6.run(self, Cli.get_str("bot-scenario"))
+		elif Cli.has_arg("bot-scenario"):
 			var pvp := PvpBot.new()
 			pvp.name = "PvpBot"
 			add_child(pvp)
-			pvp.run(self, Cli.get_str("bot-scenario"))
+			await pvp.run(self, Cli.get_str("bot-scenario"))
 		elif _role == Role.Kind.RAT:
-			_run_rat()
+			await _run_rat()
 		elif _role == Role.Kind.SUPERVISOR:
-			_run_supervisor()
+			await _run_supervisor()
+		Log.info("bot", "done, telling the server")
+		_session.match_manager.request_debug_done.rpc_id(1)
 
 
 func _body() -> Player:

@@ -17,6 +17,9 @@ properties/1/replication_mode = 1
 properties/2/path = NodePath(".:sync_pitch")
 properties/2/spawn = false
 properties/2/replication_mode = 1
+properties/3/path = NodePath(".:sync_anim")
+properties/3/spawn = false
+properties/3/replication_mode = 1
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_status"]
 properties/0/path = NodePath("StatusComponent:flags")

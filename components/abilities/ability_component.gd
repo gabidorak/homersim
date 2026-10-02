@@ -61,6 +61,8 @@ func use(id: StringName, aim: Vector3 = Vector3.ZERO) -> bool:
 	Session.current.abilities.request_use_ability.rpc_id(1, id, aim)
 	if data.kind == AbilityData.Kind.MELEE_STUN and body.rig is FirstPersonRig:
 		(body.rig as FirstPersonRig).swing()
+	if body.anim != null:  # the others see it when the server's cosmetic RPC comes back
+		body.anim.play_one_shot("swing" if data.kind == AbilityData.Kind.MELEE_STUN else "bite")
 	return true
 
 
@@ -71,6 +73,8 @@ func place_trap(pos: Vector3) -> bool:
 		return false
 	_cooldown_left[data.id] = data.cooldown_s
 	Session.current.items.request_place_trap.rpc_id(1, data.id, pos)
+	if body.anim != null:
+		body.anim.play_one_shot("place")
 	return true
 
 

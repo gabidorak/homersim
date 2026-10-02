@@ -9,3 +9,7 @@ signal match_state_changed(state: int)  ## MatchManager.State
 signal chat_message(from_name: String, text: String, channel: int)  ## from_name "" = system message
 @warning_ignore("unused_signal")
 signal plant_alarm_changed(alarm: int)  ## PlantModel.Alarm, clients only
+@warning_ignore("unused_signal")
+signal local_hazard_hit(text: String)  ## a hazard hit the local player (HUD banner), clients only
+@warning_ignore("unused_signal")
+signal plant_announcement(text: String)  ## a plant-wide event (SCRAM, coolant) for the HUD banner, clients only

@@ -2,7 +2,8 @@ class_name StatusBoardPanel
 extends Control
 ## What the Control Room status board shows (drawn, no child controls): every subsystem's health
 ## with its cooldown or OFFLINE state, core temperature, meltdown, the alarm light and the shift
-## clock. Reads only synced state (PlantSim, MatchManager), like the HUD.
+## clock, plus the Control Room actions' cooldowns and SCRAM (M6). Reads only synced state
+## (PlantSim, MatchManager, ConsoleAction), like the HUD.
 
 const ALARM_COLORS := {
 	PlantModel.Alarm.NORMAL: Color(0.35, 0.8, 0.4),
@@ -24,7 +25,17 @@ func _draw() -> void:
 	var alarm_color: Color = ALARM_COLORS[plant.alarm]
 	var light := alarm_color if plant.alarm == PlantModel.Alarm.NORMAL or blink else alarm_color.darkened(0.7)
 	draw_circle(Vector2(w - 40, 30), 18, light)
-	var y := 70.0
+	var actions: Array[String] = []
+	for node in get_tree().get_nodes_in_group(ConsoleAction.GROUP_NAME):
+		var console := node as ConsoleAction
+		var left := console.cooldown_left()
+		var state := "%d s" % ceili(left) if left > 0.0 else ("no power" if not console.has_power() else "ready")
+		actions.append("%s: %s" % [console.title().capitalize(), state])
+	if plant.scram_left > 0.0:
+		actions.append("SCRAM ACTIVE %d s" % ceili(plant.scram_left))
+	draw_string(font, Vector2(20, 66), "  ·  ".join(actions), HORIZONTAL_ALIGNMENT_LEFT, w - 40, 16,
+		Color(1, 0.4, 0.35) if plant.scram_left > 0.0 else Color(0.75, 0.85, 1))
+	var y := 78.0
 	for i in plant.count():
 		var data := plant.data(i)
 		var health := plant.health(i) / plant.tuning.max_health
@@ -40,7 +51,7 @@ func _draw() -> void:
 		elif plant.cooldown_left(i) > 0.0:
 			state += "  sparks %d s" % ceili(plant.cooldown_left(i))
 		draw_string(font, Vector2(w - 160, y + 22), state, HORIZONTAL_ALIGNMENT_LEFT, 150, 18, state_color)
-		y += 34
+		y += 32
 	y += 6
 	_gauge(font, y, "Core %d°" % roundi(plant.core_temp), inverse_lerp(plant.tuning.min_temp, plant.tuning.max_temp, plant.core_temp), alarm_color)
 	_gauge(font, y + 34, "Meltdown %d%%" % floori(plant.meltdown), plant.meltdown / 100.0, Color(0.85, 0.15, 0.6))

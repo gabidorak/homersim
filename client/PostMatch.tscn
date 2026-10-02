@@ -64,7 +64,7 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/h_separation = 28
 theme_override_constants/v_separation = 4
-columns = 9
+columns = 10
 
 [node name="Footer" type="Label" parent="Center/Panel/Box"]
 unique_name_in_owner = true

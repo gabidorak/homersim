@@ -10,3 +10,4 @@ short_name = "VLV"
 heat_weight = 2.0
 critical = false
 hazard_kind = 2
+minigame = "valve_rotate"

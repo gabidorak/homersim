@@ -5,7 +5,9 @@ extends Node
 ##   third person (rat): the nearest interactable within reach, in front of the body or camera
 ## Holding E on an available target sends request_interact_start, then a heartbeat every 0.25 s;
 ## releasing E (or losing the target) sends request_interact_stop. An instant target (grab, cage,
-## pickups, keycard readers) only gets the start request, and E must be released before the next. The server decides everything
+## pickups, keycard readers) only gets the start request, and E must be released before the next.
+## A repair point (when the player wants minigames) gets request_minigame_start instead: the server
+## opens the minigame overlay (MinigameHost), which takes the mouse until it closes. The server decides everything
 ## else and reports the end of every hold through server_ended_hold(). After a hold ends on the
 ## server's side, E must be released before a new hold starts.
 ## Runs only on the owning client. HUD reads `target`, `holding` and prompt_text().
@@ -87,6 +89,11 @@ func server_ended_hold(target_path: NodePath, reason: String) -> void:
 
 
 func _start(t: Interactable) -> void:
+	var repair := t as RepairPoint
+	if repair != null and repair.prefers_minigame(body):
+		Session.current.minigames.request_minigame_start.rpc_id(1, t.get_path())
+		_needs_release = true
+		return
 	_service().request_interact_start.rpc_id(1, t.get_path())
 	if t.kind_for(body) == "instant":
 		_needs_release = true  # one press, one use

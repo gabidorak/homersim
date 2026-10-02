@@ -106,6 +106,7 @@ func _bite(attacker: Player, data: AbilityData, aim: Vector3) -> void:
 	var result := victim.status.bite(data)
 	if result != StatusRules.Bite.IGNORED:
 		session.match_manager.add_stat(attacker.peer_id, "bites")
+		session.minigames.interrupt(victim.peer_id, "bitten")  # a bite makes you drop the wrench
 	if result == StatusRules.Bite.KNOCKED_DOWN:
 		session.match_manager.add_stat(attacker.peer_id, "knockdowns")
 	Log.info("ability", "%s bit %s: %s" % [attacker.display_name, victim.display_name,

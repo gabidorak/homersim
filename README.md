@@ -8,7 +8,7 @@ A goofy, cartoon-style **asymmetric multiplayer** game set in a nuclear power pl
 
 Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows**.
 
-> Status: **M4 implemented, M3 and M4 still waiting for a playtest**. M3: plant simulation with six subsystems, sabotage points, critical lever pairs, repairs and reboots, meltdown meter, match timer, winner and post-match stats, HUD with alarms. M4: broom stuns, bites and knockdowns, grab / carry / cage / free / eliminate, spectating, team and ghost chat, keycard stealing and doors, snap traps and cheese lures, donuts, swarm bonus. Next: playtest with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), including a run at 100 ms of simulated latency, then [M5](docs/milestones/M5-map-graybox.md).
+> Status: **M7 implemented** (M3–M7 still waiting for a playtest). M7 is the art and audio pass: toon shading with outlines, a generated cartoon plant (baked room shells, machines, furniture, clutter), an animated supervisor (Kenney CC0 character, recoloured) and rat, first-person arms and broom, particle effects, camera shake, synthesized sounds and music (alarm-driven layers, lobby loop, stingers), ambient hums and hall reverb. Screenshots in [docs/screenshots/](docs/screenshots/). Earlier: M3 plant simulation, sabotage and repairs, meltdown meter, HUD; M4 PvP (broom, bites, carry and cage, keycards, traps, donuts); M5 the plant layout; M6 hazards, repair minigames, Control Room consoles. Next: playtest with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), including a run at 100 ms of simulated latency, then [M8](docs/milestones/M8-menus-and-ux.md).
 
 ## Documents
 | Doc | What's inside |
@@ -56,6 +56,8 @@ run the exact same build to play together, so keep both updating.
 Builds from source or local exports never update themselves.
 
 ## Tests and exports
+The generated art and audio are committed (Git LFS), so building the game needs only Godot. Regenerating them
+(`tools/build_assets.sh`) also needs Blender 4.2+ (tested with 5.0), Python 3 with numpy and Pillow, and ffmpeg.
 ```bash
 godot --headless --import    # once, or after adding files outside the editor
 godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
@@ -79,7 +81,9 @@ Server settings live in `server.cfg` (copy [server.cfg.example](server.cfg.examp
 In game: WASD, mouse, Space to jump, Shift to sprint, **hold E** to sabotage (rats) or repair (supervisors),
 Enter to chat, T to chat with your team. Supervisors: LMB swings the broom, E grabs a stunned rat and cages it, hold RMB
 then release to place a trap (Q switches snap trap / cheese lure). Rats: LMB bites, hold E behind a supervisor to steal
-its keycard, hold E at a cage to free a friend. Eliminated rats spectate (LMB / RMB cycle players, WASD flies). Esc frees the mouse (to click the lobby buttons), a click captures it again. Rats win when the
+its keycard, hold E at a cage to free a friend. Supervisors repair with a short mouse minigame (E at a repair point;
+Esc gives up; `--hold-repairs` on the client uses the old 6 s hold instead), and use the Control Room consoles
+(emergency coolant; SCRAM: press twice, cover then button). Broken subsystems spawn hazards that hit both teams. Eliminated rats spectate (LMB / RMB cycle players, WASD flies). Z emotes (a whistle, a squeak); `--no-shake` on the client turns off camera shake. Esc frees the mouse (to click the lobby buttons), a click captures it again. Rats win when the
 meltdown meter hits 100%; supervisors win when the shift timer runs out first. The match starts when at least 3 players are in and more than half of
 them are ready; `--debug-start N` on the server skips the vote once N players joined.
 
@@ -98,16 +102,24 @@ tests/integration/pvp_items.sh        # steal, keycard door lockout, dropped key
 tests/integration/pvp_hack.sh         # a "hacked client" sends ~25 bad requests; the server must refuse them all
 tests/integration/plant_cctv.sh       # on the plant: CCTV chair + broken camera, ladder, vent shaft, out of bounds
 tests/integration/map_check.sh        # navmesh paths on the plant vs the GDD design rules (--update-docs: README table)
+tests/integration/hazards.sh          # on the plant: steam jets (both teams, on/off hysteresis), puddle, radiation, debris, smoke
+tests/integration/minigames.sh        # on the plant: the 3 repair minigames through the real overlay, a loss, a hacked instant win
+tests/integration/control_room.sh     # on the plant: emergency coolant (power, cooldown), SCRAM (cover, timer +30 s)
 # test-only client flags (debug builds): --pref rat|supervisor|any, --auto-ready, --say TEXT,
 #   --auto-move, --debug-speed N (fake speed hack), --screenshot PATH [--screenshot-delay S]
 # test-only server flags (debug builds): --allow-debug (debug RPCs such as teleport), --test-duration S,
 #   --exit-after-match, --result-file PATH
 # scripted bot client (debug builds): --bot rat|supervisor [--bot-target ID] [--bot-lever A|B] [--bot-delay S]
-#   PvP scenarios: --bot-scenario capture|swarm|items|hack|plant [--bot-part P]
+#   PvP scenarios: --bot-scenario capture|swarm|items|hack|plant [--bot-part P]; M6: hazards|minigame|control
 # level (debug builds, server and clients alike): --level plant (default) | test (the TestArena sandbox)
 # server: --no-heatmap   client: --debug-overlay (F3 overlay; F4 = route stopwatch)
 godot tests/helpers/MapTour.tscn -- --out /tmp/tour [--alarm]   # windowed: screenshots + fps of every room
-python3 tools/map/gen_plant.py --force   # rebuild the graybox plant + docs/map plan from the layout numbers
+godot tests/helpers/HazardTour.tscn -- --out /tmp/hazards        # windowed: every hazard live, consoles, minigames
+python3 tools/map/gen_plant.py --force && godot --headless -s tools/godot/bake_shells.gd   # rebuild the plant from the layout numbers
+tools/build_assets.sh [models|audio|level|all]   # M7: palette, Blender models, synthesized audio, level, Godot import
+godot tests/helpers/MapTour.tscn -- --players 6 --no-vsync   # + animated bodies, uncapped fps (perf check)
+godot tests/helpers/CharacterTour.tscn -- --out /tmp/chars   # windowed: every character animation state
+godot tests/helpers/ArtGallery.tscn -- --files crate,lever     # windowed: models under the real shaders
 python3 tools/heatmap.py ~/.local/share/godot/app_userdata/HomerSim/heatmap_*.csv   # playtest heatmap
 godot -- --connect 127.0.0.1:7777 --game-version 0.0.0   # debug builds only: fake an old client
 # simulate a bad network on localhost (needs sudo, remove it afterwards!)

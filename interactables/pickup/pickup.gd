@@ -10,11 +10,12 @@ extends Interactable
 
 @export_enum("trap_refill", "spare_keycard", "donut", "keycard") var item := "trap_refill"
 
+## item → [model (assets/generated), model scale, size of the use area, label]
 const LOOKS := {
-	"trap_refill": [Color(0.55, 0.4, 0.25), Vector3(0.6, 0.4, 0.4), "TRAPS"],
-	"spare_keycard": [Color(0.3, 0.45, 0.85), Vector3(0.5, 0.9, 0.35), "SPARE KEYCARD"],
-	"donut": [Color(1, 0.55, 0.75), Vector3(0.3, 0.12, 0.3), "DONUTS"],
-	"keycard": [Color(0.3, 0.6, 1), Vector3(0.25, 0.02, 0.16), ""],
+	"trap_refill": ["trap_refill", 1.0, Vector3(0.6, 0.4, 0.4), "TRAPS"],
+	"spare_keycard": ["keycard", 2.0, Vector3(0.5, 0.9, 0.35), "SPARE KEYCARD"],
+	"donut": ["donut_box", 1.0, Vector3(0.5, 0.2, 0.5), "DONUTS"],
+	"keycard": ["keycard", 1.6, Vector3(0.25, 0.02, 0.16), ""],
 }
 
 var tuning: PvpTuning = PvpTuning.load_default()
@@ -81,26 +82,31 @@ func _complete(player: Player) -> void:
 
 func _build_look() -> void:
 	var look: Array = LOOKS[item]
-	var size: Vector3 = look[1]
-	var mesh := MeshInstance3D.new()
-	mesh.name = "Mesh"
-	var box := BoxMesh.new()
-	box.size = size
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = look[0]
-	box.material = mat
-	mesh.mesh = box
-	add_child(mesh)
+	var size: Vector3 = look[2]
+	# Models stand on their base: put it at the bottom of the use area.
+	var model := Art.add(self, look[0], Transform3D(Basis.from_scale(Vector3.ONE * look[1]), Vector3(0, -size.y * 0.5, 0)))
+	if model != null:
+		model.name = "Mesh"
 	var shape := CollisionShape3D.new()
 	var box_shape := BoxShape3D.new()
 	box_shape.size = size.max(Vector3.ONE * 0.3)
 	shape.shape = box_shape
 	add_child(shape)
-	if look[2] != "":
+	if look[3] != "":
 		var label := Label3D.new()
-		label.text = look[2]
+		label.text = look[3]
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.font_size = 36
 		label.outline_size = 8
 		label.position.y = size.y * 0.5 + 0.35
 		add_child(label)
+
+
+## A dropped keycard bobs and turns so it catches the eye.
+func _process(_delta: float) -> void:
+	if item != "keycard" or not has_node("Mesh"):
+		return
+	var mesh := get_node("Mesh") as Node3D
+	var t := Time.get_ticks_msec() / 1000.0
+	mesh.rotation.y = fmod(t * 1.5, TAU)
+	mesh.position.y = 0.08 + sin(t * 3.0) * 0.04

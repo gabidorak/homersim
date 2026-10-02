@@ -10,3 +10,4 @@ short_name = "VNT"
 heat_weight = 1.0
 critical = false
 hazard_kind = 5
+minigame = "breaker_sequence"

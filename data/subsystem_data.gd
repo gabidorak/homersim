@@ -10,5 +10,7 @@ enum HazardKind { NONE, RADIATION, STEAM, DEBRIS, ELECTRIC, SMOKE }
 @export var short_name := ""  ## 3-4 letters for the HUD icon
 @export var heat_weight := 1.0  ## heat units/s added when fully broken
 @export var critical := false  ## sabotaged with a lever pair (2 rats) instead of normal points
-@export var hazard_kind := HazardKind.NONE  ## used from M6
+@export var hazard_kind := HazardKind.NONE  ## spawned below 50 health (M6, GDD §6)
+## The repair minigame (M6): a folder under minigames/, e.g. "wrench_rhythm".
+@export_enum("wrench_rhythm", "breaker_sequence", "valve_rotate") var minigame := "wrench_rhythm"
 @export var icon: Texture2D  ## optional; the HUD falls back to short_name

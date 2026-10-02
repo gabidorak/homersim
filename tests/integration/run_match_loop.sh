@@ -8,7 +8,7 @@
 set -u
 cd "$(dirname "$0")/../.."
 GODOT=${GODOT:-godot}
-PORT=$((20000 + RANDOM % 20000))
+PORT=${PORT:-$((20000 + RANDOM % 20000))}
 LOGS=$(mktemp -d)
 RESULT="$LOGS/result.json"
 FAIL=0
@@ -25,13 +25,13 @@ expect() {  # expect <file> <pattern> <description>
 	if grep -qE "$2" "$1"; then echo "ok   - $3"; else echo "FAIL - $3"; FAIL=1; fi
 }
 
-timeout -s KILL 60 "$GODOT" --headless -- --server --no-heatmap --port "$PORT" --config "$LOGS/server.cfg" \
+timeout -s KILL 60 "$GODOT" --headless --max-fps 120 -- --server --no-heatmap --port "$PORT" --config "$LOGS/server.cfg" \
 	--allow-debug --test-duration 25 --exit-after-match --result-file "$RESULT" \
 	> "$LOGS/server.log" 2>&1 &
 SERVER=$!
 sleep 2
 for role in rat supervisor; do
-	timeout -s KILL 60 "$GODOT" --headless -- --bot "$role" --connect "127.0.0.1:$PORT" --name "${role^}Bot" \
+	timeout -s KILL 60 "$GODOT" --headless --max-fps 120 -- --bot "$role" --connect "127.0.0.1:$PORT" --name "${role^}Bot" \
 		> "$LOGS/$role.log" 2>&1 &
 done
 wait "$SERVER"

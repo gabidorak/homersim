@@ -6,7 +6,7 @@
 set -u
 cd "$(dirname "$0")/../.."
 GODOT=${GODOT:-godot}
-PORT=$((20000 + RANDOM % 20000))
+PORT=${PORT:-$((20000 + RANDOM % 20000))}
 LOGS=$(mktemp -d)
 RESULT="$LOGS/result.json"
 FAIL=0
@@ -33,7 +33,7 @@ start_server() {
 countdown_s=3
 min_players=$1
 CFG
-	timeout -s KILL "$3" "$GODOT" --headless -- --server --no-heatmap --level "$LEVEL" --port "$PORT" --config "$LOGS/server.cfg" \
+	timeout -s KILL "$3" "$GODOT" --headless --max-fps 120 -- --server --no-heatmap --level "$LEVEL" --port "$PORT" --config "$LOGS/server.cfg" \
 		--allow-debug --test-duration "$2" --exit-after-match --result-file "$RESULT" \
 		> "$LOGS/server.log" 2>&1 &
 	SERVER=$!
@@ -42,7 +42,7 @@ CFG
 
 # start_bot <log_name> <role> <name> <scenario> <part> <timeout_s>
 start_bot() {
-	timeout -s KILL "$6" "$GODOT" --headless -- --level "$LEVEL" --bot "$2" --connect "127.0.0.1:$PORT" --name "$3" \
+	timeout -s KILL "$6" "$GODOT" --headless --max-fps 120 -- --level "$LEVEL" --bot "$2" --connect "127.0.0.1:$PORT" --name "$3" \
 		--bot-scenario "$4" --bot-part "$5" > "$LOGS/$1.log" 2>&1 &
 }
 

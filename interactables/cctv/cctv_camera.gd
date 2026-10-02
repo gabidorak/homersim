@@ -20,8 +20,10 @@ var broken := false
 
 var lens: Marker3D  ## where the view is from (its -Z looks along the view)
 var tuning: PvpTuning = PvpTuning.load_default()
-var _lens_material := StandardMaterial3D.new()
-var _lens_mesh: MeshInstance3D
+var _head: Node3D  # the camera head (models: cctv_head, cctv_head_broken), under the lens
+var _head_broken: Node3D
+var _lamp: Node3D
+var _shown_broken := false
 
 
 func _init() -> void:
@@ -43,12 +45,15 @@ func _ready() -> void:
 	lens.position = Vector3(0, lens_height, 0.15)
 	lens.rotation = Vector3(-deg_to_rad(lens_pitch_deg), PI + deg_to_rad(lens_yaw_deg), 0.0)
 	add_child(lens)
-	_lens_mesh = MeshInstance3D.new()
-	var body := BoxMesh.new()
-	body.size = Vector3(0.22, 0.18, 0.4)
-	_lens_mesh.mesh = body
-	_lens_mesh.material_override = _lens_material
-	lens.add_child(_lens_mesh)
+	# The conduit from the box up to the head, and the head itself (models face +Z, the lens -Z).
+	Art.add(self, "cctv_conduit", Transform3D(Basis.from_scale(Vector3(1, lens_height - 0.25, 1)),
+		Vector3(0, 0.25, -0.13)))
+	var turn := Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0, 0.1))
+	_head = Art.add(lens, "cctv_head", turn)
+	_head_broken = Art.add(lens, "cctv_head_broken", turn)
+	if _head_broken != null:
+		_head_broken.visible = false
+	_lamp = Art.part(_head, "Lamp")
 
 
 ## The cameras of the level, in number order.
@@ -91,12 +96,17 @@ func _complete(player: Player) -> void:
 	super(player)
 
 
-# Cosmetic: a working camera is dark with a red light, a broken one droops and turns grey.
-func _process(delta: float) -> void:
-	if _lens_mesh == null:
+# Cosmetic: a working camera blinks its red record lamp; a broken one hangs smashed (with a crash of
+# glass and sparks when it breaks).
+func _process(_delta: float) -> void:
+	if _lamp != null:
+		Art.set_glow(_lamp, 2.0 if Time.get_ticks_msec() % 1000 < 500 else 0.2)
+	if broken == _shown_broken or _head == null:
 		return
-	var droop := 0.7 if broken else 0.0
-	_lens_mesh.rotation.x = lerpf(_lens_mesh.rotation.x, -droop, 1.0 - exp(-6.0 * delta))
-	_lens_material.albedo_color = Color(0.45, 0.45, 0.45) if broken else Color(0.12, 0.12, 0.14)
-	_lens_material.emission_enabled = not broken
-	_lens_material.emission = Color(1, 0.1, 0.1) * (0.6 if Time.get_ticks_msec() % 1000 < 500 else 0.1)
+	_shown_broken = broken
+	_head.visible = not broken
+	if _head_broken != null:
+		_head_broken.visible = broken
+	if broken and Session.current != null and Session.current.match_manager.state == MatchManager.State.PLAYING:
+		Sfx.play_at(self, "glass_break", lens.global_position)
+		Vfx.sparks(self, lens.global_position, 18)

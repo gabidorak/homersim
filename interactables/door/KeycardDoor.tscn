@@ -1,29 +1,16 @@
 [gd_scene load_steps=10 format=3]
 
+[ext_resource type="PackedScene" path="res://assets/generated/keycard_reader.glb" id="8_reader"]
+
+[ext_resource type="PackedScene" path="res://assets/generated/door_panel_keycard.glb" id="9_panel"]
+
 [ext_resource type="Script" path="res://interactables/door/door.gd" id="1_door"]
 [ext_resource type="Script" path="res://interactables/door/keycard_reader.gd" id="2_reader"]
 
 [sub_resource type="BoxShape3D" id="shape_reader"]
 size = Vector3(0.3, 0.3, 0.2)
 
-[sub_resource type="StandardMaterial3D" id="mat_reader"]
-albedo_color = Color(0.1, 0.1, 0.1, 1)
-emission_enabled = true
-emission = Color(0.2, 1, 0.4, 1)
-emission_energy_multiplier = 0.5
-
-[sub_resource type="BoxMesh" id="mesh_reader"]
-material = SubResource("mat_reader")
-size = Vector3(0.2, 0.25, 0.06)
-
 [sub_resource type="BoxShape3D" id="shape_panel"]
-size = Vector3(2, 2.6, 0.2)
-
-[sub_resource type="StandardMaterial3D" id="mat_panel"]
-albedo_color = Color(0.3, 0.45, 0.85, 1)
-
-[sub_resource type="BoxMesh" id="mesh_panel"]
-material = SubResource("mat_panel")
 size = Vector3(2, 2.6, 0.2)
 
 [sub_resource type="BoxShape3D" id="shape_sensor"]
@@ -39,8 +26,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
 [node name="Shape" type="CollisionShape3D" parent="Panel"]
 shape = SubResource("shape_panel")
 
-[node name="Mesh" type="MeshInstance3D" parent="Panel"]
-mesh = SubResource("mesh_panel")
+[node name="Model" parent="Panel" instance=ExtResource("9_panel")]
 
 [node name="Sensor" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
@@ -55,8 +41,8 @@ script = ExtResource("2_reader")
 [node name="Shape" type="CollisionShape3D" parent="ReaderFront"]
 shape = SubResource("shape_reader")
 
-[node name="Mesh" type="MeshInstance3D" parent="ReaderFront"]
-mesh = SubResource("mesh_reader")
+[node name="Model" parent="ReaderFront" instance=ExtResource("8_reader")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.05)
 
 [node name="ReaderBack" type="Area3D" parent="."]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -1.25, 1.2, -0.3)
@@ -65,5 +51,6 @@ script = ExtResource("2_reader")
 [node name="Shape" type="CollisionShape3D" parent="ReaderBack"]
 shape = SubResource("shape_reader")
 
-[node name="Mesh" type="MeshInstance3D" parent="ReaderBack"]
-mesh = SubResource("mesh_reader")
+[node name="Model" parent="ReaderBack" instance=ExtResource("8_reader")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.05)
+

@@ -1,0 +1,87 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://levels/plant/materials/floor_valvecorridor.tres" id="1_floor_valvec"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_valvecorridor.tres" id="2_wall_valveco"]
+
+[node name="ValveCorridorShell" type="CSGCombiner3D"]
+use_collision = true
+
+[node name="FloorVC" type="CSGBox3D" parent="."]
+position = Vector3(-45, -0.25, 10)
+size = Vector3(14, 0.5, 32)
+material = ExtResource("1_floor_valvec")
+
+[node name="CeilingVC" type="CSGBox3D" parent="."]
+position = Vector3(-45, 4.15, 10)
+size = Vector3(14, 0.3, 32)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall" type="CSGBox3D" parent="."]
+position = Vector3(-38, 2, 0.375)
+size = Vector3(0.5, 4, 1.25)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall2" type="CSGBox3D" parent="."]
+position = Vector3(-38, 3.5, 3)
+size = Vector3(0.5, 1, 4)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall3" type="CSGBox3D" parent="."]
+position = Vector3(-38, 2, 5.625)
+size = Vector3(0.5, 4, 1.25)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall4" type="CSGBox3D" parent="."]
+position = Vector3(-38, 2, 20.375)
+size = Vector3(0.5, 4, 1.25)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall5" type="CSGBox3D" parent="."]
+position = Vector3(-38, 3.5, 23)
+size = Vector3(0.5, 1, 4)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall6" type="CSGBox3D" parent="."]
+position = Vector3(-38, 2, 25.625)
+size = Vector3(0.5, 4, 1.25)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall7" type="CSGBox3D" parent="."]
+position = Vector3(-52, 2, -2.3)
+size = Vector3(0.5, 4, 7.9)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall8" type="CSGBox3D" parent="."]
+position = Vector3(-52, 2.3, 2)
+size = Vector3(0.5, 3.4, 0.7)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall9" type="CSGBox3D" parent="."]
+position = Vector3(-52, 2, 11)
+size = Vector3(0.5, 4, 17.3)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall10" type="CSGBox3D" parent="."]
+position = Vector3(-52, 2.3, 20)
+size = Vector3(0.5, 3.4, 0.7)
+material = ExtResource("2_wall_valveco")
+
+[node name="Wall11" type="CSGBox3D" parent="."]
+position = Vector3(-52, 2, 23.3)
+size = Vector3(0.5, 4, 5.9)
+material = ExtResource("2_wall_valveco")
+
+[node name="VentSill" type="CSGBox3D" parent="."]
+position = Vector3(-52.125, -0.25, 2)
+size = Vector3(0.25, 0.5, 0.7)
+material = ExtResource("1_floor_valvec")
+
+[node name="VentSill2" type="CSGBox3D" parent="."]
+position = Vector3(-52.125, -0.25, 20)
+size = Vector3(0.25, 0.5, 0.7)
+material = ExtResource("1_floor_valvec")
+
+[node name="Wall12" type="CSGBox3D" parent="."]
+position = Vector3(-45, 2, 26)
+size = Vector3(14.5, 4, 0.5)
+material = ExtResource("2_wall_valveco")

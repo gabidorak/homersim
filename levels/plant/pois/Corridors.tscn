@@ -1,12 +1,20 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
-[ext_resource type="Material" path="res://levels/plant/materials/wall_corridors.tres" id="2_wall_corrido"]
-[ext_resource type="Material" path="res://levels/plant/materials/floor_corridors.tres" id="3_floor_corrid"]
-[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="4_cctvcamera"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_crate.tres" id="5_prop_crate"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_pipe.tres" id="6_prop_pipe"]
-[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="7_alarmbeacon"]
+[ext_resource type="ArrayMesh" path="res://levels/plant/baked/Corridors_shell.res" id="2_corridors_sh"]
+[ext_resource type="ConcavePolygonShape3D" path="res://levels/plant/baked/Corridors_shell_col.res" id="3_corridors_sh"]
+[ext_resource type="PackedScene" path="res://assets/generated/vent_grille.glb" id="4_vent_grille"]
+[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="5_cctvcamera"]
+[ext_resource type="PackedScene" path="res://assets/generated/crate.glb" id="6_crate"]
+[ext_resource type="Script" path="res://levels/plant/props/prop_multimesh.gd" id="7_prop_multime"]
+[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="8_alarmbeacon"]
+[ext_resource type="PackedScene" path="res://assets/generated/fire_extinguisher.glb" id="9_fire_extingu"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_trashcan.glb" id="10_k_trashcan"]
+[ext_resource type="PackedScene" path="res://assets/generated/traffic_cone.glb" id="11_traffic_cone"]
+[ext_resource type="PackedScene" path="res://assets/generated/wet_floor_sign.glb" id="12_wet_floor_si"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_warning_post.glb" id="13_k_warning_po"]
+[ext_resource type="PackedScene" path="res://assets/generated/warning_sign_radiation.glb" id="14_warning_sign"]
+[ext_resource type="PackedScene" path="res://assets/generated/warning_sign_high_voltage.glb" id="15_warning_sign"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
 size = Vector3(7.9, 4, 0.24)
@@ -26,24 +34,28 @@ size = Vector3(11.9, 4, 0.24)
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_6"]
 size = Vector3(0.24, 4, 6.5)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(1.5, 1, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8"]
+size = Vector3(1.2, 1.2, 1.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_9"]
+size = Vector3(89, 0.5, 0.5)
+
 [node name="Corridors" type="Node3D"]
 script = ExtResource("1_poi")
 display_name = "Corridors"
 bounds = Array[AABB]([AABB(-38, -1, 0, 24, 5, 6), AABB(10, -1, 0, 24, 5, 6), AABB(-38, -1, 20, 90, 5, 6)])
 area_names = PackedStringArray("Main Hall West", "Main Hall East", "South Corridor")
 
-[node name="Shell" type="CSGCombiner3D" parent="."]
-use_collision = true
+[node name="Shell" type="StaticBody3D" parent="."]
 
-[node name="FloorMHW" type="CSGBox3D" parent="Shell"]
-position = Vector3(-26, -0.25, 3)
-size = Vector3(24, 0.5, 6)
-material = ExtResource("3_floor_corrid")
+[node name="Mesh" type="MeshInstance3D" parent="Shell"]
+mesh = ExtResource("2_corridors_sh")
 
-[node name="CeilingMHW" type="CSGBox3D" parent="Shell"]
-position = Vector3(-26, 4.15, 3)
-size = Vector3(24, 0.3, 6)
-material = ExtResource("2_wall_corrido")
+[node name="Collision" type="CollisionShape3D" parent="Shell"]
+shape = ExtResource("3_corridors_sh")
 
 [node name="Lights" type="Node3D" parent="."]
 
@@ -61,16 +73,6 @@ light_energy = 0.9
 omni_range = 8.8
 omni_attenuation = 0.8
 
-[node name="FloorMHE" type="CSGBox3D" parent="Shell"]
-position = Vector3(22, -0.25, 3)
-size = Vector3(24, 0.5, 6)
-material = ExtResource("3_floor_corrid")
-
-[node name="CeilingMHE" type="CSGBox3D" parent="Shell"]
-position = Vector3(22, 4.15, 3)
-size = Vector3(24, 0.3, 6)
-material = ExtResource("2_wall_corrido")
-
 [node name="Light3" type="OmniLight3D" parent="Lights"]
 position = Vector3(16, 3.4, 3)
 light_color = Color(1, 0.93, 0.82, 1)
@@ -84,16 +86,6 @@ light_color = Color(1, 0.93, 0.82, 1)
 light_energy = 0.9
 omni_range = 8.8
 omni_attenuation = 0.8
-
-[node name="FloorCS" type="CSGBox3D" parent="Shell"]
-position = Vector3(7, -0.25, 23)
-size = Vector3(90, 0.5, 6)
-material = ExtResource("3_floor_corrid")
-
-[node name="CeilingCS" type="CSGBox3D" parent="Shell"]
-position = Vector3(7, 4.15, 23)
-size = Vector3(90, 0.3, 6)
-material = ExtResource("2_wall_corrido")
 
 [node name="Light5" type="OmniLight3D" parent="Lights"]
 position = Vector3(-33, 3.4, 23)
@@ -158,103 +150,49 @@ light_energy = 0.9
 omni_range = 8.8
 omni_attenuation = 0.8
 
-[node name="Wall" type="CSGBox3D" parent="Shell"]
-position = Vector3(-34.3, 2, 26)
-size = Vector3(7.9, 4, 0.5)
-material = ExtResource("2_wall_corrido")
-
 [node name="Occluders" type="Node3D" parent="."]
 
 [node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-34.3, 2, 26)
 occluder = SubResource("BoxOccluder3D_1")
 
-[node name="Wall2" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, 2.3, 26)
-size = Vector3(0.7, 3.4, 0.5)
-material = ExtResource("2_wall_corrido")
-
-[node name="Wall3" type="CSGBox3D" parent="Shell"]
-position = Vector3(-16, 2, 26)
-size = Vector3(27.3, 4, 0.5)
-material = ExtResource("2_wall_corrido")
-
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-16, 2, 26)
 occluder = SubResource("BoxOccluder3D_2")
-
-[node name="Wall4" type="CSGBox3D" parent="Shell"]
-position = Vector3(-2, 1.4, 26)
-size = Vector3(0.7, 2.8, 0.5)
-material = ExtResource("2_wall_corrido")
-
-[node name="Wall5" type="CSGBox3D" parent="Shell"]
-position = Vector3(-2, 3.7, 26)
-size = Vector3(0.7, 0.6, 0.5)
-material = ExtResource("2_wall_corrido")
-
-[node name="Wall6" type="CSGBox3D" parent="Shell"]
-position = Vector3(2, 2, 26)
-size = Vector3(7.3, 4, 0.5)
-material = ExtResource("2_wall_corrido")
 
 [node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(2, 2, 26)
 occluder = SubResource("BoxOccluder3D_3")
 
-[node name="Wall7" type="CSGBox3D" parent="Shell"]
-position = Vector3(6, 2.3, 26)
-size = Vector3(0.7, 3.4, 0.5)
-material = ExtResource("2_wall_corrido")
-
-[node name="Wall8" type="CSGBox3D" parent="Shell"]
-position = Vector3(23, 2, 26)
-size = Vector3(33.3, 4, 0.5)
-material = ExtResource("2_wall_corrido")
-
 [node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(23, 2, 26)
 occluder = SubResource("BoxOccluder3D_4")
-
-[node name="Wall9" type="CSGBox3D" parent="Shell"]
-position = Vector3(40, 2.3, 26)
-size = Vector3(0.7, 3.4, 0.5)
-material = ExtResource("2_wall_corrido")
-
-[node name="Wall10" type="CSGBox3D" parent="Shell"]
-position = Vector3(46.3, 2, 26)
-size = Vector3(11.9, 4, 0.5)
-material = ExtResource("2_wall_corrido")
 
 [node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(46.3, 2, 26)
 occluder = SubResource("BoxOccluder3D_5")
 
-[node name="VentSill" type="CSGBox3D" parent="Shell"]
-position = Vector3(-30, -0.25, 26.125)
-size = Vector3(0.7, 0.5, 0.25)
-material = ExtResource("3_floor_corrid")
+[node name="VentGrille" parent="." instance=ExtResource("4_vent_grille")]
+position = Vector3(-30, 0, 25.75)
+rotation = Vector3(0, 3.1416, 0)
 
-[node name="VentSill2" type="CSGBox3D" parent="Shell"]
-position = Vector3(6, -0.25, 26.125)
-size = Vector3(0.7, 0.5, 0.25)
-material = ExtResource("3_floor_corrid")
+[node name="VentGrille2" parent="." instance=ExtResource("4_vent_grille")]
+position = Vector3(6, 0, 25.75)
+rotation = Vector3(0, 3.1416, 0)
 
-[node name="VentSill3" type="CSGBox3D" parent="Shell"]
-position = Vector3(40, -0.25, 26.125)
-size = Vector3(0.7, 0.5, 0.25)
-material = ExtResource("3_floor_corrid")
+[node name="VentGrille3" parent="." instance=ExtResource("4_vent_grille")]
+position = Vector3(40, 0, 25.75)
+rotation = Vector3(0, 3.1416, 0)
 
-[node name="Wall11" type="CSGBox3D" parent="Shell"]
-position = Vector3(52, 2, 23)
-size = Vector3(0.5, 4, 6.5)
-material = ExtResource("2_wall_corrido")
+[node name="VentGrille4" parent="." instance=ExtResource("4_vent_grille")]
+position = Vector3(-2, 2.8, 25.75)
+rotation = Vector3(0, 3.1416, 0)
 
 [node name="Occluder6" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(52, 2, 23)
 occluder = SubResource("BoxOccluder3D_6")
 
-[node name="Camera8" parent="." instance=ExtResource("4_cctvcamera")]
+[node name="Camera8" parent="." instance=ExtResource("5_cctvcamera")]
 position = Vector3(-32, 0.4, 5.4)
 rotation = Vector3(0, 3.1416, 0)
 number = 8
@@ -263,26 +201,72 @@ lens_height = 3
 lens_pitch_deg = 20
 lens_yaw_deg = -35
 
-[node name="Crate" type="CSGBox3D" parent="Shell"]
+[node name="PropCollision" type="StaticBody3D" parent="."]
+
+[node name="Box" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-35.75, 0.5, 24.75)
-size = Vector3(1.5, 1, 1.5)
-material = ExtResource("5_prop_crate")
+shape = SubResource("BoxShape3D_7")
 
-[node name="Crate2" type="CSGBox3D" parent="Shell"]
+[node name="Crate" parent="." instance=ExtResource("6_crate")]
+position = Vector3(-35.75, 0, 24.75)
+scale = Vector3(1.5, 1, 1.5)
+
+[node name="Box2" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(30.6, 0.6, 21.6)
-size = Vector3(1.2, 1.2, 1.2)
-material = ExtResource("5_prop_crate")
+shape = SubResource("BoxShape3D_8")
 
-[node name="PipeHigh" type="CSGBox3D" parent="Shell"]
+[node name="Crate2" parent="." instance=ExtResource("6_crate")]
+position = Vector3(30.6, 0, 21.6)
+scale = Vector3(1.2, 1.2, 1.2)
+
+[node name="Box3" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(7, 3.25, 25.15)
-size = Vector3(89, 0.5, 0.5)
-material = ExtResource("6_prop_pipe")
+shape = SubResource("BoxShape3D_9")
 
-[node name="AlarmBeacon" parent="." instance=ExtResource("7_alarmbeacon")]
+[node name="PipeHigh" type="Node3D" parent="."]
+script = ExtResource("7_prop_multime")
+model = "pipe_2m"
+transforms = Array[Transform3D]([Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -36.4886, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -34.4659, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -32.4432, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -30.4205, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -28.3977, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -26.375, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -24.3523, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -22.3295, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -20.3068, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -18.2841, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -16.2614, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -14.2386, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -12.2159, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -10.1932, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -8.1705, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -6.1477, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -4.125, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -2.1023, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, -0.0795, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 1.9432, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 3.9659, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 5.9886, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 8.0114, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 10.0341, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 12.0568, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 14.0795, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 16.1023, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 18.125, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 20.1477, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 22.1705, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 24.1932, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 26.2159, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 28.2386, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 30.2614, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 32.2841, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 34.3068, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 36.3295, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 38.3523, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 40.375, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 42.3977, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 44.4205, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 46.4432, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 48.4659, 3.25, 25.15), Transform3D(1.0114, 0, 0, 0, 1, 0, 0, 0, 1, 50.4886, 3.25, 25.15)])
+
+[node name="AlarmBeacon" parent="." instance=ExtResource("8_alarmbeacon")]
 position = Vector3(-26, 3.7, 3)
 
-[node name="AlarmBeacon2" parent="." instance=ExtResource("7_alarmbeacon")]
+[node name="AlarmBeacon2" parent="." instance=ExtResource("8_alarmbeacon")]
 position = Vector3(22, 3.7, 3)
 
-[node name="AlarmBeacon3" parent="." instance=ExtResource("7_alarmbeacon")]
+[node name="AlarmBeacon3" parent="." instance=ExtResource("8_alarmbeacon")]
 position = Vector3(7, 3.7, 23)
+
+[node name="Dressing" parent="." instance=ExtResource("9_fire_extingu")]
+position = Vector3(-30, 1, 0.25)
+
+[node name="Dressing2" parent="." instance=ExtResource("9_fire_extingu")]
+position = Vector3(26, 1, 0.25)
+
+[node name="Dressing3" parent="." instance=ExtResource("9_fire_extingu")]
+position = Vector3(0, 1, 25.75)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Dressing4" parent="." instance=ExtResource("10_k_trashcan")]
+position = Vector3(-37.5, 0, 0.6)
+
+[node name="Dressing5" parent="." instance=ExtResource("11_traffic_cone")]
+position = Vector3(14, 0, 24.8)
+
+[node name="Dressing6" parent="." instance=ExtResource("11_traffic_cone")]
+position = Vector3(15, 0, 25.1)
+
+[node name="Dressing7" parent="." instance=ExtResource("12_wet_floor_si")]
+position = Vector3(-15.5, 0, 22)
+rotation = Vector3(0, 1.0472, 0)
+
+[node name="Dressing8" parent="." instance=ExtResource("13_k_warning_po")]
+position = Vector3(51.4, 0, 20.6)
+
+[node name="Dressing9" parent="." instance=ExtResource("14_warning_sign")]
+position = Vector3(-10, 2.2, 25.75)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Dressing10" parent="." instance=ExtResource("15_warning_sign")]
+position = Vector3(40, 2.2, 25.75)
+rotation = Vector3(0, 3.1416, 0)

@@ -1,30 +1,13 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://interactables/critical_lever/critical_lever.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://assets/generated/lever.glb" id="2_lever"]
 
 [sub_resource type="BoxShape3D" id="shape"]
 size = Vector3(0.5, 0.5, 0.4)
 
-[sub_resource type="StandardMaterial3D" id="mat_post"]
-albedo_color = Color(0.35, 0.35, 0.4, 1)
-
-[sub_resource type="StandardMaterial3D" id="mat_handle"]
-albedo_color = Color(0.9, 0.15, 0.15, 1)
-
-[sub_resource type="BoxMesh" id="mesh_handle"]
-material = SubResource("mat_handle")
-size = Vector3(0.06, 0.45, 0.06)
-
-[sub_resource type="SphereMesh" id="mesh_knob"]
-material = SubResource("mat_handle")
-radius = 0.06
-height = 0.12
-
-[sub_resource type="BoxMesh" id="mesh_stripes"]
-size = Vector3(0.9, 0.02, 0.9)
-
-[sub_resource type="StandardMaterial3D" id="mat_stripes"]
-albedo_color = Color(0.95, 0.8, 0.1, 1)
+[sub_resource type="BoxShape3D" id="shape_post"]
+size = Vector3(0.3, 0.9, 0.3)
 
 [node name="CriticalLever" type="Area3D"]
 script = ExtResource("1_script")
@@ -32,29 +15,16 @@ script = ExtResource("1_script")
 [node name="Shape" type="CollisionShape3D" parent="."]
 shape = SubResource("shape")
 
-[node name="Post" type="CSGBox3D" parent="."]
-position = Vector3(0, 0.15, -0.4)
-size = Vector3(0.3, 0.9, 0.3)
-material = SubResource("mat_post")
-use_collision = true
+[node name="Post" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, -0.4)
 
-[node name="Pivot" type="Node3D" parent="."]
-position = Vector3(0, 0.4, -0.22)
+[node name="Shape" type="CollisionShape3D" parent="Post"]
+shape = SubResource("shape_post")
 
-[node name="Handle" type="MeshInstance3D" parent="Pivot"]
-position = Vector3(0, 0.2, 0)
-mesh = SubResource("mesh_handle")
-
-[node name="Knob" type="MeshInstance3D" parent="Pivot"]
-position = Vector3(0, 0.44, 0)
-mesh = SubResource("mesh_knob")
-
-[node name="FloorMark" type="MeshInstance3D" parent="."]
-position = Vector3(0, -0.29, -0.1)
-mesh = SubResource("mesh_stripes")
-surface_material_override/0 = SubResource("mat_stripes")
+[node name="Model" parent="." instance=ExtResource("2_lever")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, -0.2)
 
 [node name="Light" type="OmniLight3D" parent="."]
-position = Vector3(0, 0.75, -0.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, -0.2)
 light_color = Color(0.3, 1, 0.4, 1)
 omni_range = 2.0

@@ -1,66 +1,7 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=2 format=3]
 
-[sub_resource type="StandardMaterial3D" id="mat_fur"]
-albedo_color = Color(0.55, 0.55, 0.58, 1)
-
-[sub_resource type="CapsuleMesh" id="mesh_body"]
-material = SubResource("mat_fur")
-radius = 0.2
-height = 0.5
-
-[sub_resource type="SphereMesh" id="mesh_ear"]
-material = SubResource("mat_fur")
-radius = 0.09
-height = 0.18
-
-[sub_resource type="StandardMaterial3D" id="mat_pink"]
-albedo_color = Color(1, 0.6, 0.7, 1)
-
-[sub_resource type="CylinderMesh" id="mesh_tail"]
-material = SubResource("mat_pink")
-top_radius = 0.008
-bottom_radius = 0.025
-height = 0.5
-
-[sub_resource type="SphereMesh" id="mesh_nose"]
-material = SubResource("mat_pink")
-radius = 0.035
-height = 0.07
-
-[sub_resource type="StandardMaterial3D" id="mat_eye"]
-albedo_color = Color(0.05, 0.05, 0.05, 1)
-
-[sub_resource type="SphereMesh" id="mesh_eye"]
-material = SubResource("mat_eye")
-radius = 0.03
-height = 0.06
+[ext_resource type="Script" path="res://entities/player/character_visual.gd" id="1_visual"]
 
 [node name="RatVisual" type="Node3D"]
-
-[node name="Body" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
-mesh = SubResource("mesh_body")
-
-[node name="EarL" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.4, -0.12, 0.47, 0)
-mesh = SubResource("mesh_ear")
-
-[node name="EarR" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.4, 0.12, 0.47, 0)
-mesh = SubResource("mesh_ear")
-
-[node name="Nose" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.32, -0.21)
-mesh = SubResource("mesh_nose")
-
-[node name="EyeL" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.08, 0.38, -0.17)
-mesh = SubResource("mesh_eye")
-
-[node name="EyeR" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.08, 0.38, -0.17)
-mesh = SubResource("mesh_eye")
-
-[node name="Tail" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.1736, -0.9848, 0, 0.9848, 0.1736, 0, 0.1, 0.42)
-mesh = SubResource("mesh_tail")
+script = ExtResource("1_visual")
+model_name = "rat"

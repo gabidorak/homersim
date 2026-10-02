@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="HazardTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/hazard_tuning.gd" id="1_hazard"]
+
+[resource]
+script = ExtResource("1_hazard")
+on_below_health = 50.0
+off_at_health = 60.0
+steam_on_s = 3.0
+steam_off_s = 3.0
+steam_knockback = 6.0
+steam_lift = 3.0
+steam_stun_s = 1.0
+puddle_live_s = 2.0
+puddle_period_s = 5.0
+puddle_stun_s = 1.5
+puddle_slow = 0.5
+puddle_slow_s = 2.0
+radiation_exposure_s = 5.0
+radiation_slow = 0.8
+radiation_reveal_after_s = 5.0
+debris_interval_s = 8.0
+debris_warning_s = 1.0
+debris_radius = 1.5
+debris_knockdown_s = 3.0
+debris_stun_s = 2.0
+smoke_visibility = 6.0

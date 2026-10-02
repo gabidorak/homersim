@@ -1,9 +1,12 @@
 extends Node
 ## Visual check of the plant (M5), windowed: loads the level offline, flies a camera through a list
 ## of viewpoints, saves a screenshot of each and reports the frame rate there.
-##   godot tests/helpers/MapTour.tscn -- [--out DIR] [--only NAME] [--alarm]
+##   godot tests/helpers/MapTour.tscn -- [--out DIR] [--only NAME] [--alarm] [--players N] [--no-vsync]
+## (`godot --gpu-index 0 ...` picks another GPU, e.g. a laptop's integrated one, for a slow-GPU check.)
 ## --alarm turns the plant CRITICAL (beacons spin), breaks camera 3 and damages a few subsystems,
-## so the status board and the wall screens show something.
+## so the status board and the wall screens show something. --players N (M7 performance check) puts
+## N animated bodies (half supervisors, half rats, walking on the spot) in front of the camera at
+## each viewpoint.
 
 const SETTLE_S := 1.2  ## per viewpoint, before measuring
 const MEASURE_S := 1.0
@@ -59,10 +62,14 @@ func _ready() -> void:
 	add_child(_camera)
 	_camera.make_current()
 	var report: Array[String] = []
+	if Cli.has_arg("no-vsync"):
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	var bodies := _spawn_players(Cli.get_int("players", 0))
 	for view: Array in VIEWS:
 		if Cli.has_arg("only") and view[0] != Cli.get_str("only"):
 			continue
 		_camera.look_at_from_position(view[1], view[2])
+		_place_players(bodies, view[1], view[2])
 		await get_tree().create_timer(SETTLE_S).timeout
 		var frames := Engine.get_frames_drawn()
 		var start := Time.get_ticks_msec()
@@ -71,7 +78,54 @@ func _ready() -> void:
 		var draws := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 		var path := "%s/%s.png" % [out, view[0]]
 		get_viewport().get_texture().get_image().save_png(path)
-		report.append("%-16s %6.0f fps  %5d draw calls" % [view[0], fps, draws])
+		var prims := Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+		report.append("%-16s %6.0f fps  %5d draw calls  %7d triangles" % [view[0], fps, draws, prims])
 		print(report[-1])
 	print("screenshots in %s" % ProjectSettings.globalize_path(out))
 	get_tree().quit()
+
+
+# --- Performance check: animated bodies in view -------------------------------------------------
+
+var _movers: Array[Player] = []
+
+
+func _spawn_players(count: int) -> Array[Player]:
+	var bodies: Array[Player] = []
+	for i in count:
+		var id := 200 + i
+		var role := Role.Kind.SUPERVISOR if i % 2 == 0 else Role.Kind.RAT
+		_session.players[id] = PlayerInfo.new(id, "Bot%d" % i)
+		var body := _session._spawn_player({"peer": id, "name": "Bot%d" % i, "role": role, "pos": Vector3(0, -50, 0),
+			"yaw": 0.0, "locked": false}) as Player
+		_session.players_root.add_child(body)
+		bodies.append(body)
+	_movers = bodies
+	return bodies
+
+
+## Spreads the bodies on the floor 3 to 6 m in front of the camera, toward what it looks at.
+func _place_players(bodies: Array[Player], eye: Vector3, target: Vector3) -> void:
+	var forward := Vector3(target.x - eye.x, 0, target.z - eye.z).normalized()
+	var right := forward.cross(Vector3.UP)
+	for i in bodies.size():
+		var spot := eye + forward * (3.0 + (i % 3) * 1.5) + right * ((i % 3) - 1) * 1.2 + right * (0.6 if i >= 3 else -0.6)
+		var space := get_viewport().world_3d.direct_space_state
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(spot + Vector3.UP, spot + Vector3.DOWN * 10.0,
+			PhysicsLayers.WORLD))
+		if not hit.is_empty():
+			spot = hit["position"]
+		bodies[i].global_position = spot
+		bodies[i].sync_position = spot
+		bodies[i].set_meta("home", spot)
+
+
+func _process(_delta: float) -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	for i in _movers.size():
+		var body := _movers[i]
+		if body.has_meta("home"):
+			var home: Vector3 = body.get_meta("home")
+			body.sync_position = home + Vector3(sin(t * 3.0 + i), 0, cos(t * 3.0 + i)) * 0.5
+			body.sync_yaw = t * 3.0 + i
+

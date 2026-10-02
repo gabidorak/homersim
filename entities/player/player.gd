@@ -36,6 +36,12 @@ var hand_socket: Node3D  ## supervisors only
 var sync_position := Vector3.ZERO
 var sync_yaw := 0.0
 var sync_pitch := 0.0
+## What the body is doing, for everyone's animations: AnimationController.FLAG_* bits (M7).
+var sync_anim := 0
+
+## Clients: the character model's animation and its sounds/particles (null on the server).
+var anim: AnimationController
+var fx: BodyFx
 
 ## Server: the movement validator skips this body until then (Time.get_ticks_msec()).
 var validator_grace_until_ms := 0
@@ -102,11 +108,20 @@ func _ready() -> void:
 	sync_position = position
 	sync_yaw = rotation.y
 	name_tag.text = display_name
-	if role == Role.Kind.NONE:
-		# Lobby bodies are tinted per player so you can tell them apart.
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = color_for_peer(peer_id)
-		(visual.get_child(0).get_node("Body") as MeshInstance3D).material_override = mat
+	var character := visual.get_child(0) as CharacterVisual
+	if role == Role.Kind.NONE and character != null:
+		character.tint_hat(color_for_peer(peer_id))  # lobby bodies: tell players apart
+	if not Net.is_server:
+		# Every client animates every body (bots too: they fill in sync_anim for the others).
+		anim = AnimationController.new()
+		anim.name = "AnimationController"
+		anim.setup(self, character.model if character != null else null)
+		add_child(anim)
+		if not Art.headless():
+			fx = BodyFx.new()
+			fx.name = "BodyFx"
+			fx.setup(self)
+			add_child(fx)
 	if Net.is_server:
 		# A status change can change how fast the owner may move before it hears about it.
 		status.changed.connect(_grant_validator_grace)
@@ -135,6 +150,8 @@ func _physics_process(_delta: float) -> void:
 		sync_position = position
 		sync_yaw = rotation.y
 		sync_pitch = rig.look_pitch()
+		if anim != null:
+			sync_anim = anim.local_flags()
 
 
 ## Where we look: yaw from the body, pitch from the head (synced for remote bodies).
@@ -218,7 +235,7 @@ func _on_status_applied(what: StatusComponent.Status) -> void:
 		Session.current.items.drop_stolen(self)
 
 
-# --- Client feedback (placeholders until M7) ------------------------------------------------
+# --- Client feedback ------------------------------------------------------------------------
 
 func _update_feedback(delta: float) -> void:
 	var labels := StatusComponent.describe(status.flags)
@@ -226,13 +243,20 @@ func _update_feedback(delta: float) -> void:
 	if status_tag.visible:
 		status_tag.text = labels[0][0]
 		status_tag.modulate = labels[0][1]
-	# Knocked down: fall flat. Stunned: wobble.
+	if is_local() and anim != null and PlayerInput.has_control() and Input.is_action_just_pressed("emote"):
+		anim.start_emote()
+	# Without a clip for it (placeholder visuals, a supervisor's stun): fall flat / wobble.
 	var weight := 1.0 - exp(-12.0 * delta)
-	var tilt := -PI * 0.5 if status.has(StatusComponent.Status.KNOCKED_DOWN) else 0.0
-	visual.rotation.x = lerpf(visual.rotation.x, tilt, weight)
-	var wobble := sin(Time.get_ticks_msec() / 70.0) * 0.25 if status.has(StatusComponent.Status.STUNNED) else 0.0
+	var knocked := status.has(StatusComponent.Status.KNOCKED_DOWN) and not _has_clip_for("knocked")
+	visual.rotation.x = lerpf(visual.rotation.x, -PI * 0.5 if knocked else 0.0, weight)
+	var stunned := status.has(StatusComponent.Status.STUNNED) and not _has_clip_for("stunned")
+	var wobble := sin(Time.get_ticks_msec() / 70.0) * 0.25 if stunned else 0.0
 	visual.rotation.z = lerpf(visual.rotation.z, wobble, weight)
 	_update_reveal()
+
+
+func _has_clip_for(state: String) -> bool:
+	return anim != null and anim.has_clip(anim.clips.get(state, ""))
 
 
 ## Revealed bodies get the see-through outline, but only for the enemy team.

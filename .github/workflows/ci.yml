@@ -25,32 +25,7 @@ jobs:
       - name: Run GUT unit tests
         run: godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
 
-      - name: Networking smoke test (headless server + clients)
-        run: tests/integration/join_smoke.sh
-
-      - name: Lobby smoke test (prefs, ready vote, roles, chat, validator)
-        run: tests/integration/lobby_smoke.sh
-
-      - name: Match loop test (bots sabotage, repair, timer, winner)
-        run: tests/integration/run_match_loop.sh
-
-      - name: Critical sabotage test (lever pair, reboot, repairs)
-        run: tests/integration/critical_lever.sh
-
-      - name: PvP capture chain (broom, grab, cage, free, eliminate, ghost chat)
-        run: tests/integration/pvp_capture.sh
-
-      - name: PvP bites (carrier drop, knockdown, swarm bonus, immunity)
-        run: tests/integration/pvp_swarm.sh
-
-      - name: PvP items (steal, keycard door, traps, pickups, spare keycard)
-        run: tests/integration/pvp_items.sh
-
-      - name: PvP hacked-client requests are all refused
-        run: tests/integration/pvp_hack.sh
-
-      - name: Map check (navmesh paths vs the GDD design rules)
-        run: tests/integration/map_check.sh
-
-      - name: Plant test (CCTV, ladder, vent shaft, out of bounds)
-        run: tests/integration/plant_cctv.sh
+      # Every integration test (smoke, lobby, match loop, PvP, map check, plant, M6), in parallel.
+      # Each test's output is printed in one block when it finishes; see the file for the list.
+      - name: Integration tests (headless server + bot clients)
+        run: tests/integration/run_all.sh -j 3

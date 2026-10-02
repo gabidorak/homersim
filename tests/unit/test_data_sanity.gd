@@ -79,7 +79,11 @@ func test_plant_tuning_matches_gdd() -> void:
 	assert_eq([t.max_health, t.sabotage_damage, t.critical_sabotage_damage], [100.0, 50.0, 100.0])
 	assert_eq([t.sabotage_cooldown_s, t.sabotage_hold_s, t.critical_hold_s], [20.0, 4.0, 6.0])
 	assert_eq([t.repair_amount, t.repair_hold_s, t.reboot_hold_s], [35.0, 6.0, 3.0])
-	assert_eq(t.scram_heat_factor, 0.5)
+	assert_eq([t.scram_heat_factor, t.scram_duration_s, t.scram_cooldown_s, t.scram_time_penalty_s], [0.5, 30.0, 120.0, 30])
+	assert_eq([t.coolant_amount, t.coolant_cooldown_s, t.coolant_min_grid_health], [150.0, 90.0, 25.0])
+	assert_eq([t.minigame_repair_amount, t.minigame_fail_amount, t.minigame_lockout_s, t.minigame_min_s],
+		[50.0, 10.0, 3.0, 3.0])
+	assert_true(t.minigame_max_s > t.minigame_min_s)
 	assert_true(t.min_temp <= t.nominal_temp and t.nominal_temp < t.warning_temp)
 	assert_true(t.warning_temp < t.critical_temp and t.critical_temp < t.max_temp)
 	assert_true(t.meltdown_recover_temp < t.meltdown_start_temp)
@@ -134,3 +138,24 @@ func test_pvp_tuning_matches_gdd() -> void:
 	assert_eq([t.cctv_break_hold_s, t.cctv_repair_hold_s], [2.0, 3.0])
 	var m: MatchRules = load(Config.DEFAULT_MATCH_RULES)
 	assert_eq([m.swarm_bonus, m.swarm_cooldown_s], [15.0, 45.0])
+
+
+func test_hazard_tuning_matches_gdd() -> void:
+	var h := HazardTuning.load_default()
+	assert_eq([h.on_below_health, h.off_at_health], [50.0, 60.0])
+	assert_eq([h.steam_on_s, h.steam_off_s, h.steam_knockback, h.steam_stun_s], [3.0, 3.0, 6.0, 1.0])
+	assert_eq([h.puddle_live_s, h.puddle_period_s, h.puddle_stun_s, h.puddle_slow, h.puddle_slow_s], [2.0, 5.0, 1.5, 0.5, 2.0])
+	assert_eq([h.radiation_exposure_s, h.radiation_slow, h.radiation_reveal_after_s], [5.0, 0.8, 5.0])
+	assert_eq([h.debris_interval_s, h.debris_warning_s, h.debris_knockdown_s, h.debris_stun_s], [8.0, 1.0, 3.0, 2.0])
+	assert_eq(h.smoke_visibility, 6.0)
+	assert_true(h.off_at_health > h.on_below_health, "hysteresis: off above on")
+	assert_true(h.puddle_live_s < h.puddle_period_s)
+
+
+func test_every_subsystem_has_a_minigame() -> void:
+	var tuning: PlantTuning = load(PlantSim.TUNING_PATH)
+	var expected := {&"pumps": "wrench_rhythm", &"turbine": "wrench_rhythm", &"grid": "breaker_sequence",
+		&"ventilation": "breaker_sequence", &"valves": "valve_rotate", &"rods": "valve_rotate"}
+	for s in tuning.subsystems:
+		assert_eq(s.minigame, expected[s.id], String(s.id))
+		assert_true(MinigameHost.SCENES.has(s.minigame), "%s: the host knows %s" % [s.id, s.minigame])

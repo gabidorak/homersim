@@ -1,32 +1,11 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://interactables/sabotage_point/sabotage_point.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://assets/generated/sabotage_box.glb" id="2_box"]
+[ext_resource type="PackedScene" path="res://assets/generated/sabotage_box_broken.glb" id="3_broken"]
 
 [sub_resource type="BoxShape3D" id="shape"]
 size = Vector3(0.5, 0.5, 0.4)
-
-[sub_resource type="StandardMaterial3D" id="mat_box"]
-albedo_color = Color(0.95, 0.75, 0.1, 1)
-
-[sub_resource type="BoxMesh" id="mesh_box"]
-material = SubResource("mat_box")
-size = Vector3(0.36, 0.3, 0.14)
-
-[sub_resource type="StandardMaterial3D" id="mat_wire"]
-albedo_color = Color(0.9, 0.1, 0.1, 1)
-
-[sub_resource type="BoxMesh" id="mesh_wire"]
-material = SubResource("mat_wire")
-size = Vector3(0.04, 0.3, 0.04)
-
-[sub_resource type="StandardMaterial3D" id="mat_spark"]
-shading_mode = 0
-albedo_color = Color(1, 0.9, 0.3, 1)
-billboard_mode = 1
-
-[sub_resource type="QuadMesh" id="mesh_spark"]
-material = SubResource("mat_spark")
-size = Vector2(0.04, 0.04)
 
 [node name="SabotagePoint" type="Area3D"]
 script = ExtResource("1_script")
@@ -34,31 +13,15 @@ script = ExtResource("1_script")
 [node name="Shape" type="CollisionShape3D" parent="."]
 shape = SubResource("shape")
 
-[node name="Box" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0, -0.22)
-mesh = SubResource("mesh_box")
+[node name="Model" parent="." instance=ExtResource("2_box")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.3)
 
-[node name="WireA" type="MeshInstance3D" parent="."]
-position = Vector3(-0.08, -0.2, -0.17)
-mesh = SubResource("mesh_wire")
-
-[node name="WireB" type="MeshInstance3D" parent="."]
-position = Vector3(0.08, -0.2, -0.17)
-mesh = SubResource("mesh_wire")
+[node name="Broken" parent="." instance=ExtResource("3_broken")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.3)
+visible = false
 
 [node name="Light" type="OmniLight3D" parent="."]
-position = Vector3(0, 0.2, -0.05)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -0.05)
 light_color = Color(0.3, 1, 0.4, 1)
 light_energy = 0.4
 omni_range = 1.5
-
-[node name="Sparks" type="CPUParticles3D" parent="."]
-position = Vector3(0, 0.1, -0.12)
-emitting = false
-amount = 16
-lifetime = 0.5
-mesh = SubResource("mesh_spark")
-direction = Vector3(0, 1, 1)
-spread = 60.0
-initial_velocity_min = 1.0
-initial_velocity_max = 2.5

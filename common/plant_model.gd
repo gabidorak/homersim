@@ -16,7 +16,7 @@ var meltdown := 0.0  ## 0..100 %
 var cooldowns := PackedFloat32Array()
 ## Per subsystem: health hit 0, so it must be rebooted before repairs work.
 var offline: Array[bool] = []
-## SCRAM halves the heat while now < scram_until (control room, later milestone).
+## SCRAM halves the heat while now < scram_until (control room).
 var scram_until := 0.0
 
 
@@ -54,6 +54,21 @@ func index_of(id: StringName) -> int:
 ## Adds `amount` % to the meltdown meter (swarm bonus), clamped to 0..100.
 func add_meltdown(amount: float) -> void:
 	meltdown = clampf(meltdown + amount, 0.0, 100.0)
+
+
+## Emergency coolant (control room): core_temp drops by `amount`, never below the minimum.
+func emergency_coolant(amount: float) -> void:
+	core_temp = clampf(core_temp - amount, tuning.min_temp, tuning.max_temp)
+
+
+## Partial SCRAM (control room): the heat is multiplied by scram_heat_factor for `duration` seconds.
+## A SCRAM during a SCRAM restarts the clock.
+func scram(now: float, duration: float) -> void:
+	scram_until = now + duration
+
+
+func scram_left(now: float) -> float:
+	return maxf(scram_until - now, 0.0)
 
 
 ## Advances the simulation by `dt` seconds.

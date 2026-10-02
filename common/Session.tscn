@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://common/session.gd" id="1_session"]
 [ext_resource type="Script" path="res://common/match_manager.gd" id="3_match"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://common/ability_service.gd" id="7_ability"]
 [ext_resource type="Script" path="res://common/capture_service.gd" id="8_capture"]
 [ext_resource type="Script" path="res://common/item_service.gd" id="9_item"]
+[ext_resource type="Script" path="res://common/minigame_service.gd" id="10_minigame"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_match"]
 properties/0/path = NodePath(".:state")
@@ -28,6 +29,9 @@ properties/4/replication_mode = 2
 properties/5/path = NodePath(".:result")
 properties/5/spawn = true
 properties/5/replication_mode = 2
+properties/6/path = NodePath(".:time_added")
+properties/6/spawn = true
+properties/6/replication_mode = 2
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_plant"]
 properties/0/path = NodePath(".:healths")
@@ -48,6 +52,9 @@ properties/4/replication_mode = 2
 properties/5/path = NodePath(".:alarm")
 properties/5/spawn = true
 properties/5/replication_mode = 2
+properties/6/path = NodePath(".:scram_left")
+properties/6/spawn = true
+properties/6/replication_mode = 2
 
 [node name="Session" type="Node"]
 script = ExtResource("1_session")
@@ -79,6 +86,9 @@ script = ExtResource("8_capture")
 
 [node name="ItemService" type="Node" parent="."]
 script = ExtResource("9_item")
+
+[node name="MinigameService" type="Node" parent="."]
+script = ExtResource("10_minigame")
 
 [node name="World" type="Node3D" parent="."]
 

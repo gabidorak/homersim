@@ -12,6 +12,19 @@ const SERVER_DEFAULTS := {
 var mouse_sensitivity := 0.0025  ## radians per pixel
 var fov := 80.0  ## degrees (vertical)
 var head_bob := true
+## Camera shake and hit-stop on BONK, knockdowns and debris (M7). M8 adds the settings toggle;
+## until then `--no-shake` turns it off.
+var camera_shake := true
+## Repairs open a minigame (+50) instead of the 6 s hold (+35). The hold stays as an accessibility
+## option: M8 adds the settings toggle; until then `--hold-repairs` turns minigames off.
+var minigame_repairs := true
+
+
+func _ready() -> void:
+	if Cli.has_arg("hold-repairs"):
+		minigame_repairs = false
+	if Cli.has_arg("no-shake"):
+		camera_shake = false
 
 
 ## Reads the [server] section of a server.cfg (INI). Missing file or keys fall back to SERVER_DEFAULTS.

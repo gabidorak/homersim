@@ -4,6 +4,12 @@ extends Node
 ## Everything here wraps Godot's high-level multiplayer API: once `multiplayer.multiplayer_peer`
 ## is an ENet peer, `@rpc` calls and MultiplayerSpawner/Synchronizer nodes start talking to the
 ## other side. The server always has peer id 1; clients get random ids.
+##
+## Server clock (M6): server_time() is the server's clock on every machine, so things that run on a
+## schedule (hazard cycles, cooldowns) can be synced once as a start time and animated locally.
+## After connecting, a client asks for the server's time a few times (then every RESYNC_S) and keeps
+## the answer that came back fastest: offset = server time + half the round trip - our time.
+## An autoload has the same path (/root/Net) everywhere, so it can carry these RPCs.
 
 signal connected  ## client: the ENet connection to the server is up (the join handshake comes next)
 signal connection_failed(reason: String)  ## client: could not reach the server
@@ -17,11 +23,18 @@ const CONNECT_TIMEOUT_S := 5.0
 ## disappears in about 5 s instead of ENet's default of up to 30 s.
 const PEER_TIMEOUT_MIN_MS := 2000
 const PEER_TIMEOUT_MAX_MS := 5000
+const SYNC_SAMPLES := 5  ## clock requests right after connecting…
+const SYNC_SAMPLE_GAP_S := 0.2
+const RESYNC_S := 10.0  ## …then one every RESYNC_S
 
 ## True in the dedicated server process once `host()` succeeded.
 var is_server := false
 
 var _connect_timer: Timer
+var _sync_timer: Timer
+var _sync_sent := 0
+var _clock_offset := 0.0  # client: server clock - our clock
+var _best_rtt := INF  # client: round trip of the sample the offset comes from
 
 
 func _ready() -> void:
@@ -29,6 +42,9 @@ func _ready() -> void:
 	_connect_timer.one_shot = true
 	_connect_timer.timeout.connect(_on_connect_timeout)
 	add_child(_connect_timer)
+	_sync_timer = Timer.new()
+	_sync_timer.timeout.connect(_send_clock_sync)
+	add_child(_sync_timer)
 
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
@@ -67,6 +83,9 @@ func join(address: String, port: int) -> Error:
 
 func leave() -> void:
 	_connect_timer.stop()
+	_sync_timer.stop()
+	_clock_offset = 0.0
+	_best_rtt = INF
 	is_server = false
 	var peer := multiplayer.multiplayer_peer
 	if peer != null and not peer is OfflineMultiplayerPeer:
@@ -87,6 +106,28 @@ func ping_ms() -> int:
 		return -1
 	var server := enet.get_peer(1)
 	return int(server.get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME)) if server != null else -1
+
+
+## Seconds on the server's clock (on the server: its own clock). Comparable across machines.
+func server_time() -> float:
+	return local_time() + _clock_offset
+
+
+## Client: true once at least one clock sample came back.
+func clock_synced() -> bool:
+	return is_server or _best_rtt < INF
+
+
+## This machine's monotonic clock in seconds (the same one PlantSim and StatusComponent use).
+static func local_time() -> float:
+	return Time.get_ticks_usec() / 1000000.0
+
+
+## The offset to add to our clock to get the server's, from one sample: we sent at `sent`, the
+## server answered with its time `server_now`, and the answer arrived at `received`. Assumes the
+## trip took as long both ways.
+static func clock_offset(sent: float, server_now: float, received: float) -> float:
+	return server_now + (received - sent) * 0.5 - received
 
 
 ## Server: drop a client (no-op if it already left).
@@ -135,7 +176,36 @@ func _on_peer_disconnected(id: int) -> void:
 func _on_connected_to_server() -> void:
 	_connect_timer.stop()
 	_apply_timeout(1)
+	_sync_sent = 0
+	_send_clock_sync()
 	connected.emit()
+
+
+func _send_clock_sync() -> void:
+	if is_server or not is_online():
+		_sync_timer.stop()
+		return
+	_sync_sent += 1
+	_sync_timer.start(SYNC_SAMPLE_GAP_S if _sync_sent < SYNC_SAMPLES else RESYNC_S)
+	request_clock_sync.rpc_id(1, local_time())
+
+
+# Unreliable both ways: a resent packet would only give a slow sample, which gets ignored anyway.
+@rpc("any_peer", "unreliable")
+func request_clock_sync(client_sent: float) -> void:
+	if not is_server:
+		return
+	on_clock_sync.rpc_id(multiplayer.get_remote_sender_id(), client_sent, local_time())
+
+
+@rpc("authority", "unreliable")
+func on_clock_sync(client_sent: float, server_now: float) -> void:
+	var now := local_time()
+	var rtt := now - client_sent
+	if rtt < 0.0 or rtt >= _best_rtt:
+		return  # the fastest answer gives the best estimate
+	_best_rtt = rtt
+	_clock_offset = clock_offset(client_sent, server_now, now)
 
 
 # The three handlers below run inside the multiplayer poll, so the peer is reset deferred

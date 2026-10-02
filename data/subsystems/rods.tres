@@ -10,3 +10,4 @@ short_name = "ROD"
 heat_weight = 3.0
 critical = true
 hazard_kind = 1
+minigame = "valve_rotate"

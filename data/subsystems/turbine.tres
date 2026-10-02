@@ -10,3 +10,4 @@ short_name = "TRB"
 heat_weight = 1.5
 critical = true
 hazard_kind = 3
+minigame = "wrench_rhythm"

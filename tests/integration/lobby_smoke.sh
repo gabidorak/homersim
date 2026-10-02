@@ -7,7 +7,7 @@
 set -u
 cd "$(dirname "$0")/../.."
 GODOT=${GODOT:-godot}
-PORT=$((20000 + RANDOM % 20000))
+PORT=${PORT:-$((20000 + RANDOM % 20000))}
 LOGS=$(mktemp -d)
 FAIL=0
 
@@ -19,14 +19,14 @@ CFG
 
 client() {  # client <name> <seconds> [extra args...]
 	local name=$1 secs=$2; shift 2
-	timeout -s KILL "$secs" "$GODOT" --headless -- --connect "127.0.0.1:$PORT" --name "$name" "$@" \
+	timeout -s KILL "$secs" "$GODOT" --headless --max-fps 120 -- --connect "127.0.0.1:$PORT" --name "$name" "$@" \
 		> "$LOGS/$name.log" 2>&1 &
 }
 expect() {  # expect <file> <pattern> <description>
 	if grep -qE "$2" "$LOGS/$1.log"; then echo "ok   - $3"; else echo "FAIL - $3"; FAIL=1; fi
 }
 
-"$GODOT" --headless -- --server --no-heatmap --port "$PORT" --config "$LOGS/server.cfg" > "$LOGS/server.log" 2>&1 &
+"$GODOT" --headless --max-fps 120 -- --server --no-heatmap --port "$PORT" --config "$LOGS/server.cfg" > "$LOGS/server.log" 2>&1 &
 SERVER=$!
 sleep 2
 client Cheat 14 --pref rat --auto-move --debug-speed 3   # never readies: 3 of 4 is enough

@@ -1,0 +1,82 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://levels/plant/materials/floor_cageroom.tres" id="1_floor_cagero"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_cageroom.tres" id="2_wall_cageroo"]
+
+[node name="CageRoomShell" type="CSGCombiner3D"]
+use_collision = true
+
+[node name="FloorCG" type="CSGBox3D" parent="."]
+position = Vector3(43, -0.25, 7)
+size = Vector3(18, 0.5, 26)
+material = ExtResource("1_floor_cagero")
+
+[node name="CeilingCG" type="CSGBox3D" parent="."]
+position = Vector3(43, 4.15, 7)
+size = Vector3(18, 0.3, 26)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall" type="CSGBox3D" parent="."]
+position = Vector3(37.375, 2, 20)
+size = Vector3(7.25, 4, 0.5)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall2" type="CSGBox3D" parent="."]
+position = Vector3(43, 3.5, 20)
+size = Vector3(4, 1, 0.5)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall3" type="CSGBox3D" parent="."]
+position = Vector3(48.625, 2, 20)
+size = Vector3(7.25, 4, 0.5)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall4" type="CSGBox3D" parent="."]
+position = Vector3(34, 2, 0.375)
+size = Vector3(0.5, 4, 1.25)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall5" type="CSGBox3D" parent="."]
+position = Vector3(34, 3.5, 3)
+size = Vector3(0.5, 1, 4)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall6" type="CSGBox3D" parent="."]
+position = Vector3(34, 2, 5.625)
+size = Vector3(0.5, 4, 1.25)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall7" type="CSGBox3D" parent="."]
+position = Vector3(52, 2, -4.3)
+size = Vector3(0.5, 4, 3.9)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall8" type="CSGBox3D" parent="."]
+position = Vector3(52, 2.3, -2)
+size = Vector3(0.5, 3.4, 0.7)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall9" type="CSGBox3D" parent="."]
+position = Vector3(52, 2, 6)
+size = Vector3(0.5, 4, 15.3)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall10" type="CSGBox3D" parent="."]
+position = Vector3(52, 2.3, 14)
+size = Vector3(0.5, 3.4, 0.7)
+material = ExtResource("2_wall_cageroo")
+
+[node name="Wall11" type="CSGBox3D" parent="."]
+position = Vector3(52, 2, 17.3)
+size = Vector3(0.5, 4, 5.9)
+material = ExtResource("2_wall_cageroo")
+
+[node name="VentSill" type="CSGBox3D" parent="."]
+position = Vector3(52.125, -0.25, -2)
+size = Vector3(0.25, 0.5, 0.7)
+material = ExtResource("1_floor_cagero")
+
+[node name="VentSill2" type="CSGBox3D" parent="."]
+position = Vector3(52.125, -0.25, 14)
+size = Vector3(0.25, 0.5, 0.7)
+material = ExtResource("1_floor_cagero")

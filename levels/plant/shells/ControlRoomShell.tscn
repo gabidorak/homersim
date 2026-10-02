@@ -1,0 +1,67 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://levels/plant/materials/floor_controlroom.tres" id="1_floor_contro"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_controlroom.tres" id="2_wall_control"]
+
+[node name="ControlRoomShell" type="CSGCombiner3D"]
+use_collision = true
+
+[node name="FloorCR" type="CSGBox3D" parent="."]
+position = Vector3(-2, -0.25, 10)
+size = Vector3(24, 0.5, 20)
+material = ExtResource("1_floor_contro")
+
+[node name="CeilingCR" type="CSGBox3D" parent="."]
+position = Vector3(-2, 4.15, 10)
+size = Vector3(24, 0.3, 20)
+material = ExtResource("2_wall_control")
+
+[node name="Wall" type="CSGBox3D" parent="."]
+position = Vector3(-8.3, 2, 20)
+size = Vector3(11.9, 4, 0.5)
+material = ExtResource("2_wall_control")
+
+[node name="Wall2" type="CSGBox3D" parent="."]
+position = Vector3(-2, 1.4, 20)
+size = Vector3(0.7, 2.8, 0.5)
+material = ExtResource("2_wall_control")
+
+[node name="Wall3" type="CSGBox3D" parent="."]
+position = Vector3(-2, 3.7, 20)
+size = Vector3(0.7, 0.6, 0.5)
+material = ExtResource("2_wall_control")
+
+[node name="Wall4" type="CSGBox3D" parent="."]
+position = Vector3(4.3, 2, 20)
+size = Vector3(11.9, 4, 0.5)
+material = ExtResource("2_wall_control")
+
+[node name="Wall5" type="CSGBox3D" parent="."]
+position = Vector3(-14, 2, 0.875)
+size = Vector3(0.5, 4, 2.25)
+material = ExtResource("2_wall_control")
+
+[node name="Wall6" type="CSGBox3D" parent="."]
+position = Vector3(-14, 3.3, 3)
+size = Vector3(0.5, 1.4, 2)
+material = ExtResource("2_wall_control")
+
+[node name="Wall7" type="CSGBox3D" parent="."]
+position = Vector3(-14, 2, 12.125)
+size = Vector3(0.5, 4, 16.25)
+material = ExtResource("2_wall_control")
+
+[node name="Wall8" type="CSGBox3D" parent="."]
+position = Vector3(10, 2, 0.875)
+size = Vector3(0.5, 4, 2.25)
+material = ExtResource("2_wall_control")
+
+[node name="Wall9" type="CSGBox3D" parent="."]
+position = Vector3(10, 3.3, 3)
+size = Vector3(0.5, 1.4, 2)
+material = ExtResource("2_wall_control")
+
+[node name="Wall10" type="CSGBox3D" parent="."]
+position = Vector3(10, 2, 12.125)
+size = Vector3(0.5, 4, 16.25)
+material = ExtResource("2_wall_control")

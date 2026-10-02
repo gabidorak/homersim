@@ -1,0 +1,58 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Material" path="res://levels/plant/materials/floor_ratnest.tres" id="1_floor_ratnes"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_ratnest.tres" id="2_wall_ratnest"]
+[ext_resource type="Material" path="res://levels/plant/materials/sewer_water.tres" id="3_sewer_water"]
+
+[node name="RatNestShell" type="CSGCombiner3D"]
+use_collision = true
+
+[node name="FloorNEST" type="CSGBox3D" parent="."]
+position = Vector3(-30, -0.25, 35)
+size = Vector3(12, 0.5, 10)
+material = ExtResource("1_floor_ratnes")
+
+[node name="CeilingNEST" type="CSGBox3D" parent="."]
+position = Vector3(-30, 3.15, 35)
+size = Vector3(12, 0.3, 10)
+material = ExtResource("2_wall_ratnest")
+
+[node name="Wall" type="CSGBox3D" parent="."]
+position = Vector3(-33.3, 1.5, 30)
+size = Vector3(5.9, 3, 0.5)
+material = ExtResource("2_wall_ratnest")
+
+[node name="Wall2" type="CSGBox3D" parent="."]
+position = Vector3(-30, 1.8, 30)
+size = Vector3(0.7, 2.4, 0.5)
+material = ExtResource("2_wall_ratnest")
+
+[node name="Wall3" type="CSGBox3D" parent="."]
+position = Vector3(-26.7, 1.5, 30)
+size = Vector3(5.9, 3, 0.5)
+material = ExtResource("2_wall_ratnest")
+
+[node name="VentSill" type="CSGBox3D" parent="."]
+position = Vector3(-30, -0.25, 29.875)
+size = Vector3(0.7, 0.5, 0.25)
+material = ExtResource("1_floor_ratnes")
+
+[node name="Wall4" type="CSGBox3D" parent="."]
+position = Vector3(-30, 1.5, 40)
+size = Vector3(12.5, 3, 0.5)
+material = ExtResource("2_wall_ratnest")
+
+[node name="Wall5" type="CSGBox3D" parent="."]
+position = Vector3(-36, 1.5, 35)
+size = Vector3(0.5, 3, 10.5)
+material = ExtResource("2_wall_ratnest")
+
+[node name="Wall6" type="CSGBox3D" parent="."]
+position = Vector3(-24, 1.5, 35)
+size = Vector3(0.5, 3, 10.5)
+material = ExtResource("2_wall_ratnest")
+
+[node name="Sludge" type="CSGBox3D" parent="."]
+position = Vector3(-30, 0.025, 37.375)
+size = Vector3(11.5, 0.05, 4.75)
+material = ExtResource("3_sewer_water")

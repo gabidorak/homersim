@@ -6,7 +6,7 @@
 set -u
 cd "$(dirname "$0")/../.."
 GODOT=${GODOT:-godot}
-PORT=$((20000 + RANDOM % 20000))
+PORT=${PORT:-$((20000 + RANDOM % 20000))}
 LOGS=$(mktemp -d)
 RESULT="$LOGS/result.json"
 FAIL=0
@@ -22,11 +22,11 @@ expect() {  # expect <file> <pattern> <description>
 }
 bot() {  # bot <log name> <args...>
 	local log=$1; shift
-	timeout -s KILL 70 "$GODOT" --headless -- --connect "127.0.0.1:$PORT" --bot-target rods "$@" \
+	timeout -s KILL 70 "$GODOT" --headless --max-fps 120 -- --connect "127.0.0.1:$PORT" --bot-target rods "$@" \
 		> "$LOGS/$log.log" 2>&1 &
 }
 
-timeout -s KILL 70 "$GODOT" --headless -- --server --no-heatmap --port "$PORT" --config "$LOGS/server.cfg" \
+timeout -s KILL 70 "$GODOT" --headless --max-fps 120 -- --server --no-heatmap --port "$PORT" --config "$LOGS/server.cfg" \
 	--allow-debug --test-duration 40 --exit-after-match --result-file "$RESULT" \
 	> "$LOGS/server.log" 2>&1 &
 SERVER=$!

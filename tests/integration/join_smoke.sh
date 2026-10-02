@@ -5,28 +5,28 @@
 set -u
 cd "$(dirname "$0")/../.."
 GODOT=${GODOT:-godot}
-PORT=$((20000 + RANDOM % 20000))
+PORT=${PORT:-$((20000 + RANDOM % 20000))}
 LOGS=$(mktemp -d)
 FAIL=0
 
 client() {  # client <name> <seconds> [extra args...]
 	local name=$1 secs=$2; shift 2
-	timeout -s KILL "$secs" "$GODOT" --headless -- --connect "127.0.0.1:$PORT" --name "$name" "$@" \
+	timeout -s KILL "$secs" "$GODOT" --headless --max-fps 120 -- --connect "127.0.0.1:$PORT" --name "$name" "$@" \
 		> "$LOGS/$name.log" 2>&1 &
 }
 expect() {  # expect <file> <pattern> <description>
 	if grep -qE "$2" "$LOGS/$1.log"; then echo "ok   - $3"; else echo "FAIL - $3"; FAIL=1; fi
 }
 
-"$GODOT" --headless -- --server --no-heatmap --port "$PORT" --max-players 2 > "$LOGS/server.log" 2>&1 &
+"$GODOT" --headless --max-fps 120 -- --server --no-heatmap --port "$PORT" --max-players 2 > "$LOGS/server.log" 2>&1 &
 SERVER=$!
 sleep 2
 client A 9
 client B 9
 sleep 3
-client Full 3                          # third player with max 2
+client Full 6                          # third player with max 2 (6 s: slow to start under load)
 sleep 1                                # (staggered: two peers dropping in the same instant make
-client Old 3 --game-version 0.0.0      #  ENet log a harmless "unable to send packet" error)
+client Old 6 --game-version 0.0.0      #  ENet log a harmless "unable to send packet" error)
 sleep 11                               # A/B are killed at 8 s; ENet notices within ~5 s
 kill "$SERVER" 2>/dev/null; wait "$SERVER" 2>/dev/null
 

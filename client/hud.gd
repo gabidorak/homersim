@@ -5,6 +5,8 @@ extends Control
 ## Alarm feedback: a screen-edge tint, and a placeholder beep when the alarm goes up.
 ## PvP (M4): the local player's statuses, abilities with cooldowns, keycard / traps / stolen item,
 ## a banner for big moments (BONK, SNAP, caged), and what a ghost or spectator can do.
+## M6: hazard hits and plant-wide events (SCRAM, coolant) in the banner, the SCRAM countdown and the
+## time it added under the timer, and a short flash of the edge tint whenever the alarm gets worse.
 
 const ALARM_COLORS := {
 	PlantModel.Alarm.NORMAL: Color(0.35, 0.8, 0.4),
@@ -13,6 +15,7 @@ const ALARM_COLORS := {
 }
 const BEEP_RATE := 22050
 const BANNER_S := 2.5
+const ALARM_FLASH_S := 0.6
 
 var _player: Player
 var _icons: Array[SubsystemIcon] = []
@@ -21,6 +24,7 @@ var _meltdown_fill := StyleBoxFlat.new()
 var _beep: AudioStreamPlayer
 var _last_alarm := PlantModel.Alarm.NORMAL
 var _banner_until_ms := 0
+var _flash_until_ms := 0
 
 @onready var info_label: Label = %InfoLabel
 @onready var stamina_bar: ProgressBar = %StaminaBar
@@ -43,6 +47,8 @@ var _banner_until_ms := 0
 func _ready() -> void:
 	Events.local_player_spawned.connect(func(player: Node3D) -> void: _player = player as Player)
 	Events.plant_alarm_changed.connect(_on_alarm_changed)
+	Events.local_hazard_hit.connect(show_banner)
+	Events.plant_announcement.connect(show_banner)
 	var feedback := Session.current.client_only.get_node_or_null("CombatFeedback") as CombatFeedback
 	if feedback != null:
 		feedback.banner.connect(show_banner)
@@ -79,6 +85,11 @@ func _update_plant() -> void:
 	var plant := Session.current.plant
 	var seconds := mm.time_left if mm.state != MatchManager.State.COUNTDOWN else 0
 	timer_label.text = "%d:%02d" % [floori(seconds / 60.0), seconds % 60] if mm.state == MatchManager.State.PLAYING else ""
+	if mm.state == MatchManager.State.PLAYING:
+		if plant.scram_left > 0.0:
+			timer_label.text += "\nSCRAM %d s" % ceili(plant.scram_left)
+		if mm.time_added > 0:
+			timer_label.text += "\n(+%d s SCRAM)" % mm.time_added
 	timer_label.modulate = Color(1, 0.5, 0.4) if mm.state == MatchManager.State.PLAYING and seconds <= 30 else Color.WHITE
 	meltdown_bar.value = plant.meltdown
 	meltdown_label.text = "Meltdown %d%%" % floori(plant.meltdown)
@@ -98,6 +109,8 @@ func _update_plant() -> void:
 			PlantModel.Alarm.CRITICAL:
 				alarm_tint.material.set_shader_parameter("tint", Color(1, 0.08, 0.05))
 				strength = 0.4 + 0.2 * sin(Time.get_ticks_msec() / 200.0)
+	if Time.get_ticks_msec() < _flash_until_ms:
+		strength = maxf(strength, 0.9 * (_flash_until_ms - Time.get_ticks_msec()) / (ALARM_FLASH_S * 1000.0))
 	alarm_tint.visible = strength > 0.0
 	alarm_tint.material.set_shader_parameter("strength", strength)
 
@@ -194,7 +207,9 @@ func _on_alarm_changed(alarm: int) -> void:
 	_last_alarm = alarm as PlantModel.Alarm
 	if not worse or Session.current.match_manager.state != MatchManager.State.PLAYING:
 		return
-	# Only when it gets worse: WARNING beeps once, CRITICAL twice.
+	# Only when it gets worse: a flash, then WARNING beeps once, CRITICAL twice.
+	_flash_until_ms = Time.get_ticks_msec() + int(ALARM_FLASH_S * 1000.0)
+	alarm_tint.material.set_shader_parameter("tint", ALARM_COLORS[alarm])
 	_beep.pitch_scale = 1.0 if alarm == PlantModel.Alarm.WARNING else 1.4
 	_beep.play()
 	if alarm == PlantModel.Alarm.CRITICAL:

@@ -1,0 +1,120 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Material" path="res://levels/plant/materials/floor_turbinehall.tres" id="1_floor_turbin"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_turbinehall.tres" id="2_wall_turbine"]
+[ext_resource type="Material" path="res://levels/plant/materials/catwalk_metal.tres" id="3_catwalk_meta"]
+
+[node name="TurbineHallShell" type="CSGCombiner3D"]
+use_collision = true
+
+[node name="FloorTH" type="CSGBox3D" parent="."]
+position = Vector3(12, -0.25, -10)
+size = Vector3(44, 0.5, 20)
+material = ExtResource("1_floor_turbin")
+
+[node name="CeilingTH" type="CSGBox3D" parent="."]
+position = Vector3(12, 8.15, -10)
+size = Vector3(44, 0.3, 20)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall" type="CSGBox3D" parent="."]
+position = Vector3(-8.125, 4, 0)
+size = Vector3(4.25, 8, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall2" type="CSGBox3D" parent="."]
+position = Vector3(-4, 0.5, 0)
+size = Vector3(4, 1, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall3" type="CSGBox3D" parent="."]
+position = Vector3(-4, 5.3, 0)
+size = Vector3(4, 5.4, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall4" type="CSGBox3D" parent="."]
+position = Vector3(0, 4, 0)
+size = Vector3(4, 8, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall5" type="CSGBox3D" parent="."]
+position = Vector3(4, 0.5, 0)
+size = Vector3(4, 1, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall6" type="CSGBox3D" parent="."]
+position = Vector3(4, 5.3, 0)
+size = Vector3(4, 5.4, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall7" type="CSGBox3D" parent="."]
+position = Vector3(13, 4, 0)
+size = Vector3(14, 8, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall8" type="CSGBox3D" parent="."]
+position = Vector3(22, 5.5, 0)
+size = Vector3(4, 5, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall9" type="CSGBox3D" parent="."]
+position = Vector3(29.125, 4, 0)
+size = Vector3(10.25, 8, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall10" type="CSGBox3D" parent="."]
+position = Vector3(34, 4, -19.925)
+size = Vector3(0.5, 8, 0.65)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall11" type="CSGBox3D" parent="."]
+position = Vector3(34, 4.3, -19.25)
+size = Vector3(0.5, 7.4, 0.7)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall12" type="CSGBox3D" parent="."]
+position = Vector3(34, 4, -14.2)
+size = Vector3(0.5, 8, 9.4)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall13" type="CSGBox3D" parent="."]
+position = Vector3(34, 5.5, -8)
+size = Vector3(0.5, 5, 3)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall14" type="CSGBox3D" parent="."]
+position = Vector3(34, 4, -3.125)
+size = Vector3(0.5, 8, 6.75)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall15" type="CSGBox3D" parent="."]
+position = Vector3(2.375, 4, -20)
+size = Vector3(25.25, 8, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall16" type="CSGBox3D" parent="."]
+position = Vector3(16, 5.3, -20)
+size = Vector3(2, 5.4, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Wall17" type="CSGBox3D" parent="."]
+position = Vector3(25.625, 4, -20)
+size = Vector3(17.25, 8, 0.5)
+material = ExtResource("2_wall_turbine")
+
+[node name="Catwalk" type="CSGBox3D" parent="."]
+position = Vector3(12, 3.4, -19)
+size = Vector3(43.5, 0.2, 1.5)
+material = ExtResource("3_catwalk_meta")
+
+[node name="StairsWest" type="CSGBox3D" parent="."]
+position = Vector3(-9, 1.6409, -15.1861)
+rotation = Vector3(0.5105, 0, 0)
+size = Vector3(1.5, 0.25, 7.2633)
+material = ExtResource("3_catwalk_meta")
+
+[node name="StairsEast" type="CSGBox3D" parent="."]
+position = Vector3(33, 1.6409, -15.1861)
+rotation = Vector3(0.5105, 0, 0)
+size = Vector3(1.5, 0.25, 7.2633)
+material = ExtResource("3_catwalk_meta")

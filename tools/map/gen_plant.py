@@ -3,12 +3,15 @@
 
 Writes:
   levels/plant/Plant.tscn              root: environment, POI instances, out-of-bounds volumes
-  levels/plant/pois/*.tscn             one scene per POI (geometry, props, lights, interactables)
-  levels/plant/materials/*.tres        colour-coded prototype materials
+  levels/plant/pois/*.tscn             one scene per POI (props, lights, interactables, the baked shell)
+  levels/plant/shells/*Shell.tscn      per POI, the CSG source of its static shell (floors, walls, ducts):
+                                       tools/godot/bake_shells.gd bakes it into levels/plant/baked/
+  levels/plant/materials/*.tres        toon_world materials (palette colours, world-space patterns)
   docs/map/plant_layout_v1.png         the top-down plan (2 m grid), also used by tools/heatmap.py
   docs/map/plant_layout_v1.json        how to map world metres onto that image
 
 Usage:  python3 tools/map/gen_plant.py [--force] [--png-only]
+        godot --headless -s tools/godot/bake_shells.gd      (then bake the shells: always run both)
 
 This file is the source of truth for the layout while it is still a graybox: change a number here,
 run the script, and the level and the plan image move together. It refuses to overwrite the scenes
@@ -29,6 +32,7 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 LEVEL_DIR = os.path.join(ROOT, "levels", "plant")
 POI_DIR = os.path.join(LEVEL_DIR, "pois")
 MAT_DIR = os.path.join(LEVEL_DIR, "materials")
+SHELL_DIR = os.path.join(LEVEL_DIR, "shells")
 DOC_DIR = os.path.join(ROOT, "docs", "map")
 
 WALL_T = 0.5
@@ -152,6 +156,38 @@ CAMERAS = [
 
 LADDER_YARD = (23.75, -29.0)  # on the block's west face, climbing east
 
+# Hazards (M6, GDD §6), switched on by the server's HazardDirector when their subsystem drops below 50.
+# Steam jets: POI scene, subsystem, x, z, yaw (deg, the jet blows along +Z), length, phase (s)
+STEAM_JETS = [
+    ("PumpHouse", "pumps", -48.3, -15.2, 90, 4.0, 0.0),
+    ("PumpHouse", "pumps", -48.3, -9.8, 90, 2.5, 3.0),    # short: the repair spot stays clear
+    ("PumpHouse", "pumps", -44.0, -19.6, 0, 4.0, 1.5),
+    ("ValveCorridor", "valves", -46.1, 8.0, -90, 4.0, 0.0),
+    ("ValveCorridor", "valves", -43.9, 12.0, 90, 4.0, 3.0),
+    ("ValveCorridor", "valves", -46.1, 14.0, -90, 4.0, 1.5),
+]
+# Electrified puddles: POI scene, subsystem, centre x, z, size x, size z, phase (s)
+PUDDLES = [
+    ("Substation", "grid", -41.0, -25.9, 3.0, 2.2, 0.0),     # inside the north gate
+    ("Substation", "grid", -32.6, -31.0, 2.6, 3.0, 1.7),     # inside the east gate
+    ("Substation", "grid", -46.0, -33.0, 3.0, 3.0, 3.3),
+]
+# Radiation zones / debris zones: POI scene, subsystem, centre x, z, size x, y, z
+RADIATION = [("ReactorHall", "rods", -24.0, -11.0, 11.0, 5.0, 11.0)]  # the pool, not the levers
+DEBRIS = [("TurbineHall", "turbine", 12.0, -10.0, 42.0, 8.0, 18.0)]
+# Smoke (fog volumes, cosmetic): POI scene, centre (x, y, z), size (x, y, z)
+SMOKE = [
+    ("VentNetwork", (0.0, 0.5, 26.75), (107.0, 1.6, 1.6)),
+    ("VentNetwork", (-52.75, 0.5, -1.9), (1.6, 1.6, 58.0)),
+    ("VentNetwork", (52.75, 0.5, -1.9), (1.6, 1.6, 58.0)),
+    ("VentNetwork", (-43.0, 0.5, -19.25), (20.0, 1.6, 1.6)),
+    ("VentNetwork", (36.0, 0.5, -19.25), (34.0, 1.6, 1.6)),
+    ("VentNetwork", (2.0, 2.4, 27.75), (14.0, 3.0, 1.6)),  # the riser to the Control Room drop
+    ("ControlRoom", (-2.0, 2.0, 10.0), (24.0, 4.0, 20.0)),
+]
+# Control Room remote actions (M6, GDD §4.5): action, x, y, z (on the desks, players stand south)
+CONSOLES = [("coolant", -6.0, 1.0, 6.2), ("scram", 4.0, 1.0, 6.2)]
+
 
 # --- Small helpers ------------------------------------------------------------------------------
 
@@ -172,6 +208,12 @@ def fmt(v):
 
 class Raw:
     def __init__(self, text): self.text = text
+
+
+class MatRef:
+    """A material by path, turned into an ext_resource of whichever scene the node is written to
+    (a POI scene or its shell source scene)."""
+    def __init__(self, path): self.path = path
 
 
 def V3(x, y, z): return Raw("Vector3(%s, %s, %s)" % (fmt(x), fmt(y), fmt(z)))
@@ -208,6 +250,7 @@ class Scene:
         return Raw('ExtResource("%s")' % i)
 
     def sub_res(self, type_, props):
+        props = {k: self.ext_res("Material", v.path) if isinstance(v, MatRef) else v for k, v in props.items()}
         i = "%s_%d" % (type_, len(self.subs) + 1)
         self.subs.append((type_, i, props))
         return Raw('SubResource("%s")' % i)
@@ -219,7 +262,7 @@ class Scene:
             name = "%s%d" % (base, n)
             n += 1
         names.add(name)
-        props = dict(props or {})
+        props = {k: self.ext_res("Material", v.path) if isinstance(v, MatRef) else v for k, v in (props or {}).items()}
         if script:
             props = {"script": self.ext_res("Script", script), **props}
         inst = self.ext_res("PackedScene", instance) if instance else None
@@ -254,63 +297,103 @@ class Scene:
 
 
 # --- Materials ----------------------------------------------------------------------------------
+# M7: every level surface uses shaders/toon_world.gdshader (patterns drawn from the world position,
+# colours from the palette, tools/art/palette.py). Props come from assets/generated/ instead.
 
-TEX = "res://assets/third_party/kenney_prototype/%s.png"
-MATERIALS = {}  # name -> (texture or None, colour, extra lines)
+sys.path.insert(0, os.path.join(ROOT, "tools", "art"))
+import palette as PAL  # noqa: E402
+
+MATERIALS = {}  # name -> shader parameters
+WORLD_SHADER = "res://shaders/toon_world.gdshader"
+GLASS = "res://shaders/materials/toon_glass.tres"
+PATTERN = {"wall": 0, "floor": 1, "metal": 2, "stripes": 3, "duct": 4, "plain": 5}
 
 
-def material(name, texture, color, extra=None):
-    MATERIALS[name] = (texture, color, extra or {})
+def pc(name, k=1.0):
+    """A palette colour by name (optionally brightened/darkened by k), as an (r, g, b) tuple."""
+    return tuple(min(1.0, v * k) for v in PAL.COLORS[name])
+
+
+def material(name, pattern, base, trim=None, cell=None, line=None, line_strength=None, band=None,
+             checker=None, emission=None, energy=None):
+    params = {"pattern": PATTERN[pattern], "base_color": Col(*base)}
+    if trim is not None:
+        params["trim_color"] = Col(*trim)
+    if line is not None:
+        params["line_color"] = Col(*line)
+    if line_strength is not None:
+        params["line_strength"] = float(line_strength)
+    if cell is not None:
+        params["cell"] = V2(*cell)
+    if band is not None:
+        params["band_height"] = float(band)
+    if checker is not None:
+        params["checker_strength"] = float(checker)
+    if emission is not None:
+        params["emission"] = Col(*emission)
+        params["emission_energy"] = float(energy or 1.0)
+    # Big surfaces: wide fully-lit pools under each lamp, a mid band further out (toon_light.gdshaderinc).
+    params.update({"band_low": 0.02, "band_high": 0.14, "band_soft": 0.09, "shade_mid": 0.66, "rim_strength": 0.0})
+    MATERIALS[name] = params
     return "res://levels/plant/materials/%s.tres" % name
 
 
 def write_materials():
     os.makedirs(MAT_DIR, exist_ok=True)
-    for name, (texture, color, extra) in MATERIALS.items():
-        lines = []
-        if texture:
-            lines += ['[gd_resource type="StandardMaterial3D" load_steps=2 format=3]', "",
-                      '[ext_resource type="Texture2D" path="%s" id="1_tex"]' % (TEX % texture), "",
-                      "[resource]", "albedo_texture = ExtResource(\"1_tex\")",
-                      "uv1_scale = Vector3(0.5, 0.5, 0.5)", "uv1_triplanar = true",
-                      "uv1_world_triplanar = true"]
-        else:
-            lines += ['[gd_resource type="StandardMaterial3D" format=3]', "", "[resource]"]
-        lines.append("albedo_color = %s" % Col(*color).text)
-        lines += ["%s = %s" % (k, fmt(v)) for k, v in extra.items()]
+    for f in os.listdir(MAT_DIR):  # drop materials no longer generated
+        if f.endswith(".tres") and f[:-5] not in MATERIALS:
+            os.remove(os.path.join(MAT_DIR, f))
+    for name, params in MATERIALS.items():
+        lines = ['[gd_resource type="ShaderMaterial" load_steps=2 format=3]', "",
+                 '[ext_resource type="Shader" path="%s" id="1_shader"]' % WORLD_SHADER, "",
+                 "[resource]", 'shader = ExtResource("1_shader")']
+        lines += ["shader_parameter/%s = %s" % (k, fmt(v)) for k, v in params.items()]
         with open(os.path.join(MAT_DIR, name + ".tres"), "w") as f:
             f.write("\n".join(lines) + "\n")
 
 
-def tint(c, k):
-    return tuple(min(1.0, v * k) for v in c[:3])
-
-
 ROOM_BY_ID = {r[0]: r for r in ROOMS}
-SCENE_COLOR = {}
-for r in ROOMS:
-    SCENE_COLOR.setdefault(r[1], r[8])
-SCENE_COLOR.update({"Substation": (0.62, 0.66, 0.56), "VentRoof": (0.55, 0.6, 0.7), "VentNetwork": (0.6, 0.45, 0.8)})
+# Per POI: wall colour, wainscot/trim colour, floor colour, floor tile size (m), floor checker strength.
+POI_LOOK = {
+    "ControlRoom": ("beige_light", "teal", "grey_light", 1.0, 0.06),
+    "BreakRoom": ("off_white", "alarm_red", "off_white", 1.0, 0.45),
+    "LockerRoom": ("teal_light", "teal_dark", "silver", 0.5, 0.05),
+    "PumpHouse": ("teal", "steel_dark", "grey", 2.0, 0.04),
+    "ValveCorridor": ("steel_light", "blue_dark", "grey", 2.0, 0.04),
+    "Storage": ("beige", "brown", "grey", 2.0, 0.04),
+    "CageRoom": ("lavender", "purple_dark", "grey", 2.0, 0.05),
+    "Corridors": ("beige", "teal", "beige_light", 1.0, 0.08),
+    "ReactorHall": ("pipe_green_light", "teal_dark", "grey", 2.0, 0.05),
+    "TurbineHall": ("beige", "orange_dark", "grey", 2.0, 0.04),
+    "RatNest": ("brown", "brown_dark", "brown_dark", 1.0, 0.1),
+    "Yard": ("grey_light", "grey_dark", "grey_dark", 4.0, 0.03),
+    "Substation": ("grey_light", "steel_dark", "grey", 1.0, 0.05),
+    "VentRoof": ("steel", "steel_dark", "grey_dark", 2.0, 0.03),
+    "VentNetwork": ("steel_light", "steel", "steel", 1.0, 0.0),
+}
 
 
 def wall_mat(scene):
-    return material("wall_" + scene.lower(), "light_01", SCENE_COLOR[scene])
+    wall, trim, _, _, _ = POI_LOOK[scene]
+    return material("wall_" + scene.lower(), "wall", pc(wall, 0.88), pc(trim), cell=(2.0, 2.6), line=pc("black"),
+                    line_strength=0.3)
 
 
 def floor_mat(scene):
-    return material("floor_" + scene.lower(), "dark_01", tint(SCENE_COLOR[scene], 1.0))
+    _, trim, floor, tile, checker = POI_LOOK[scene]
+    return material("floor_" + scene.lower(), "floor", pc(floor, 0.72), pc(trim, 0.8), cell=(tile, tile),
+                    line=pc("black"), line_strength=0.35, checker=checker)
 
 
-M_PROP = material("prop_crate", "orange_01", (1, 1, 1))
-M_MACHINE = material("prop_machine", "purple_01", (1, 1, 1))
-M_PIPE = material("prop_pipe", "green_01", (0.85, 0.95, 0.85))
-M_METAL = material("prop_metal", "light_01", (0.55, 0.58, 0.62))
-M_DUCT = material("duct", "purple_01", (0.9, 0.85, 1.0))
-M_GLASS = material("glass", None, (0.6, 0.85, 1.0, 0.18), {"transparency": 1, "cull_mode": 2, "metallic": 0.4, "roughness": 0.1})
-M_GLOW = material("reactor_glow", None, (0.6, 1.0, 0.18), {"emission_enabled": True, "emission": Col(0.61, 1.0, 0.18), "emission_energy_multiplier": 2.5})
-M_WATER = material("sewer_water", None, (0.3, 0.42, 0.18, 0.85), {"transparency": 1, "emission_enabled": True, "emission": Col(0.25, 0.4, 0.1), "emission_energy_multiplier": 0.6})
-M_LADDER = material("ladder", None, (1.0, 0.79, 0.24))
-M_TOWER = material("cooling_tower", "light_01", (0.75, 0.75, 0.72))
+M_METAL = material("catwalk_metal", "metal", pc("steel_light", 0.8), pc("steel_dark"), cell=(0.25, 0.25), line=pc("black"),
+                   line_strength=0.5)
+M_STRIPES = material("hazard_stripes", "stripes", pc("safety_yellow"), pc("black"), cell=(0.5, 0.5))
+M_DUCT = material("duct", "duct", pc("steel_light"), pc("steel"), cell=(1.0, 1.0), line=pc("black"), line_strength=0.35)
+M_GLOW = material("reactor_glow", "plain", pc("rad_green"), emission=pc("rad_green"), energy=1.6)
+M_WATER = material("sewer_water", "plain", pc("pipe_green", 0.3), emission=pc("pipe_green", 0.12), energy=0.5)
+M_CONCRETE = material("concrete", "floor", pc("grey_light", 0.85), pc("grey"), cell=(2.0, 2.0), line=pc("black"),
+                      line_strength=0.25, checker=0.03)
+M_GLASS = GLASS
 
 
 # --- Wall runs ----------------------------------------------------------------------------------
@@ -390,7 +473,9 @@ def openings_on(axis, line, a, b):
 # --- POI scene building ---------------------------------------------------------------------------
 
 class Poi:
-    """One POI scene under construction: a root Poi node, a CSG shell, and children."""
+    """One POI scene under construction: a root Poi node and its children, plus the CSG source of its
+    static shell (floors, walls, ceilings, catwalks, ducts), written to levels/plant/shells/ and baked
+    by tools/godot/bake_shells.gd into one mesh and one collision shape that the POI scene uses."""
 
     def __init__(self, scene_name, display_name, bounds, area_names=None):
         self.name = scene_name
@@ -398,29 +483,45 @@ class Poi:
         if area_names:
             props["area_names"] = Raw("PackedStringArray(%s)" % ", ".join(fmt(n) for n in area_names))
         self.s = Scene(scene_name, "Node3D", "res://levels/poi.gd", props)
-        self.shell = self.s.node("Shell", "CSGCombiner3D", props={"use_collision": True})
+        self.sh = Scene(scene_name + "Shell", "CSGCombiner3D", props={"use_collision": True})
+        self.shell = "."  # parent path of shell pieces inside self.sh
+        baked = "res://levels/plant/baked/" + scene_name
+        body = self.s.node("Shell", "StaticBody3D")
+        self.s.node("Mesh", "MeshInstance3D", body, {"mesh": self.s.ext_res("ArrayMesh", baked + "_shell.res")})
+        self.s.node("Collision", "CollisionShape3D", body,
+                    {"shape": self.s.ext_res("ConcavePolygonShape3D", baked + "_shell_col.res")})
         self.occluders = None
         self.lights = None
-        self.wall_mat = self.s.ext_res("Material", wall_mat(scene_name))
-        self.floor_mat = self.s.ext_res("Material", floor_mat(scene_name))
+        self.solids = None
+        self.wall_mat = MatRef(wall_mat(scene_name))
+        self.floor_mat = MatRef(floor_mat(scene_name))
 
     def mat(self, path):
-        return self.s.ext_res("Material", path)
+        return MatRef(path)
 
     def box(self, name, x0, y0, z0, x1, y1, z1, mat=None, parent=None, collide_alone=False):
-        """An axis-aligned box from min to max corner. In the shell unless `parent` is given."""
+        """An axis-aligned box from min to max corner. In the shell unless `parent` is given (then a
+        CSG node of the POI scene, which only the art pass is meant to remove)."""
         props = {"position": V3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
                  "size": V3(x1 - x0, y1 - y0, z1 - z0),
                  "material": mat if mat is not None else self.wall_mat}
         if collide_alone:
             props["use_collision"] = True
-        return self.s.node(name, "CSGBox3D", parent or self.shell, props)
+        if parent is None:
+            return self.sh.node(name, "CSGBox3D", self.shell, props)
+        return self.s.node(name, "CSGBox3D", parent, props)
 
     def rotated_box(self, name, center, size, rot, mat, parent=None, collide_alone=False):
         props = {"position": V3(*center), "rotation": V3(*rot), "size": V3(*size), "material": mat}
         if collide_alone:
             props["use_collision"] = True
-        return self.s.node(name, "CSGBox3D", parent or self.shell, props)
+        if parent is None:
+            return self.sh.node(name, "CSGBox3D", self.shell, props)
+        return self.s.node(name, "CSGBox3D", parent, props)
+
+    def subtract_last(self):
+        """Makes the shell piece added last cut the others (duct insides, grille holes)."""
+        self.sh.nodes[-1][4]["operation"] = 2
 
     def occluder(self, x0, y0, z0, x1, y1, z1):
         if self.occluders is None:
@@ -429,12 +530,14 @@ class Poi:
         self.s.node("Occluder", "OccluderInstance3D", self.occluders,
                     {"position": V3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), "occluder": shape})
 
-    def light(self, x, y, z, rng=10.0, energy=1.0, color=(1.0, 0.93, 0.82)):
+    def light(self, x, y, z, rng=10.0, energy=1.0, color=(1.0, 0.93, 0.82), shadow=False):
         if self.lights is None:
             self.lights = self.s.node("Lights", "Node3D")
-        self.s.node("Light", "OmniLight3D", self.lights,
-                    {"position": V3(x, y, z), "light_color": Col(*color), "light_energy": energy,
-                     "omni_range": rng, "omni_attenuation": 0.8})
+        props = {"position": V3(x, y, z), "light_color": Col(*color), "light_energy": energy,
+                 "omni_range": rng, "omni_attenuation": 0.8}
+        if shadow:
+            props["shadow_enabled"] = True
+        self.s.node("Light", "OmniLight3D", self.lights, props)
 
     def label(self, text, x, y, z, size=96):
         self.s.node("Sign", "Label3D", ".", {"position": V3(x, y, z), "billboard": 1, "text": text,
@@ -482,6 +585,16 @@ def build_rooms():
             _, _, c, kind, w, sill, oh = o
             x, z = (c, line) if axis == "z" else (line, c)
             yaw = 0.0 if axis == "z" else deg(90)
+            if kind == "vent":
+                # A grille frame on each side that opens into a room (cosmetic, nothing in the middle).
+                for side in (-1, 1):
+                    probe = line + side * 0.15
+                    px, pz = (c, probe) if axis == "z" else (probe, c)
+                    if floor_at(px, pz) and not (axis == "z" and line == 30):
+                        face = line + side * WALL_T / 2
+                        gx, gz = (c, face) if axis == "z" else (face, c)
+                        yaw_g = (0 if side > 0 else 180) if axis == "z" else (90 if side > 0 else -90)
+                        model(p, "VentGrille", "vent_grille", (gx, sill, gz), yaw_g, fallback=(0.8, 0.7, 0.1))
             if kind == "vent" and sill < 0.01:
                 # Room floors stop at the wall's centre line: give the hole a floor on a side without a room.
                 for side in (-1, 1):
@@ -499,8 +612,10 @@ def build_rooms():
                          {"position": V3(x, 0, z), "rotation": V3(0, yaw, 0)}, instance=scn)
             elif kind == "window":
                 size = (w, oh, 0.06) if axis == "z" else (0.06, oh, w)
-                p.s.node("Window", "CSGBox3D", ".", {"position": V3(x, sill + oh / 2, z), "size": V3(*size),
-                                                     "material": p.mat(M_GLASS), "use_collision": True})
+                win = p.s.node("Window", "StaticBody3D", ".", {"position": V3(x, sill + oh / 2, z)})
+                p.s.node("Shape", "CollisionShape3D", win, {"shape": p.s.sub_res("BoxShape3D", {"size": V3(*size)})})
+                p.s.node("Glass", "MeshInstance3D", win, {"cast_shadow": 0, "mesh": p.s.sub_res(
+                    "BoxMesh", {"size": V3(*size), "material": MatRef(M_GLASS)})})
     for scene, axis, line, a, b, base, h, ops in EXTRA_WALLS:
         p = POIS[scene]
         for pa, pb, y0, y1 in cut_run(a, b, h, [(c, w, s, oh) for _, c, w, s, oh in ops]):
@@ -521,14 +636,147 @@ SCN_CONSOLE = "res://interactables/cctv/CctvConsole.tscn"
 SCN_BEACON = "res://levels/plant/props/AlarmBeacon.tscn"
 
 
+# --- Art (M7): generated models placed on the graybox layout ----------------------------------------
+# Gameplay collision stays the layout's simple boxes (solid()), separate from the art; each model is
+# placed (and for boxy props stretched) to fill its box. A model not generated yet falls back to a
+# plain box, so the level still builds before tools/blender/export_all.py has run.
+
+GEN_DIR = os.path.join(ROOT, "assets", "generated")
+MISSING = set()
+# Model sizes in Godot axes (x, height, z) when not rotated, for fill().
+NOMINAL = {
+    "crate": (1.0, 1.0, 1.0), "tank_horizontal": (2.0, 2.5, 3.0), "generator": (3.0, 2.0, 3.0),
+    "pump": (2.5, 1.6, 2.5), "valve_rack_4m": (2.0, 2.2, 4.0), "shelf_2m_a": (2.0, 2.4, 1.0),
+    "shelf_2m_b": (2.0, 2.4, 1.0), "pallet_flat": (0.75, 0.15, 2.0), "control_desk_6m": (6.0, 0.8, 1.0),
+    "cctv_desk_8m": (8.0, 0.8, 0.8), "donut_counter": (4.0, 0.9, 1.75), "coffee_station": (1.75, 1.4, 1.75),
+    "table_breakroom": (3.0, 0.75, 2.0), "lockers_6m": (6.0, 2.0, 0.6), "bench": (4.0, 0.45, 0.4),
+    "junk_pile": (1.5, 0.8, 2.0), "junk_pile_tall": (1.5, 1.2, 2.0), "barrels_cluster": (1.5, 1.0, 1.5),
+    "transformer": (2.4, 1.8, 2.4), "roof_fan": (2.5, 1.0, 2.5), "exhaust_stack": (1.2, 3.0, 1.2),
+    "vending_machine": (1.0, 2.0, 1.0),
+}
+
+
+def has_model(asset):
+    return os.path.exists(os.path.join(GEN_DIR, asset + ".glb"))
+
+
+# Moving parts (levels/plant/props/plant_prop.gd): asset -> (subsystem, motion, axis in the part's space)
+MOTION = {
+    "machine_ventilation": ("ventilation", "fan", (0, 0, 1)), "roof_fan": ("ventilation", "fan", (0, 1, 0)),
+    "machine_valves": ("valves", "wheels", (1, 0, 0)), "valve_rack_4m": ("valves", "wheels", (1, 0, 0)),
+    "machine_grid": ("grid", "switches", (1, 0, 0)), "turbine": ("turbine", "shaft", (1, 0, 0)),
+    "reactor_core": ("rods", "rods", (0, 1, 0)),
+}
+
+
+def model(p, name, asset, pos, yaw=0.0, scale=None, parent=".", fallback=(1.0, 1.0, 1.0)):
+    """An instance of assets/generated/<asset>.glb with its origin at `pos`, turned `yaw` degrees.
+    Models with moving parts (MOTION) get the PlantProp script."""
+    props = {"position": V3(*pos)}
+    if asset in MOTION and has_model(asset):
+        sid, motion, axis = MOTION[asset]
+        props.update({"script": p.s.ext_res("Script", "res://levels/plant/props/plant_prop.gd"),
+                      "subsystem_id": SN(sid), "motion": motion, "axis": V3(*axis)})
+    if yaw:
+        props["rotation"] = V3(0, deg(yaw), 0)
+    if scale is not None and any(abs(v - 1.0) > 1e-4 for v in scale):
+        props["scale"] = V3(*scale)
+    if not has_model(asset):
+        MISSING.add(asset)
+        size = tuple(f * (scale[i] if scale else 1.0) for i, f in enumerate(fallback))
+        props.pop("scale", None)
+        props["position"] = V3(pos[0], pos[1] + size[1] / 2, pos[2])
+        props["size"] = V3(*size)
+        props["material"] = MatRef(M_CONCRETE)
+        return p.s.node(name, "CSGBox3D", parent, props)
+    return p.s.node(name, None, parent, props, instance="res://assets/generated/%s.glb" % asset)
+
+
+def solid(p, x0, y0, z0, x1, y1, z1, parent=None):
+    """Gameplay collision: an axis-aligned box in the POI's PropCollision body (or under `parent`,
+    in its local space)."""
+    if parent is None:
+        if p.solids is None:
+            p.solids = p.s.node("PropCollision", "StaticBody3D")
+        parent = p.solids
+    shape = p.s.sub_res("BoxShape3D", {"size": V3(x1 - x0, y1 - y0, z1 - z0)})
+    p.s.node("Box", "CollisionShape3D", parent, {"position": V3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+                                                 "shape": shape})
+
+
+def solid_cylinder(p, x, y, z, radius, height, rot=(0, 0, 0)):
+    if p.solids is None:
+        p.solids = p.s.node("PropCollision", "StaticBody3D")
+    shape = p.s.sub_res("CylinderShape3D", {"radius": radius, "height": height})
+    props = {"position": V3(x, y, z), "shape": shape}
+    if any(rot):
+        props["rotation"] = V3(*rot)
+    p.s.node("Cylinder", "CollisionShape3D", p.solids, props)
+
+
+def fill(p, name, asset, x0, y0, z0, x1, y1, z1, yaw=0.0, collide=True, stretch=True):
+    """A boxy model filling the layout box (its collision), stretched to fit unless `stretch` is off.
+    `yaw` (a multiple of 90) turns the model's front (+Z) to face the room."""
+    if collide:
+        solid(p, x0, y0, z0, x1, y1, z1)
+    lx, ly, lz = NOMINAL[asset]
+    wx, wy, wz = x1 - x0, y1 - y0, z1 - z0
+    turned = round(yaw / 90.0) % 2 == 1
+    scale = (wz / lx, wy / ly, wx / lz) if turned else (wx / lx, wy / ly, wz / lz)
+    return model(p, name, asset, ((x0 + x1) / 2, y0, (z0 + z1) / 2), yaw, scale if stretch else None,
+                 fallback=(lx, ly, lz))
+
+
+def crate(p, x0, y0, z0, x1, y1, z1):
+    """A crate box; tall ones (> 1.6 m) become two crates stacked."""
+    h = y1 - y0
+    if h > 1.6:
+        fill(p, "Crate", "crate", x0, y0, z0, x1, y0 + h / 2, z1, collide=False)
+        fill(p, "Crate", "crate", x0 + 0.08, y0 + h / 2, z0 + 0.05, x1 - 0.05, y1, z1 - 0.08, yaw=90, collide=False)
+        solid(p, x0, y0, z0, x1, y1, z1)
+    else:
+        fill(p, "Crate", "crate", x0, y0, z0, x1, y1, z1)
+
+
+def Xf(x_col, y_col, z_col, origin):
+    """A Transform3D in the .tscn text form, which lists the basis by rows."""
+    rows = [(x_col[i], y_col[i], z_col[i]) for i in range(3)]
+    return "Transform3D(%s)" % ", ".join(fmt(float(v)) for v in [*rows[0], *rows[1], *rows[2], *origin])
+
+
+def pipe_run(p, name, x0, y0, z0, x1, y1, z1):
+    """A straight high pipe filling a long thin box: 2 m segments (pipe_2m runs along X), drawn as one
+    MultiMesh (levels/plant/props/prop_multimesh.gd)."""
+    solid(p, x0, y0, z0, x1, y1, z1)
+    along_x = (x1 - x0) >= (z1 - z0)
+    length = (x1 - x0) if along_x else (z1 - z0)
+    n = max(1, round(length / 2.0))
+    seg = length / n
+    k = seg / 2.0  # stretch each segment along the pipe to fill the run exactly
+    xforms = []
+    for i in range(n):
+        c = (x0 if along_x else z0) + (i + 0.5) * seg
+        pos = (c, (y0 + y1) / 2, (z0 + z1) / 2) if along_x else ((x0 + x1) / 2, (y0 + y1) / 2, c)
+        if along_x:
+            xforms.append(Xf((k, 0, 0), (0, 1, 0), (0, 0, 1), pos))
+        else:  # turned 90 degrees about Y: the model's X runs along -Z... either way along the run
+            xforms.append(Xf((0, 0, -k), (0, 1, 0), (1, 0, 0), pos))
+    if not has_model("pipe_2m"):
+        MISSING.add("pipe_2m")
+    p.s.node(name, "Node3D", ".", {"script": p.s.ext_res("Script", "res://levels/plant/props/prop_multimesh.gd"),
+                                   "model": "pipe_2m",
+                                   "transforms": Raw("Array[Transform3D]([%s])" % ", ".join(xforms))})
+
+
 def build_stations():
     for sid, scene, node, x, y, z, yaw, critical in STATIONS:
         p = POIS[scene]
         s = p.s
         st = s.node(node, "Node3D", ".", {"position": V3(x, y, z), "rotation": V3(0, deg(yaw), 0)})
-        s.node("Machine", "CSGBox3D", st, {"position": V3(0, 0.8, 0), "size": V3(2, 1.6, 2),
-                                           "material": p.mat(M_MACHINE), "use_collision": True})
-        s.node("Label", "Label3D", st, {"position": V3(0, 2.3, 0), "billboard": 1, "font_size": 56,
+        body = s.node("Body", "StaticBody3D", st)
+        solid(p, -1.0, 0.0, -1.0, 1.0, 1.6, 1.0, parent=body)
+        model(p, "Machine", "machine_" + sid, (0, 0, 0), parent=st, fallback=(2.0, 1.6, 2.0))
+        s.node("Label", "Label3D", st, {"position": V3(0, 2.6, 0), "billboard": 1, "font_size": 56,
                                         "outline_size": 12, "text": sid,
                                         "script": s.ext_res("Script", "res://levels/station_label.gd"),
                                         "subsystem_id": SN(sid)})
@@ -600,83 +848,84 @@ def ramp_z(p, name, z_low, z_high, y_low, y_high, x0, x1, mat):
 def build_props():
     # --- Reactor Hall: pool + core, L-shaped catwalk (north and west walls) at 4 m, stairs along the south wall.
     p = poi("ReactorHall")
-    p.box("PoolRim", -27.5, 0, -14.5, -20.5, 1.2, -7.5, p.mat(M_METAL))
+    p.box("PoolRim", -27.5, 0, -14.5, -20.5, 1.2, -7.5, p.mat(M_STRIPES))
     p.box("PoolWater", -27.2, 1.2, -14.2, -20.8, 1.25, -7.8, p.mat(M_GLOW))
-    p.s.node("Core", "CSGCylinder3D", p.shell, {"position": V3(-24, 4.7, -11), "radius": 1.8, "height": 7.0,
-                                                "sides": 16, "material": p.mat(M_GLOW)})
+    solid_cylinder(p, -24, 4.7, -11, 1.8, 7.0)
+    model(p, "ReactorCore", "reactor_core", (-24, 1.2, -11), fallback=(3.6, 7.0, 3.6))
     p.box("CatwalkNorth", -37.75, 3.8, -19.75, -10.25, 4.0, -19.75 + CATWALK_W, p.mat(M_METAL))
     p.box("CatwalkWest", -37.75, 3.8, -19.75, -37.75 + CATWALK_W, 4.0, -0.25, p.mat(M_METAL))
     ramp_x(p, "Stairs", -29.4, -36.25, 0.0, 4.0, -1.75, -0.25, p.mat(M_METAL))
-    p.box("Crate", -14.5, 0, -18.5, -13.0, 1.2, -17.0, p.mat(M_PROP))
-    p.box("Crate", -12.5, 0, -18.5, -11.0, 2.4, -17.0, p.mat(M_PROP))
-    p.box("Tank", -36.5, 0, -10.0, -34.5, 2.5, -7.0, p.mat(M_PIPE))
-    p.light(-24, 3.0, -11, 9.0, 1.6, (0.6, 1.0, 0.3))
+    crate(p, -14.5, 0, -18.5, -13.0, 1.2, -17.0)
+    crate(p, -12.5, 0, -18.5, -11.0, 2.4, -17.0)
+    fill(p, "Tank", "tank_horizontal", -36.5, 0, -10.0, -34.5, 2.5, -7.0)
+    p.light(-24, 2.2, -13.6, 9.0, 1.6, (0.6, 1.0, 0.3), shadow=True)
+    p.light(-24, 2.2, -8.4, 7.0, 1.0, (0.6, 1.0, 0.3))
     beacon(p, -24, 9.6, -2)
     p.label("REACTOR HALL", -24, 8.2, -11, 140)
 
     # --- Turbine Hall: turbine body, north catwalk at 3.5 m with stairs at both ends, crates up for rats.
     p = poi("TurbineHall")
-    p.box("TurbineBody", -2, 0, -12, 22, 3.0, -8, p.mat(M_MACHINE))
-    p.s.node("TurbineDrum", "CSGCylinder3D", p.shell, {"position": V3(10, 3.0, -10), "rotation": V3(0, 0, deg(90)),
-                                                       "radius": 2.0, "height": 22.0, "sides": 16, "material": p.mat(M_METAL)})
+    solid(p, -2, 0, -12, 22, 3.0, -8)
+    solid_cylinder(p, 10, 3.0, -10, 2.0, 22.0, (0, 0, deg(90)))
+    model(p, "Turbine", "turbine", (10, 0, -10), fallback=(24.0, 5.0, 4.0))
     p.box("Catwalk", -9.75, 3.3, -19.75, 33.75, 3.5, -19.75 + CATWALK_W, p.mat(M_METAL))
     ramp_z(p, "StairsWest", -12.0, -18.25, 0.0, 3.5, -9.75, -8.25, p.mat(M_METAL))
     ramp_z(p, "StairsEast", -12.0, -18.25, 0.0, 3.5, 32.25, 33.75, p.mat(M_METAL))
-    p.box("Crate", 3.0, 0, -16.0, 4.5, 1.2, -14.5, p.mat(M_PROP))
-    p.box("Crate", 3.0, 0, -18.0, 4.5, 2.4, -16.5, p.mat(M_PROP))
-    p.box("Generator", 25.0, 0, -14.0, 28.0, 2.0, -11.0, p.mat(M_PIPE))
-    p.box("Crate", -6.0, 0, -6.0, -4.5, 1.2, -4.5, p.mat(M_PROP))
+    crate(p, 3.0, 0, -16.0, 4.5, 1.2, -14.5)
+    crate(p, 3.0, 0, -18.0, 4.5, 2.4, -16.5)
+    fill(p, "Generator", "generator", 25.0, 0, -14.0, 28.0, 2.0, -11.0, stretch=False)
+    crate(p, -6.0, 0, -6.0, -4.5, 1.2, -4.5)
     beacon(p, 10, 7.6, -1)
     p.label("TURBINE HALL", 10, 6.6, -15, 140)
 
     # --- Pump House: pumps, a high pipe run rats can reach from a crate.
     p = poi("PumpHouse")
-    p.box("Pump", -51.0, 0, -16.5, -48.5, 1.6, -14.0, p.mat(M_PIPE))
-    p.box("Pump", -51.0, 0, -11.0, -48.5, 1.6, -8.5, p.mat(M_PIPE))
-    p.box("PipeHigh", -40.5, 1.9, -18.0, -39.9, 2.5, -7.5, p.mat(M_PIPE))
-    p.box("PipeHigh", -51.0, 1.9, -7.4, -40.5, 2.5, -6.8, p.mat(M_PIPE))
-    p.box("Crate", -41.6, 0, -9.5, -40.4, 1.0, -8.3, p.mat(M_PROP))
+    fill(p, "Pump", "pump", -51.0, 0, -16.5, -48.5, 1.6, -14.0, yaw=90, stretch=False)
+    fill(p, "Pump", "pump", -51.0, 0, -11.0, -48.5, 1.6, -8.5, yaw=90, stretch=False)
+    pipe_run(p, "PipeHigh", -40.5, 1.9, -18.0, -39.9, 2.5, -7.5)
+    pipe_run(p, "PipeHigh", -51.0, 1.9, -7.4, -40.5, 2.5, -6.8)
+    crate(p, -41.6, 0, -9.5, -40.4, 1.0, -8.3)
     beacon(p, -45, 3.7, -7)
     p.label("PUMP HOUSE", -45, 3.2, -14, 90)
 
     # --- Valve Corridor: a central valve rack splitting it into two lanes.
     p = poi("ValveCorridor")
-    p.box("ValveRack", -46.0, 0, 4.0, -44.0, 2.2, 16.0, p.mat(M_PIPE))
-    for vz in (6.0, 10.0, 14.0):
-        for vx, rot in ((-46.15, 90), (-43.85, 90)):
-            p.s.node("ValveWheel", "CSGCylinder3D", ".", {"position": V3(vx, 1.3, vz), "rotation": V3(0, 0, deg(rot)),
-                                                         "radius": 0.35, "height": 0.08, "material": p.mat(M_PROP)})
-    p.box("PipeHigh", -51.6, 2.6, -5.5, -51.0, 3.2, 25.5, p.mat(M_PIPE))
-    p.box("Crate", -40.5, 0, 17.5, -39.0, 1.0, 19.0, p.mat(M_PROP))
+    solid(p, -46.0, 0, 4.0, -44.0, 2.2, 16.0)
+    for i in range(3):
+        model(p, "ValveRack", "valve_rack_4m", (-45.0, 0, 6.0 + 4.0 * i), fallback=(2.0, 2.2, 4.0))
+    pipe_run(p, "PipeHigh", -51.6, 2.6, -5.5, -51.0, 3.2, 25.5)
+    crate(p, -40.5, 0, 17.5, -39.0, 1.0, 19.0)
     beacon(p, -45, 3.7, 20)
     p.label("VALVE CORRIDOR", -45, 3.2, 10, 90)
 
     # --- Storage: shelves (crates next to them let rats hop up), trap refill, spare keycard.
     p = poi("Storage")
-    for sz in (-16.0, -11.0):
-        p.box("Shelf", 39.0, 0, sz - 0.5, 45.0, 2.4, sz + 0.5, p.mat(M_METAL))
-        p.box("Shelf", 46.5, 0, sz - 0.5, 50.5, 2.4, sz + 0.5, p.mat(M_METAL))
-        p.box("Crate", 45.2, 0, sz - 0.6, 46.3, 1.2, sz + 0.6, p.mat(M_PROP))
+    for k, sz in enumerate((-16.0, -11.0)):
+        solid(p, 39.0, 0, sz - 0.5, 45.0, 2.4, sz + 0.5)
+        solid(p, 46.5, 0, sz - 0.5, 50.5, 2.4, sz + 0.5)
+        for i, sx in enumerate((40.0, 42.0, 44.0, 47.5, 49.5)):
+            model(p, "Shelf", "shelf_2m_" + "ab"[(i + k) % 2], (sx, 0, sz), 0 if k == 0 else 180, fallback=(2.0, 2.4, 1.0))
+        crate(p, 45.2, 0, sz - 0.6, 46.3, 1.2, sz + 0.6)
     pickup(p, "TrapRefill", "trap_refill", 35.0, 0.2, -16.5, 90)
     pickup(p, "SpareKeycard", "spare_keycard", 35.0, 0.45, -13.5, 90)
-    p.box("PickupTable", 34.25, 0, -18.0, 35.0, 0.25, -12.0, p.mat(M_PROP))
+    fill(p, "PickupTable", "pallet_flat", 34.25, 0, -18.0, 35.0, 0.25, -12.0)
     p.label("STORAGE", 43, 3.2, -8.5, 90)
 
     # --- Cage Room: two cages, crates for cover.
     p = poi("CageRoom")
     p.s.node("CageA", None, ".", {"position": V3(38.0, 0.5, 2.0), "rotation": V3(0, deg(90), 0)}, instance=SCN_CAGE)
     p.s.node("CageB", None, ".", {"position": V3(48.0, 0.5, 10.0), "rotation": V3(0, deg(-90), 0)}, instance=SCN_CAGE)
-    p.box("Crate", 43.0, 0, 5.0, 44.5, 1.2, 6.5, p.mat(M_PROP))
-    p.box("Crate", 40.0, 0, 15.0, 42.0, 1.0, 16.5, p.mat(M_PROP))
-    p.box("Crate", 47.0, 0, -2.0, 48.5, 1.2, -0.5, p.mat(M_PROP))
+    crate(p, 43.0, 0, 5.0, 44.5, 1.2, 6.5)
+    crate(p, 40.0, 0, 15.0, 42.0, 1.0, 16.5)
+    crate(p, 47.0, 0, -2.0, 48.5, 1.2, -0.5)
     beacon(p, 43, 3.7, 7)
     p.label("CAGE ROOM", 43, 3.2, 6, 90)
 
     # --- Control Room: desks (M6 consoles), CCTV chair facing the wall screens, the status board.
     p = poi("ControlRoom")
-    p.box("Desk", -9.0, 0, 5.5, -3.0, 0.8, 6.5, p.mat(M_METAL))
-    p.box("Desk", 1.0, 0, 5.5, 7.0, 0.8, 6.5, p.mat(M_METAL))
-    p.box("CctvDesk", -5.0, 0, 16.8, 3.0, 0.8, 17.6, p.mat(M_METAL))
+    fill(p, "Desk", "control_desk_6m", -9.0, 0, 5.5, -3.0, 0.8, 6.5)
+    fill(p, "Desk", "control_desk_6m", 1.0, 0, 5.5, 7.0, 0.8, 6.5)
+    fill(p, "CctvDesk", "cctv_desk_8m", -5.0, 0, 16.8, 3.0, 0.8, 17.6, yaw=180)
     p.s.node("CctvConsole", None, ".", {"position": V3(-1.0, 0, 15.6), "rotation": V3(0, deg(180), 0)},
              instance=SCN_CONSOLE)
     for i, (sx, cams) in enumerate(((-5.0, [1, 2, 3, 4]), (3.0, [5, 6, 7, 8]))):
@@ -687,19 +936,22 @@ def build_props():
     p.s.node("StatusBoard", "Node3D", ".", {
         "position": V3(-13.7, 2.1, 12.0), "rotation": V3(0, deg(90), 0),
         "script": p.s.ext_res("Script", "res://levels/plant/props/status_board.gd"), "size": V2(4.8, 2.7)})
-    p.s.node("ConsolesM6", "Marker3D", ".", {"position": V3(-2, 0, 6.5)})  # emergency coolant / SCRAM go here (M6)
+    for action, x, y, z in CONSOLES:
+        p.s.node("Console" + action.capitalize(), "Area3D", ".", {
+            "position": V3(x, y, z), "script": p.s.ext_res("Script", "res://interactables/console_action/console_action.gd"),
+            "action": action})
     beacon(p, -2, 3.7, 1.0)
     beacon(p, -2, 3.7, 18.5)
     p.label("CONTROL ROOM", -2, 3.3, 10, 90)
 
     # --- Break Room: supervisor spawn, donut counter, tables, coffee and vending machines.
     p = poi("BreakRoom")
-    p.box("DonutCounter", -16.0, 0, 12.0, -14.25, 0.9, 16.0, p.mat(M_PROP))
+    fill(p, "DonutCounter", "donut_counter", -16.0, 0, 12.0, -14.25, 0.9, 16.0, yaw=-90)
     pickup(p, "Donuts", "donut", -15.2, 1.0, 14.0, -90)
-    p.box("Table", -32.0, 0, 9.0, -29.0, 0.75, 11.0, p.mat(M_METAL))
-    p.box("Table", -32.0, 0, 15.0, -29.0, 0.75, 17.0, p.mat(M_METAL))
-    p.box("Vending", -37.75, 0, 7.0, -36.75, 2.0, 8.5, p.mat(M_MACHINE))
-    p.box("Coffee", -16.0, 0, 18.0, -14.25, 1.4, 19.75, p.mat(M_MACHINE))
+    fill(p, "Table", "table_breakroom", -32.0, 0, 9.0, -29.0, 0.75, 11.0)
+    fill(p, "Table", "table_breakroom", -32.0, 0, 15.0, -29.0, 0.75, 17.0)
+    fill(p, "Vending", "vending_machine", -37.75, 0, 7.0, -36.75, 2.0, 8.5, yaw=90, stretch=False)
+    fill(p, "Coffee", "coffee_station", -16.0, 0, 18.0, -14.25, 1.4, 19.75, yaw=-90)
     spawn(p, "Supervisor1", 1, -24.0, 0, 12.0, 0)
     spawn(p, "Supervisor2", 1, -28.0, 0, 12.0, 0)
     p.label("BREAK ROOM", -26, 3.2, 13, 90)
@@ -708,15 +960,15 @@ def build_props():
     p = poi("LockerRoom")
     for lx0, lx1 in ((13.0, 19.0), (25.0, 31.0)):
         for lz in (10.0, 16.0):
-            p.box("Lockers", lx0, 0, lz - 0.3, lx1, 2.0, lz + 0.3, p.mat(M_METAL))
-            p.box("Bench", lx0 + 1, 0, lz + 1.2, lx1 - 1, 0.45, lz + 1.6, p.mat(M_PROP))
+            fill(p, "Lockers", "lockers_6m", lx0, 0, lz - 0.3, lx1, 2.0, lz + 0.3)
+            fill(p, "Bench", "bench", lx0 + 1, 0, lz + 1.2, lx1 - 1, 0.45, lz + 1.6)
     p.label("LOCKER ROOM", 22, 3.2, 13, 90)
 
     # --- Corridors: a few obstacles, nothing in the door lanes.
     p = poi("Corridors")
-    p.box("Crate", -36.5, 0, 24.0, -35.0, 1.0, 25.5, p.mat(M_PROP))
-    p.box("Crate", 30.0, 0, 21.0, 31.2, 1.2, 22.2, p.mat(M_PROP))
-    p.box("PipeHigh", -37.5, 3.0, 24.9, 51.5, 3.5, 25.4, p.mat(M_PIPE))
+    crate(p, -36.5, 0, 24.0, -35.0, 1.0, 25.5)
+    crate(p, 30.0, 0, 21.0, 31.2, 1.2, 22.2)
+    pipe_run(p, "PipeHigh", -37.5, 3.0, 24.9, 51.5, 3.5, 25.4)
     beacon(p, -26, 3.7, 3)
     beacon(p, 22, 3.7, 3)
     beacon(p, 7, 3.7, 23)
@@ -724,8 +976,8 @@ def build_props():
     # --- Rat Nest: sealed sewer room (the only way out is the vent in the north wall).
     p = poi("RatNest")
     p.box("Sludge", -35.75, 0.0, 35.0, -24.25, 0.05, 39.75, p.mat(M_WATER))
-    p.box("Junk", -35.5, 0, 31.0, -34.0, 0.8, 33.0, p.mat(M_PROP))
-    p.box("Junk", -26.0, 0, 37.0, -24.5, 1.2, 39.0, p.mat(M_PROP))
+    fill(p, "Junk", "junk_pile", -35.5, 0, 31.0, -34.0, 0.8, 33.0)
+    fill(p, "Junk", "junk_pile_tall", -26.0, 0, 37.0, -24.5, 1.2, 39.0, yaw=180)
     for i, (x, z) in enumerate(((-32, 34), (-28, 34), (-32, 37), (-28, 37))):
         spawn(p, "Rat%d" % (i + 1), 2, x, 0, z, 0)
     p.light(-30, 2.4, 35, 9.0, 1.2, (0.5, 1.0, 0.4))
@@ -733,23 +985,18 @@ def build_props():
 
     # --- Yard: cooling tower (landmark), floodlights, crates, lobby spawns.
     p = poi("Yard")
-    p.s.node("CoolingTower", "CSGCylinder3D", p.shell, {"position": V3(-2, 11, -32), "radius": 6.0, "height": 22.0,
-                                                       "sides": 24, "material": p.mat(M_TOWER)})
-    p.box("Crate", -20.0, 0, -36.5, -18.5, 1.2, -35.0, p.mat(M_PROP))
-    p.box("Crate", 8.0, 0, -37.0, 10.0, 1.0, -35.5, p.mat(M_PROP))
-    p.box("Barrels", -24.0, 0, -31.0, -22.5, 1.0, -29.5, p.mat(M_PIPE))
+    solid_cylinder(p, -2, 11, -32, 6.0, 22.0)
+    model(p, "CoolingTower", "cooling_tower", (-2, 0, -32), fallback=(12.0, 22.0, 12.0))
+    crate(p, -20.0, 0, -36.5, -18.5, 1.2, -35.0)
+    crate(p, 8.0, 0, -37.0, 10.0, 1.0, -35.5)
+    fill(p, "Barrels", "barrels_cluster", -24.0, 0, -31.0, -22.5, 1.0, -29.5)
     for x, z in ((-40, -22), (-14, -24), (10, -24), (16, -34)):
         p.light(x, 5.0, z, 18.0, 1.4, (0.75, 0.85, 1.0))
     for i, (x, z) in enumerate(((18, -22), (18, -25), (18, -28), (14, -22), (14, -25), (14, -28))):
         spawn(p, "Spawn%d" % (i + 1), 0, x, 0, z, 90)
     # Ladder up the block's west face to the vent roof (supervisors and rats).
     lx, lz = LADDER_YARD
-    for dz in (-0.45, 0.45):
-        p.box("LadderRail", lx - 0.12, 0, lz + dz - 0.04, lx - 0.04, ROOF_Y + 1.0, lz + dz + 0.04, p.mat(M_LADDER),
-              parent=".")
-    for i in range(1, int(ROOF_Y / 0.35)):
-        p.box("LadderRung", lx - 0.1, i * 0.35, lz - 0.45, lx - 0.06, i * 0.35 + 0.04, lz + 0.45, p.mat(M_LADDER),
-              parent=".")
+    model(p, "LadderArt", "ladder_7m", (lx - 0.08, 0, lz), 90, fallback=(0.9, 7.0, 0.1))
     lad = p.s.node("Ladder", "Area3D", ".", {"position": V3(lx - 0.375, 0, lz), "rotation": V3(0, deg(-90), 0),
                                              "script": p.s.ext_res("Script", "res://interactables/ladder/ladder.gd")})
     p.s.node("Shape", "CollisionShape3D", lad, {"position": V3(0, (ROOF_Y + 1.0) / 2, 0),
@@ -758,11 +1005,12 @@ def build_props():
                                                   "navigation_layers": 3})
     p.label("YARD", -30, 4.0, -22, 90)
 
-    # --- Substation: transformers inside the fenced enclosure (puddles come in M6).
+    # --- Substation: transformers inside the fenced enclosure.
     p = poi("Substation")
     for x0, z0 in ((-50.0, -36.5), (-50.0, -28.0), (-36.0, -36.5)):
-        p.box("Transformer", x0, 0, z0, x0 + 2.4, 1.8, z0 + 2.4, p.mat(M_MACHINE))
-    p.box("Pylon", -34.5, 0, -27.5, -33.5, 1.0, -26.5, p.mat(M_METAL))
+        fill(p, "Transformer", "transformer", x0, 0, z0, x0 + 2.4, 1.8, z0 + 2.4, yaw=90, stretch=False)
+    solid(p, -34.5, 0, -27.5, -33.5, 2.5, -26.5)
+    model(p, "Pylon", "insulator_post", (-34.0, 0, -27.0), fallback=(1.0, 2.5, 1.0))
     beacon(p, -41, 3.0, -24.5)
     p.label("SUBSTATION", -41, 4.0, -33, 90)
 
@@ -771,12 +1019,169 @@ def build_props():
     bx0, bz0, bx1, bz1 = BLOCK
     p.box("Block", bx0, -0.5, bz0, bx1, ROOF_Y, bz1, p.floor_mat)
     p.occluder(bx0 + 0.2, 0, bz0 + 0.2, bx1 - 0.2, ROOF_Y - 0.2, bz1 - 0.2)
-    p.box("Fan", 28.0, ROOF_Y, -36.0, 30.5, ROOF_Y + 1.0, -33.5, p.mat(M_METAL))
-    p.box("Fan", 44.0, ROOF_Y, -25.0, 46.5, ROOF_Y + 1.0, -22.5, p.mat(M_METAL))
-    p.box("Stack", 47.0, ROOF_Y, -35.0, 48.2, ROOF_Y + 3.0, -33.8, p.mat(M_PIPE))
+    fill(p, "Fan", "roof_fan", 28.0, ROOF_Y, -36.0, 30.5, ROOF_Y + 1.0, -33.5, stretch=False)
+    fill(p, "Fan", "roof_fan", 44.0, ROOF_Y, -25.0, 46.5, ROOF_Y + 1.0, -22.5, stretch=False)
+    fill(p, "Stack", "exhaust_stack", 47.0, ROOF_Y, -35.0, 48.2, ROOF_Y + 3.0, -33.8, stretch=False)
     p.light(38, ROOF_Y + 4.0, -29, 16.0, 1.2, (0.75, 0.85, 1.0))
     beacon(p, 38, ROOF_Y + 2.6, -21)
     p.label("VENT ROOF", 38, ROOF_Y + 3.5, -32, 90)
+
+
+# Set dressing (M7): POI scene, model, x, y, z, yaw (deg; models face +Z), collision footprint
+# (sx, sz, height) centred on (x, z) or None. Kept against walls and out of the lanes; map_check.sh
+# verifies the paths afterwards.
+DRESSING = [
+    # Control Room
+    ("ControlRoom", "k_chair_desk", -7.5, 0, 7.3, 180, None), ("ControlRoom", "k_chair_desk", -4.5, 0, 7.4, 170, None),
+    ("ControlRoom", "k_chair_desk", 2.5, 0, 7.3, 190, None), ("ControlRoom", "k_chair_desk", 5.5, 0, 7.4, 180, None),
+    ("ControlRoom", "k_potted_plant", -13.2, 0, 19.2, 0, (0.6, 0.6, 1.2)), ("ControlRoom", "k_potted_plant", 9.2, 0, 19.2, 0, (0.6, 0.6, 1.2)),
+    ("ControlRoom", "water_cooler", 9.5, 0, 9.0, -90, (0.5, 0.5, 1.3)), ("ControlRoom", "k_trashcan", 9.4, 0, 16.5, 0, None),
+    ("ControlRoom", "whiteboard", 9.75, 1.0, 13.0, -90, None), ("ControlRoom", "wall_clock", 0.0, 3.2, 0.25, 0, None),
+    ("ControlRoom", "fire_extinguisher", -13.75, 1.0, 8.0, 90, None), ("ControlRoom", "k_coffee_cup", -6.3, 0.8, 5.8, 20, None),
+    ("ControlRoom", "k_mug", 4.6, 0.8, 5.75, -30, None), ("ControlRoom", "papers", 6.2, 0.8, 5.9, 10, None),
+    ("ControlRoom", "clipboard", -8.4, 0.8, 5.9, -15, None), ("ControlRoom", "donut_box", -3.6, 0.8, 5.95, 160, None),
+    # Break Room
+    ("BreakRoom", "chair", -31.5, 0, 8.4, 0, None), ("BreakRoom", "chair", -29.6, 0, 8.4, 10, None),
+    ("BreakRoom", "chair", -31.4, 0, 11.6, 180, None), ("BreakRoom", "chair", -29.5, 0, 11.6, 175, None),
+    ("BreakRoom", "chair", -31.5, 0, 14.4, 5, None), ("BreakRoom", "chair", -29.5, 0, 14.4, 0, None),
+    ("BreakRoom", "chair", -31.5, 0, 17.6, 180, None), ("BreakRoom", "chair", -29.6, 0, 17.6, 185, None),
+    ("BreakRoom", "k_fridge", -37.3, 0, 11.0, 90, (0.9, 0.9, 1.9)), ("BreakRoom", "k_sofa", -37.2, 0, 16.5, 90, (0.9, 1.9, 0.85)),
+    ("BreakRoom", "k_tv", -21.0, 0, 19.4, 180, (0.9, 0.6, 0.6)), ("BreakRoom", "k_plant_small", -14.6, 0.9, 11.4, 0, None),
+    ("BreakRoom", "k_pizza_box", -30.0, 0.75, 16.3, 25, None), ("BreakRoom", "donut", -31.0, 0.75, 9.7, 0, None),
+    ("BreakRoom", "k_soda_can", -30.2, 0.75, 9.6, 0, None), ("BreakRoom", "k_microwave", -15.0, 1.4, 19.2, -90, None),
+    ("BreakRoom", "k_trashcan", -17.0, 0, 6.6, 0, None), ("BreakRoom", "wet_floor_sign", -22.0, 0, 18.5, 30, None),
+    ("BreakRoom", "wall_clock", -26.0, 3.0, 19.75, 180, None),
+    # Locker Room
+    ("LockerRoom", "k_coat_rack", 33.0, 0, 7.2, 0, (0.6, 0.6, 1.8)), ("LockerRoom", "mop_bucket", 11.0, 0, 19.0, 45, None),
+    ("LockerRoom", "k_trashcan", 33.2, 0, 19.2, 0, None), ("LockerRoom", "k_box_open", 11.0, 0, 7.0, 15, None),
+    ("LockerRoom", "papers", 16.0, 0.45, 11.4, 0, None),
+    # Pump House
+    ("PumpHouse", "tank_vertical", -50.6, 0, -18.6, 0, (2.1, 2.1, 3.0)), ("PumpHouse", "toolbox", -47.0, 0, -6.9, 0, None),
+    ("PumpHouse", "warning_sign_radiation", -38.25, 2.0, -16.0, -90, None),
+    ("PumpHouse", "hazard_floor_tape", -45.0, 0.01, -13.0, 90, None),
+    # Valve Corridor
+    ("ValveCorridor", "wall_pipe_bundle", -51.75, 1.0, -1.0, 90, None), ("ValveCorridor", "wall_pipe_bundle", -51.75, 1.0, 20.0, 90, None),
+    ("ValveCorridor", "barrel_yellow", -51.0, 0, 24.6, 0, (0.7, 0.7, 0.9)), ("ValveCorridor", "barrel_blue", -51.1, 0, -5.0, 30, (0.7, 0.7, 0.9)),
+    ("ValveCorridor", "fire_extinguisher", -38.25, 1.0, 8.0, -90, None),
+    # Storage
+    ("Storage", "barrels_cluster", 50.8, 0, -7.4, 0, (1.5, 1.5, 1.0)), ("Storage", "k_box_large", 37.0, 0, -7.6, 10, (1.9, 1.9, 0.9)),
+    ("Storage", "cable_spool", 50.9, 0, -19.0, 0, (1.1, 1.1, 1.0)), ("Storage", "k_box_closed", 39.5, 0, -19.3, 25, None),
+    ("Storage", "k_box_closed", 40.2, 0, -19.4, -10, None), ("Storage", "radiation_vial_crate", 45.8, 1.2, -16.0, 0, None),
+    # Cage Room
+    ("CageRoom", "radiation_vial_crate", 50.8, 0, 18.8, -90, None), ("CageRoom", "toolbox", 35.0, 0, 18.9, 20, None),
+    ("CageRoom", "k_cheese", 43.8, 1.2, 5.8, 0, None), ("CageRoom", "warning_sign_radiation", 51.75, 2.0, 10.0, -90, None),
+    # Corridors
+    ("Corridors", "fire_extinguisher", -30.0, 1.0, 0.25, 0, None), ("Corridors", "fire_extinguisher", 26.0, 1.0, 0.25, 0, None),
+    ("Corridors", "fire_extinguisher", 0.0, 1.0, 25.75, 180, None), ("Corridors", "k_trashcan", -37.5, 0, 0.6, 0, None),
+    ("Corridors", "traffic_cone", 14.0, 0, 24.8, 0, None), ("Corridors", "traffic_cone", 15.0, 0, 25.1, 0, None),
+    ("Corridors", "wet_floor_sign", -15.5, 0, 22.0, 60, None), ("Corridors", "k_warning_post", 51.4, 0, 20.6, 0, None),
+    ("Corridors", "warning_sign_radiation", -10.0, 2.2, 25.75, 180, None),
+    ("Corridors", "warning_sign_high_voltage", 40.0, 2.2, 25.75, 180, None),
+    # Reactor Hall
+    ("ReactorHall", "radiation_vial_crate", -13.0, 0, -2.0, 30, None), ("ReactorHall", "barrel_yellow", -37.2, 0, -12.6, 0, (0.7, 0.7, 0.9)),
+    ("ReactorHall", "barrel_yellow", -36.4, 0, -13.4, 40, (0.7, 0.7, 0.9)),
+    ("ReactorHall", "warning_sign_radiation", -24.0, 0.6, -7.42, 0, None), ("ReactorHall", "warning_sign_radiation", -27.58, 0.6, -11.0, -90, None),
+    ("ReactorHall", "warning_sign_radiation", -20.42, 0.6, -11.0, 90, None),
+    # Turbine Hall
+    ("TurbineHall", "cable_spool", 30.5, 0, -2.0, 0, (1.1, 1.1, 1.0)), ("TurbineHall", "toolbox", 23.0, 0, -6.8, 0, None),
+    ("TurbineHall", "barrels_cluster", -8.6, 0, -2.0, 0, (1.5, 1.5, 1.0)), ("TurbineHall", "wall_pipe_bundle", 20.0, 1.0, -0.25, 180, None),
+    ("TurbineHall", "warning_sign_high_voltage", 26.5, 1.8, -14.0, 0, None),
+    # Yard
+    ("Yard", "floodlight", -40.0, 0, -21.2, 180, (0.5, 0.5, 5.0)), ("Yard", "floodlight", -14.0, 0, -21.2, 180, (0.5, 0.5, 5.0)),
+    ("Yard", "floodlight", 10.0, 0, -21.2, 180, (0.5, 0.5, 5.0)), ("Yard", "floodlight", 16.0, 0, -37.2, 0, (0.5, 0.5, 5.0)),
+    ("Yard", "trash_bags", -50.8, 0, -37.0, 0, None), ("Yard", "k_cone", -10.0, 0, -22.0, 0, None),
+    ("Yard", "k_cone", -9.2, 0, -22.4, 0, None), ("Yard", "k_barrel", 20.0, 0, -37.2, 0, (0.7, 0.7, 0.9)),
+    # Substation
+    ("Substation", "warning_sign_high_voltage", -30.25, 1.8, -27.0, 90, None),
+    ("Substation", "warning_sign_high_voltage", -45.0, 1.8, -24.25, 180, None),
+    ("Substation", "cable_spool", -51.0, 0, -25.4, 90, (1.1, 1.1, 1.0)),
+    # Vent Roof
+    ("VentRoof", "k_bucket", 33.0, ROOF_Y, -22.0, 0, None), ("VentRoof", "k_cone", 25.5, ROOF_Y, -37.0, 0, None),
+    ("VentRoof", "toolbox", 37.0, ROOF_Y, -26.5, 30, None),
+    # Rat Nest
+    ("RatNest", "rat_bed", -32.6, 0, 33.3, 20, None), ("RatNest", "rat_bed", -27.4, 0, 33.4, -15, None),
+    ("RatNest", "rat_bed", -32.7, 0, 38.0, 170, None), ("RatNest", "rat_bed", -27.2, 0, 38.1, 190, None),
+    ("RatNest", "k_cheese", -26.0, 0, 31.0, 30, None), ("RatNest", "trash_bags", -35.0, 0, 39.0, 0, None),
+    ("RatNest", "k_pizza_box", -30.0, 0, 39.3, 0, None), ("RatNest", "k_soda_can", -29.0, 0, 31.4, 0, None),
+    ("RatNest", "papers", -30.5, 0.05, 36.0, 40, None), ("RatNest", "donut", -29.4, 0.05, 35.7, 0, None),
+]
+
+
+def build_dressing():
+    for scene, asset, x, y, z, yaw, footprint in DRESSING:
+        p = POIS[scene]
+        model(p, "Dressing", asset, (x, y, z), yaw, fallback=(0.4, 0.4, 0.4))
+        if footprint:
+            sx, sz, h = footprint
+            if round(yaw / 90.0) % 2 == 1:
+                sx, sz = sz, sx
+            solid(p, x - sx / 2, y, z - sz / 2, x + sx / 2, y + h, z + sz / 2)
+
+
+# Ambient loops (M7): POI scene, Sfx sound name, x, y, z, volume (dB)
+AMBIENT = [
+    ("ReactorHall", "hum_reactor", -24.0, 2.0, -11.0, 0.0),
+    ("TurbineHall", "hum_turbine", 4.0, 2.0, -10.0, 0.0), ("TurbineHall", "hum_turbine", 20.0, 2.0, -10.0, -3.0),
+    ("PumpHouse", "hum_pump", -49.5, 1.0, -12.0, 0.0),
+    ("ValveCorridor", "hum_room", -45.0, 2.5, 10.0, -4.0),
+    ("Substation", "hum_electric", -46.0, 1.5, -32.0, 0.0), ("Substation", "hum_electric", -35.0, 1.5, -35.0, -4.0),
+    ("VentRoof", "fan", 29.25, ROOF_Y + 0.8, -34.75, 0.0), ("VentRoof", "fan", 45.25, ROOF_Y + 0.8, -23.75, 0.0),
+    ("Yard", "crickets", -25.0, 2.0, -32.0, 0.0), ("Yard", "crickets", 12.0, 2.0, -35.0, -3.0),
+    ("RatNest", "drip", -30.0, 1.5, 36.0, 0.0),
+    ("ControlRoom", "hum_room", -2.0, 2.5, 12.0, -6.0),
+    ("BreakRoom", "hum_room", -37.0, 1.5, 8.0, -8.0),
+    ("Storage", "hum_room", 43.0, 2.5, -13.0, -8.0),
+    ("CageRoom", "hum_room", 43.0, 2.5, 7.0, -8.0),
+    ("LockerRoom", "hum_room", 22.0, 2.5, 13.0, -10.0),
+]
+# Hall reverb (audio areas on PhysicsLayers.AUDIO): POI scene, (x0, y0, z0, x1, y1, z1), amount
+REVERB = [
+    ("ReactorHall", (-38, 0, -20, -10, 10, 0), 0.5),
+    ("TurbineHall", (-10, 0, -20, 34, 8, 0), 0.45),
+    ("PumpHouse", (-52, 0, -20, -38, 4, -6), 0.2),
+    ("ValveCorridor", (-52, 0, -6, -38, 4, 26), 0.2),
+]
+
+
+def build_audio():
+    for scene, sound, x, y, z, db in AMBIENT:
+        p = POIS[scene]
+        props = {"position": V3(x, y, z), "script": p.s.ext_res("Script", "res://levels/ambient_sound.gd"), "sound": sound}
+        if db:
+            props["volume_db"] = float(db)
+        p.s.node("Ambient", "Marker3D", ".", props)
+    for scene, (x0, y0, z0, x1, y1, z1), amount in REVERB:
+        p = POIS[scene]
+        area = p.s.node("Reverb", "Area3D", ".", {
+            "position": V3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), "collision_layer": 8, "collision_mask": 0,
+            "monitoring": False, "reverb_bus_enabled": True, "reverb_bus_name": SN("HallReverb"),
+            "reverb_bus_amount": float(amount), "reverb_bus_uniformity": 0.6})
+        p.s.node("Shape", "CollisionShape3D", area, {"shape": p.s.sub_res("BoxShape3D", {"size": V3(x1 - x0, y1 - y0, z1 - z0)})})
+
+
+def build_hazards():
+    def hazard(scene, name, script, x, y, z, yaw, sid, size, phase=0.0):
+        p = POIS[scene]
+        props = {"position": V3(x, y, z), "script": p.s.ext_res("Script", "res://hazards/" + script)}
+        if yaw:
+            props["rotation"] = V3(0, deg(yaw), 0)
+        if sid:
+            props["subsystem_id"] = SN(sid)
+        props["size"] = V3(*size)
+        if phase:
+            props["phase"] = float(phase)
+        p.s.node(name, "Area3D", ".", props)
+
+    for scene, sid, x, z, yaw, length, phase in STEAM_JETS:
+        hazard(scene, "SteamJet", "steam_jet/steam_jet.gd", x, 0, z, yaw, sid, (1.8, 1.6, length), phase)
+    for scene, sid, x, z, sx, sz, phase in PUDDLES:
+        hazard(scene, "ElectricPuddle", "electric_puddle/electric_puddle.gd", x, 0, z, 0, sid, (sx, 0.5, sz), phase)
+    for scene, sid, x, z, sx, sy, sz in RADIATION:
+        hazard(scene, "RadiationZone", "radiation_zone/radiation_zone.gd", x, 0, z, 0, sid, (sx, sy, sz))
+    for scene, sid, x, z, sx, sy, sz in DEBRIS:
+        hazard(scene, "DebrisZone", "debris/debris_zone.gd", x, 0, z, 0, sid, (sx, sy, sz))
+    for scene, (x, y, z), size in SMOKE:
+        hazard(scene, "Smoke", "smoke/smoke.gd", x, y, z, 0, "ventilation", size)
 
 
 # --- Vent network ----------------------------------------------------------------------------------
@@ -865,17 +1270,17 @@ def build_vents():
         rots.append((name + "Inside", ci, (length + 0.5, VENT_H, VENT_W), (0, 0, ang)))
         volumes.append((name, None, (ci, (length, VENT_H, VENT_W), (0, 0, ang))))
     for name, (a, b, c, d, e, f) in inners:
-        n = p.box(name + "Inside", a, b, c, d, e, f, duct_mat)
-        s.nodes[-1][4]["operation"] = 2
+        p.box(name + "Inside", a, b, c, d, e, f, duct_mat)
+        p.subtract_last()
     for name, ci, size, rot in rots:
         p.rotated_box(name, ci, size, rot, duct_mat)
-        s.nodes[-1][4]["operation"] = 2
+        p.subtract_last()
     for axis, line, c in DUCT_GRILLES:
         if axis == "x":
             p.box("Grille", line - 0.25, 0.0, c - VENT_W / 2, line + 0.25, VENT_H, c + VENT_W / 2, duct_mat)
         else:
             p.box("Grille", c - VENT_W / 2, 0.0, line - 0.25, c + VENT_W / 2, VENT_H, line + 0.25, duct_mat)
-        s.nodes[-1][4]["operation"] = 2
+        p.subtract_last()
     # Vent exits (where a rat comes out into a room): for the map check and, later, bots.
     exits = s.node("VentExits", "Node3D")
     for o in OPENINGS:
@@ -934,11 +1339,20 @@ def build_plant_root():
         "sun_angle_max": 1.0})
     sky = s.sub_res("Sky", {"sky_material": sky_mat})
     env = s.sub_res("Environment", {"background_mode": 2, "sky": sky, "ambient_light_source": 2,
-                                    "ambient_light_color": Col(0.55, 0.6, 0.75), "ambient_light_energy": 0.45,
-                                    "tonemap_mode": 2, "glow_enabled": True, "glow_bloom": 0.1})
+                                    "ambient_light_color": Col(0.62, 0.62, 0.7), "ambient_light_energy": 0.32,
+                                    "tonemap_mode": 2, "tonemap_exposure": 0.85, "tonemap_white": 1.6,
+                                    "ssao_enabled": True, "ssao_radius": 0.8, "ssao_intensity": 1.2,
+                                    "ssao_light_affect": 0.15,
+                                    "glow_enabled": True, "glow_intensity": 0.6, "glow_bloom": 0.04,
+                                    "glow_hdr_threshold": 0.9, "glow_blend_mode": 1,
+                                    "adjustment_enabled": True, "adjustment_saturation": 1.2,
+                                    "adjustment_contrast": 1.05})
     s.node("WorldEnvironment", "WorldEnvironment", ".", {"environment": env})
+    # The only shadow-casting lights (M7 performance budget): the moon (it also keeps moonlight out of
+    # the buildings) and the reactor's glow.
     s.node("Moon", "DirectionalLight3D", ".", {"rotation": V3(deg(-50), deg(30), 0), "light_color": Col(0.6, 0.7, 1.0),
-                                               "light_energy": 0.25, "sky_mode": 1})
+                                               "light_energy": 0.35, "sky_mode": 1, "shadow_enabled": True,
+                                               "directional_shadow_mode": 1, "directional_shadow_max_distance": 70.0})
     pois = s.node("POIs", "Node3D")
     for name in POI_ORDER:
         s.node(name, None, pois, instance="res://levels/plant/pois/%s.tscn" % name)
@@ -984,8 +1398,10 @@ def build_pois():
 
 def write_pois():
     os.makedirs(POI_DIR, exist_ok=True)
+    os.makedirs(SHELL_DIR, exist_ok=True)
     for name, p in POIS.items():
         p.s.write(os.path.join(POI_DIR, name + ".tscn"))
+        p.sh.write(os.path.join(SHELL_DIR, name + "Shell.tscn"))
 
 
 # --- The plan image ----------------------------------------------------------------------------------
@@ -1114,6 +1530,24 @@ def draw_plan():
             d.line([(a, b), (a + math.cos(ang) * length, b + math.sin(ang) * length)], fill=(120, 230, 255, 110), width=1)
         d.ellipse([a - 5, b - 5, a + 5, b + 5], fill=(120, 230, 255), outline=(10, 10, 10))
         d.text((a + 6, b + 4), str(number), fill=(120, 230, 255), font=font, stroke_width=2, stroke_fill=(0, 0, 0))
+    # Hazards (M6): jets as wedges, puddles, the radiation zone, the debris zone outline.
+    for scene, sid, x, z, yaw, length, phase in STEAM_JETS:
+        dx, dz = math.sin(math.radians(yaw)), math.cos(math.radians(yaw))
+        px, pz = -dz, dx
+        tip, l, r = P(x, z), P(x + dx * length + px * 0.9, z + dz * length + pz * 0.9), P(x + dx * length - px * 0.9, z + dz * length - pz * 0.9)
+        d.polygon([tip, l, r], fill=(235, 235, 255, 110), outline=(235, 235, 255))
+    for scene, sid, x, z, sx, sz, phase in PUDDLES:
+        rect(x - sx / 2, z - sz / 2, x + sx / 2, z + sz / 2, fill=(90, 150, 255, 150), outline=(150, 200, 255))
+    for scene, sid, x, z, sx, sy, sz in RADIATION:
+        rect(x - sx / 2, z - sz / 2, x + sx / 2, z + sz / 2, fill=(120, 255, 60, 45), outline=(140, 255, 80))
+    for scene, sid, x, z, sx, sy, sz in DEBRIS:
+        rect(x - sx / 2, z - sz / 2, x + sx / 2, z + sz / 2, outline=(255, 120, 60), width=2)
+        a, b = P(x - sx / 2 + 0.5, z + sz / 2 - 0.5)
+        d.text((a, b), "debris zone", fill=(255, 140, 80), font=small, anchor="lb")
+    for action, x, y, z in CONSOLES:
+        a, b = P(x, z)
+        d.rectangle([a - 5, b - 4, a + 5, b + 4], fill=(255, 70, 60) if action == "scram" else (80, 140, 255))
+        d.text((a, b + 6), action, fill=(255, 255, 255), font=small, anchor="ma", stroke_width=2, stroke_fill=(0, 0, 0))
     # Spawns, cages, pickups, console.
     marks = [((-24, 12), "S"), ((-28, 12), "S")] + [((x, z), "R") for x, z in ((-32, 34), (-28, 34), (-32, 37), (-28, 37))] \
         + [((x, z), "L") for x, z in ((18, -22), (18, -25), (18, -28), (14, -22), (14, -25), (14, -28))]
@@ -1152,6 +1586,9 @@ def draw_plan():
         ((240, 170, 255), "raised duct (dashed), ramp, shaft"), ((255, 200, 60), "station (subsystem)"),
         ((255, 80, 90), "critical station (2 levers)"), ((120, 230, 255), "CCTV camera + view"),
         ((255, 220, 80), "S supervisor spawn"), ((120, 255, 120), "R rat spawn"), ((230, 230, 230), "L lobby spawn"),
+        ((235, 235, 255), "steam jet (pumps, valves)"), ((90, 150, 255), "electric puddle (grid)"),
+        ((140, 255, 80), "radiation zone (rods)"), ((255, 120, 60), "debris zone (turbine)"),
+        ((255, 70, 60), "control room actions"),
     ]
     for col, text in legend:
         d.rectangle([lx, y + 2, lx + 18, y + 12], fill=col)
@@ -1187,10 +1624,16 @@ def main():
         build_stations()
         build_cameras()
         build_props()
+        build_hazards()
+        build_dressing()
+        build_audio()
         write_materials()
         write_pois()
         build_plant_root()
         print("wrote %d POI scenes, %d materials and Plant.tscn" % (len(POIS), len(MATERIALS)))
+        if MISSING:
+            print("models not generated yet (plain boxes instead): " + ", ".join(sorted(MISSING)))
+        print("next: bake the shells with `godot --headless -s tools/godot/bake_shells.gd`")
     draw_plan()
     print("wrote docs/map/plant_layout_v1.png (+ .json)")
 

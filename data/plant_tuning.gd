@@ -30,6 +30,17 @@ extends Resource
 @export var repair_amount := 35.0  ## hold repair
 @export var repair_hold_s := 6.0
 @export var reboot_hold_s := 3.0  ## needed first when health hit 0
+@export var minigame_repair_amount := 50.0  ## a won repair minigame (M6)
+@export var minigame_fail_amount := 10.0  ## a lost one still helps a little…
+@export var minigame_lockout_s := 3.0  ## …but locks that repair point for everyone this long
+@export var minigame_min_s := 3.0  ## the server refuses results that arrive faster (hacked clients)
+@export var minigame_max_s := 30.0  ## a minigame left open longer is cancelled
 
 @export_group("Control room")
-@export var scram_heat_factor := 0.5  ## heat_in multiplier while SCRAM is active (M5+)
+@export var scram_heat_factor := 0.5  ## heat_in multiplier while SCRAM is active
+@export var scram_duration_s := 30.0
+@export var scram_cooldown_s := 120.0
+@export var scram_time_penalty_s := 30  ## added to the match timer: the shift gets longer
+@export var coolant_amount := 150.0  ## emergency coolant: core_temp drops this much
+@export var coolant_cooldown_s := 90.0
+@export var coolant_min_grid_health := 25.0  ## the pumps need power

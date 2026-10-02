@@ -1,14 +1,28 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=38 format=3]
 
 [ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
-[ext_resource type="Material" path="res://levels/plant/materials/wall_breakroom.tres" id="2_wall_breakro"]
-[ext_resource type="Material" path="res://levels/plant/materials/floor_breakroom.tres" id="3_floor_breakr"]
+[ext_resource type="ArrayMesh" path="res://levels/plant/baked/BreakRoom_shell.res" id="2_breakroom_sh"]
+[ext_resource type="ConcavePolygonShape3D" path="res://levels/plant/baked/BreakRoom_shell_col.res" id="3_breakroom_sh"]
 [ext_resource type="PackedScene" path="res://interactables/door/KeycardDoor.tscn" id="4_keycarddoor"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_crate.tres" id="5_prop_crate"]
+[ext_resource type="PackedScene" path="res://assets/generated/donut_counter.glb" id="5_donut_counte"]
 [ext_resource type="Script" path="res://interactables/pickup/pickup.gd" id="6_pickup"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_metal.tres" id="7_prop_metal"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_machine.tres" id="8_prop_machine"]
-[ext_resource type="Script" path="res://levels/spawn_point.gd" id="9_spawn_point"]
+[ext_resource type="PackedScene" path="res://assets/generated/table_breakroom.glb" id="7_table_breakr"]
+[ext_resource type="PackedScene" path="res://assets/generated/vending_machine.glb" id="8_vending_mach"]
+[ext_resource type="PackedScene" path="res://assets/generated/coffee_station.glb" id="9_coffee_stati"]
+[ext_resource type="Script" path="res://levels/spawn_point.gd" id="10_spawn_point"]
+[ext_resource type="PackedScene" path="res://assets/generated/chair.glb" id="11_chair"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_fridge.glb" id="12_k_fridge"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_sofa.glb" id="13_k_sofa"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_tv.glb" id="14_k_tv"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_plant_small.glb" id="15_k_plant_smal"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_pizza_box.glb" id="16_k_pizza_box"]
+[ext_resource type="PackedScene" path="res://assets/generated/donut.glb" id="17_donut"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_soda_can.glb" id="18_k_soda_can"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_microwave.glb" id="19_k_microwave"]
+[ext_resource type="PackedScene" path="res://assets/generated/k_trashcan.glb" id="20_k_trashcan"]
+[ext_resource type="PackedScene" path="res://assets/generated/wet_floor_sign.glb" id="21_wet_floor_si"]
+[ext_resource type="PackedScene" path="res://assets/generated/wall_clock.glb" id="22_wall_clock"]
+[ext_resource type="Script" path="res://levels/ambient_sound.gd" id="23_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
 size = Vector3(10.75, 4, 0.24)
@@ -28,23 +42,42 @@ size = Vector3(0.24, 4, 6.25)
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_6"]
 size = Vector3(0.24, 4, 6.25)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(1.75, 0.9, 4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8"]
+size = Vector3(3, 0.75, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_9"]
+size = Vector3(3, 0.75, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_10"]
+size = Vector3(1, 2, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_11"]
+size = Vector3(1.75, 1.4, 1.75)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_12"]
+size = Vector3(0.9, 1.9, 0.9)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_13"]
+size = Vector3(1.9, 0.85, 0.9)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_14"]
+size = Vector3(0.9, 0.6, 0.6)
+
 [node name="BreakRoom" type="Node3D"]
 script = ExtResource("1_poi")
 display_name = "Break Room"
 bounds = Array[AABB]([AABB(-38, -1, 6, 24, 5, 14)])
 
-[node name="Shell" type="CSGCombiner3D" parent="."]
-use_collision = true
+[node name="Shell" type="StaticBody3D" parent="."]
 
-[node name="FloorBR" type="CSGBox3D" parent="Shell"]
-position = Vector3(-26, -0.25, 13)
-size = Vector3(24, 0.5, 14)
-material = ExtResource("3_floor_breakr")
+[node name="Mesh" type="MeshInstance3D" parent="Shell"]
+mesh = ExtResource("2_breakroom_sh")
 
-[node name="CeilingBR" type="CSGBox3D" parent="Shell"]
-position = Vector3(-26, 4.15, 13)
-size = Vector3(24, 0.3, 14)
-material = ExtResource("2_wall_breakro")
+[node name="Collision" type="CollisionShape3D" parent="Shell"]
+shape = ExtResource("3_breakroom_sh")
 
 [node name="Lights" type="Node3D" parent="."]
 
@@ -62,72 +95,27 @@ light_energy = 0.9
 omni_range = 8.8
 omni_attenuation = 0.8
 
-[node name="Wall" type="CSGBox3D" parent="Shell"]
-position = Vector3(-32.875, 2, 20)
-size = Vector3(10.75, 4, 0.5)
-material = ExtResource("2_wall_breakro")
-
 [node name="Occluders" type="Node3D" parent="."]
 
 [node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-32.875, 2, 20)
 occluder = SubResource("BoxOccluder3D_1")
 
-[node name="Wall2" type="CSGBox3D" parent="Shell"]
-position = Vector3(-26, 3.5, 20)
-size = Vector3(3, 1, 0.5)
-material = ExtResource("2_wall_breakro")
-
-[node name="Wall3" type="CSGBox3D" parent="Shell"]
-position = Vector3(-19.125, 2, 20)
-size = Vector3(10.75, 4, 0.5)
-material = ExtResource("2_wall_breakro")
-
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-19.125, 2, 20)
 occluder = SubResource("BoxOccluder3D_2")
-
-[node name="Wall4" type="CSGBox3D" parent="Shell"]
-position = Vector3(-29.875, 2, 6)
-size = Vector3(16.75, 4, 0.5)
-material = ExtResource("2_wall_breakro")
 
 [node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-29.875, 2, 6)
 occluder = SubResource("BoxOccluder3D_3")
 
-[node name="Wall5" type="CSGBox3D" parent="Shell"]
-position = Vector3(-20, 3.5, 6)
-size = Vector3(3, 1, 0.5)
-material = ExtResource("2_wall_breakro")
-
-[node name="Wall6" type="CSGBox3D" parent="Shell"]
-position = Vector3(-16.125, 2, 6)
-size = Vector3(4.75, 4, 0.5)
-material = ExtResource("2_wall_breakro")
-
 [node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-16.125, 2, 6)
 occluder = SubResource("BoxOccluder3D_4")
 
-[node name="Wall7" type="CSGBox3D" parent="Shell"]
-position = Vector3(-38, 2, 8.875)
-size = Vector3(0.5, 4, 6.25)
-material = ExtResource("2_wall_breakro")
-
 [node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-38, 2, 8.875)
 occluder = SubResource("BoxOccluder3D_5")
-
-[node name="Wall8" type="CSGBox3D" parent="Shell"]
-position = Vector3(-38, 3.3, 13)
-size = Vector3(0.5, 1.4, 2)
-material = ExtResource("2_wall_breakro")
-
-[node name="Wall9" type="CSGBox3D" parent="Shell"]
-position = Vector3(-38, 2, 17.125)
-size = Vector3(0.5, 4, 6.25)
-material = ExtResource("2_wall_breakro")
 
 [node name="Occluder6" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-38, 2, 17.125)
@@ -137,10 +125,15 @@ occluder = SubResource("BoxOccluder3D_6")
 position = Vector3(-38, 0, 13)
 rotation = Vector3(0, 1.5708, 0)
 
-[node name="DonutCounter" type="CSGBox3D" parent="Shell"]
+[node name="PropCollision" type="StaticBody3D" parent="."]
+
+[node name="Box" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-15.125, 0.45, 14)
-size = Vector3(1.75, 0.9, 4)
-material = ExtResource("5_prop_crate")
+shape = SubResource("BoxShape3D_7")
+
+[node name="DonutCounter" parent="." instance=ExtResource("5_donut_counte")]
+position = Vector3(-15.125, 0, 14)
+rotation = Vector3(0, -1.5708, 0)
 
 [node name="Donuts" type="Area3D" parent="."]
 position = Vector3(-15.2, 1, 14)
@@ -148,36 +141,46 @@ rotation = Vector3(0, -1.5708, 0)
 script = ExtResource("6_pickup")
 item = "donut"
 
-[node name="Table" type="CSGBox3D" parent="Shell"]
+[node name="Box2" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-30.5, 0.375, 10)
-size = Vector3(3, 0.75, 2)
-material = ExtResource("7_prop_metal")
+shape = SubResource("BoxShape3D_8")
 
-[node name="Table2" type="CSGBox3D" parent="Shell"]
+[node name="Table" parent="." instance=ExtResource("7_table_breakr")]
+position = Vector3(-30.5, 0, 10)
+
+[node name="Box3" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-30.5, 0.375, 16)
-size = Vector3(3, 0.75, 2)
-material = ExtResource("7_prop_metal")
+shape = SubResource("BoxShape3D_9")
 
-[node name="Vending" type="CSGBox3D" parent="Shell"]
+[node name="Table2" parent="." instance=ExtResource("7_table_breakr")]
+position = Vector3(-30.5, 0, 16)
+
+[node name="Box4" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-37.25, 1, 7.75)
-size = Vector3(1, 2, 1.5)
-material = ExtResource("8_prop_machine")
+shape = SubResource("BoxShape3D_10")
 
-[node name="Coffee" type="CSGBox3D" parent="Shell"]
+[node name="Vending" parent="." instance=ExtResource("8_vending_mach")]
+position = Vector3(-37.25, 0, 7.75)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Box5" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-15.125, 0.7, 18.875)
-size = Vector3(1.75, 1.4, 1.75)
-material = ExtResource("8_prop_machine")
+shape = SubResource("BoxShape3D_11")
+
+[node name="Coffee" parent="." instance=ExtResource("9_coffee_stati")]
+position = Vector3(-15.125, 0, 18.875)
+rotation = Vector3(0, -1.5708, 0)
 
 [node name="Supervisor1" type="Marker3D" parent="."]
 position = Vector3(-24, 0, 12)
 rotation = Vector3(0, 0, 0)
-script = ExtResource("9_spawn_point")
+script = ExtResource("10_spawn_point")
 role = 1
 
 [node name="Supervisor2" type="Marker3D" parent="."]
 position = Vector3(-28, 0, 12)
 rotation = Vector3(0, 0, 0)
-script = ExtResource("9_spawn_point")
+script = ExtResource("10_spawn_point")
 role = 1
 
 [node name="Sign" type="Label3D" parent="."]
@@ -186,3 +189,91 @@ billboard = 1
 text = "BREAK ROOM"
 font_size = 90
 outline_size = 18
+
+[node name="Dressing" parent="." instance=ExtResource("11_chair")]
+position = Vector3(-31.5, 0, 8.4)
+
+[node name="Dressing2" parent="." instance=ExtResource("11_chair")]
+position = Vector3(-29.6, 0, 8.4)
+rotation = Vector3(0, 0.1745, 0)
+
+[node name="Dressing3" parent="." instance=ExtResource("11_chair")]
+position = Vector3(-31.4, 0, 11.6)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Dressing4" parent="." instance=ExtResource("11_chair")]
+position = Vector3(-29.5, 0, 11.6)
+rotation = Vector3(0, 3.0543, 0)
+
+[node name="Dressing5" parent="." instance=ExtResource("11_chair")]
+position = Vector3(-31.5, 0, 14.4)
+rotation = Vector3(0, 0.0873, 0)
+
+[node name="Dressing6" parent="." instance=ExtResource("11_chair")]
+position = Vector3(-29.5, 0, 14.4)
+
+[node name="Dressing7" parent="." instance=ExtResource("11_chair")]
+position = Vector3(-31.5, 0, 17.6)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Dressing8" parent="." instance=ExtResource("11_chair")]
+position = Vector3(-29.6, 0, 17.6)
+rotation = Vector3(0, 3.2289, 0)
+
+[node name="Dressing9" parent="." instance=ExtResource("12_k_fridge")]
+position = Vector3(-37.3, 0, 11)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Box6" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(-37.3, 0.95, 11)
+shape = SubResource("BoxShape3D_12")
+
+[node name="Dressing10" parent="." instance=ExtResource("13_k_sofa")]
+position = Vector3(-37.2, 0, 16.5)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Box7" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(-37.2, 0.425, 16.5)
+shape = SubResource("BoxShape3D_13")
+
+[node name="Dressing11" parent="." instance=ExtResource("14_k_tv")]
+position = Vector3(-21, 0, 19.4)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Box8" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(-21, 0.3, 19.4)
+shape = SubResource("BoxShape3D_14")
+
+[node name="Dressing12" parent="." instance=ExtResource("15_k_plant_smal")]
+position = Vector3(-14.6, 0.9, 11.4)
+
+[node name="Dressing13" parent="." instance=ExtResource("16_k_pizza_box")]
+position = Vector3(-30, 0.75, 16.3)
+rotation = Vector3(0, 0.4363, 0)
+
+[node name="Dressing14" parent="." instance=ExtResource("17_donut")]
+position = Vector3(-31, 0.75, 9.7)
+
+[node name="Dressing15" parent="." instance=ExtResource("18_k_soda_can")]
+position = Vector3(-30.2, 0.75, 9.6)
+
+[node name="Dressing16" parent="." instance=ExtResource("19_k_microwave")]
+position = Vector3(-15, 1.4, 19.2)
+rotation = Vector3(0, -1.5708, 0)
+
+[node name="Dressing17" parent="." instance=ExtResource("20_k_trashcan")]
+position = Vector3(-17, 0, 6.6)
+
+[node name="Dressing18" parent="." instance=ExtResource("21_wet_floor_si")]
+position = Vector3(-22, 0, 18.5)
+rotation = Vector3(0, 0.5236, 0)
+
+[node name="Dressing19" parent="." instance=ExtResource("22_wall_clock")]
+position = Vector3(-26, 3, 19.75)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Ambient" type="Marker3D" parent="."]
+position = Vector3(-37, 1.5, 8)
+script = ExtResource("23_ambient_soun")
+sound = "hum_room"
+volume_db = -8

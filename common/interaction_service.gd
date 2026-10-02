@@ -41,6 +41,11 @@ func _ready() -> void:
 			_rate.forget(peer_id))
 
 
+## Server: end `peer_id`'s hold without telling it (it just asked for something else, a minigame).
+func stop_hold(peer_id: int) -> void:
+	_end(peer_id, "started a minigame", true, false)
+
+
 ## Server: is `peer_id` holding something right now?
 func is_holding(peer_id: int) -> bool:
 	return _holds.has(peer_id)

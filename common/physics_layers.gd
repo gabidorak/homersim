@@ -5,3 +5,4 @@ extends RefCounted
 const WORLD := 1  ## layer 1: level geometry
 const PLAYERS := 2  ## layer 2: player bodies
 const TRIGGERS := 4  ## layer 3: trigger areas (vents, later interactables)
+const AUDIO := 8  ## layer 4: audio areas (hall reverb); only sound players look for them

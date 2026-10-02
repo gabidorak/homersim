@@ -1,0 +1,62 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://levels/plant/materials/floor_breakroom.tres" id="1_floor_breakr"]
+[ext_resource type="Material" path="res://levels/plant/materials/wall_breakroom.tres" id="2_wall_breakro"]
+
+[node name="BreakRoomShell" type="CSGCombiner3D"]
+use_collision = true
+
+[node name="FloorBR" type="CSGBox3D" parent="."]
+position = Vector3(-26, -0.25, 13)
+size = Vector3(24, 0.5, 14)
+material = ExtResource("1_floor_breakr")
+
+[node name="CeilingBR" type="CSGBox3D" parent="."]
+position = Vector3(-26, 4.15, 13)
+size = Vector3(24, 0.3, 14)
+material = ExtResource("2_wall_breakro")
+
+[node name="Wall" type="CSGBox3D" parent="."]
+position = Vector3(-32.875, 2, 20)
+size = Vector3(10.75, 4, 0.5)
+material = ExtResource("2_wall_breakro")
+
+[node name="Wall2" type="CSGBox3D" parent="."]
+position = Vector3(-26, 3.5, 20)
+size = Vector3(3, 1, 0.5)
+material = ExtResource("2_wall_breakro")
+
+[node name="Wall3" type="CSGBox3D" parent="."]
+position = Vector3(-19.125, 2, 20)
+size = Vector3(10.75, 4, 0.5)
+material = ExtResource("2_wall_breakro")
+
+[node name="Wall4" type="CSGBox3D" parent="."]
+position = Vector3(-29.875, 2, 6)
+size = Vector3(16.75, 4, 0.5)
+material = ExtResource("2_wall_breakro")
+
+[node name="Wall5" type="CSGBox3D" parent="."]
+position = Vector3(-20, 3.5, 6)
+size = Vector3(3, 1, 0.5)
+material = ExtResource("2_wall_breakro")
+
+[node name="Wall6" type="CSGBox3D" parent="."]
+position = Vector3(-16.125, 2, 6)
+size = Vector3(4.75, 4, 0.5)
+material = ExtResource("2_wall_breakro")
+
+[node name="Wall7" type="CSGBox3D" parent="."]
+position = Vector3(-38, 2, 8.875)
+size = Vector3(0.5, 4, 6.25)
+material = ExtResource("2_wall_breakro")
+
+[node name="Wall8" type="CSGBox3D" parent="."]
+position = Vector3(-38, 3.3, 13)
+size = Vector3(0.5, 1.4, 2)
+material = ExtResource("2_wall_breakro")
+
+[node name="Wall9" type="CSGBox3D" parent="."]
+position = Vector3(-38, 2, 17.125)
+size = Vector3(0.5, 4, 6.25)
+material = ExtResource("2_wall_breakro")

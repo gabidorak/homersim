@@ -23,6 +23,7 @@ var core_temp := 300.0
 var meltdown := 0.0
 var cooldowns := PackedFloat32Array()  ## seconds left, not absolute times (clocks differ per machine)
 var offline_mask := 0  ## bit i = subsystem i needs a reboot
+var scram_left := 0.0  ## seconds of SCRAM left (0 = none)
 var alarm := PlantModel.Alarm.NORMAL:
 	set(value):
 		if value != alarm:
@@ -116,10 +117,43 @@ func reboot(index: int, peers: Array[int] = []) -> bool:
 	return true
 
 
+## Control room: emergency coolant, core_temp −coolant_amount. The caller checks cooldown and grid.
+func emergency_coolant() -> void:
+	var before := _model.core_temp
+	_model.emergency_coolant(tuning.coolant_amount)
+	_publish()
+	Log.info("plant", "emergency coolant: core %d -> %d" % [roundi(before), roundi(_model.core_temp)])
+
+
+## Control room: partial SCRAM, heat ×scram_heat_factor for scram_duration_s.
+func scram() -> void:
+	_model.scram(_now(), tuning.scram_duration_s)
+	_publish()
+	Log.info("plant", "SCRAM for %d s" % roundi(tuning.scram_duration_s))
+
+
 ## The swarm bonus (MatchManager): straight onto the meltdown meter.
 func add_meltdown(amount: float) -> void:
 	_model.add_meltdown(amount)
 	_publish()
+
+
+## Test-only (Session.request_debug_plant): "health" of subsystem `id`, or "core_temp". Returns false
+## for anything else.
+func debug_set(what: String, id: StringName, value: float) -> bool:
+	match what:
+		"health":
+			var i := index_of(id)
+			if i == -1:
+				return false
+			_model.healths[i] = clampf(value, 0.0, tuning.max_health)
+			_model.offline[i] = _model.healths[i] <= 0.0
+		"core_temp":
+			_model.core_temp = clampf(value, tuning.min_temp, tuning.max_temp)
+		_:
+			return false
+	_publish()
+	return true
 
 
 func _on_tick() -> void:
@@ -140,6 +174,7 @@ func _publish() -> void:
 			mask |= 1 << i
 	cooldowns = left
 	offline_mask = mask
+	scram_left = snappedf(_model.scram_left(_now()), 0.1)
 	alarm = _model.alarm_state()
 
 

@@ -7,6 +7,10 @@ extends Node3D
 var body: Player
 var camera: Camera3D
 
+const SHAKE_DECAY := 6.0  ## per second
+const SHAKE_MAX_ANGLE := 0.035  ## radians at strength 1
+var _shake := 0.0
+
 
 func _ready() -> void:
 	body = get_parent()
@@ -25,6 +29,25 @@ func _ready() -> void:
 	# Only one window can grab the mouse; with several clients open, the others wait for a click.
 	if get_window().has_focus():
 		_capture_mouse(true)
+
+
+## Local only: a short camera shake (Vfx.shake), strength 0..1, decaying quickly. It only turns the
+## camera node itself a little (the rigs never rotate it), so aiming and the rigs are untouched.
+func shake(strength: float) -> void:
+	_shake = clampf(maxf(_shake, strength), 0.0, 1.0)
+
+
+func _apply_shake(delta: float) -> void:
+	if camera == null:
+		return
+	if _shake <= 0.001:
+		if camera.rotation != Vector3.ZERO:
+			camera.rotation = Vector3.ZERO
+		return
+	_shake = maxf(_shake - SHAKE_DECAY * delta * _shake - delta * 0.2, 0.0)
+	var t := Time.get_ticks_msec() / 1000.0
+	var k := _shake * _shake * SHAKE_MAX_ANGLE
+	camera.rotation = Vector3(sin(t * 53.0) * k, cos(t * 41.0) * k * 0.6, sin(t * 47.0) * k)
 
 
 ## Yaw (radians, world) that WASD is relative to.

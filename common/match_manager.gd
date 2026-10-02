@@ -18,6 +18,9 @@ extends Node
 ##
 ## Test-only server flags (debug builds): --test-duration S (match length), --result-file PATH
 ## (JSON summary written when the match ends), --exit-after-match (quit right after that).
+## With --allow-debug, bots report the end of their scenario (request_debug_done): once every
+## player in the match has, the timer runs out at once, so a test doesn't wait for its full
+## --test-duration.
 
 enum State { LOBBY, ROLE_ASSIGN, COUNTDOWN, PLAYING, POST_MATCH }
 
@@ -26,7 +29,8 @@ const EXIT_DELAY_S := 1.5
 ## Nodes in this group get reset_for_match() at every match start (server): CCTV cameras, the chair.
 const RESET_GROUP := "match_reset"
 ## Per-player counters in the result (same order as the post-match columns).
-const STAT_KEYS: Array[String] = ["sabotages", "repairs", "catches", "frees", "bites", "knockdowns", "steals"]
+const STAT_KEYS: Array[String] = ["sabotages", "repairs", "catches", "frees", "bites", "knockdowns", "steals",
+	"hazard_hits"]
 
 signal state_changed(state: State)
 signal roster_changed
@@ -44,6 +48,7 @@ var state := State.LOBBY:
 			Events.match_state_changed.emit(state)
 var countdown_left := 0  ## whole seconds left in COUNTDOWN or POST_MATCH
 var time_left := 0  ## whole seconds left in PLAYING
+var time_added := 0  ## seconds added to this match's timer (SCRAM penalties), for the HUD
 var min_players := 3  ## copied from the rules so the lobby UI can show it
 ## peer id -> {"name": String, "pref": Role.Kind, "ready": bool, "role": Role.Kind, "eliminated": bool}
 var roster: Dictionary = {}:
@@ -52,7 +57,7 @@ var roster: Dictionary = {}:
 		roster_changed.emit()
 ## The last match's outcome, set when POST_MATCH starts:
 ## {"winner": MatchRulesModel.Team, "reason": String, "stats": Array of
-##  {"name", "role", "sabotages", "repairs", "catches", "frees", "bites", "knockdowns", "steals"}}
+##  {"name", "role", and one count per STAT_KEYS}}
 var result: Dictionary = {}
 
 # --- Server only ----------------------------------------------------------------
@@ -71,6 +76,7 @@ var _swarm_ready_at_ms := 0
 var _swarm_was_down := false
 var _state_path: Array[String] = []  # every state entered, for the test result file
 var _events: Array[String] = []  # plant events this match, for the test result file
+var _bots_done: Dictionary[int, bool] = {}  # peers whose test scenario is over (request_debug_done)
 
 @onready var session: Session = get_parent()
 
@@ -148,6 +154,26 @@ func request_set_ready(is_ready: bool) -> void:
 		return
 	_update_entry(peer, "ready", is_ready)
 	_check_start()
+
+
+## Test-only (bots): the sender's scenario is over. Refused unless Session.debug_allowed().
+@rpc("any_peer", "reliable")
+func request_debug_done() -> void:
+	if not multiplayer.is_server():
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	if not Session.debug_allowed() or not roster.has(peer):
+		Log.warn("match", "refused a debug done from peer %d" % peer)
+		return
+	if state != State.PLAYING:
+		return  # the match already ended by itself (every rat caught…)
+	_bots_done[peer] = true
+	Log.info("match", "%s finished its test scenario" % roster[peer]["name"])
+	for p: int in roster:
+		if roster[p]["role"] in [Role.Kind.SUPERVISOR, Role.Kind.RAT] and not _bots_done.has(p):
+			return
+	Log.info("match", "every bot is done: the timer runs out now")
+	_match_end_ms = mini(_match_end_ms, Time.get_ticks_msec())
 
 
 # --- Server ------------------------------------------------------------------------
@@ -236,6 +262,7 @@ func _begin_playing() -> void:
 	_team_started = {Role.Kind.SUPERVISOR: _count_role(Role.Kind.SUPERVISOR), Role.Kind.RAT: _count_role(Role.Kind.RAT)}
 	_stats.clear()
 	_events.clear()
+	_bots_done.clear()
 	for peer: int in roster:
 		var role: Role.Kind = roster[peer]["role"]
 		if role == Role.Kind.SUPERVISOR or role == Role.Kind.RAT:
@@ -249,6 +276,7 @@ func _begin_playing() -> void:
 	if OS.is_debug_build() and Cli.has_arg("test-duration"):
 		duration = maxi(Cli.get_int("test-duration", duration), 1)
 	time_left = duration
+	time_added = 0
 	_match_end_ms = Time.get_ticks_msec() + duration * 1000
 	session.plant.running = true
 	Log.info("match", "playing for %d s" % duration)
@@ -299,6 +327,17 @@ func _win_state(ms_left: int) -> Dictionary:
 func add_stat(peer: int, key: String, amount: int = 1) -> void:
 	if state == State.PLAYING and _stats.has(peer) and _stats[peer].has(key):
 		_stats[peer][key] += amount
+
+
+## Server (SCRAM): the shift gets `seconds` longer.
+func extend_time(seconds: int) -> void:
+	if state != State.PLAYING:
+		return
+	_match_end_ms += seconds * 1000
+	time_added += seconds
+	time_left = maxi(ceili((_match_end_ms - Time.get_ticks_msec()) / 1000.0), 0)
+	_events.append("timer +%d s" % seconds)
+	Log.info("match", "timer +%d s (%d s left)" % [seconds, time_left])
 
 
 ## Server (CaptureService): `peer`'s rat is out of the match. Its body goes; it spectates and

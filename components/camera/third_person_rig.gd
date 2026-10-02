@@ -44,6 +44,7 @@ func _look(delta: Vector2) -> void:
 
 
 func _process(delta: float) -> void:
+	_apply_shake(delta)
 	# The rig is a child of the body, so cancel the body's own turning to keep the camera's yaw.
 	rotation.y = _yaw - body.rotation.y
 	in_vent = VentVolume.contains(body)

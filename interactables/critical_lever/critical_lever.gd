@@ -15,8 +15,10 @@ var partner: CriticalLever
 var _leader := false
 var _pair_s := 0.0  # leader, server: seconds both levers were held together
 
-@onready var _handle: Node3D = get_node_or_null("Pivot")
+@onready var _handle: Node3D = Art.part(get_node_or_null("Model"), "Handle")
 @onready var _light: OmniLight3D = get_node_or_null("Light")
+
+var _clunked := false
 
 
 func _init() -> void:
@@ -99,10 +101,14 @@ func _publish() -> void:
 	holder_count = holders.size()  # progress is set by the leader
 
 
-# Cosmetic: the handle tilts with progress; red light while cooling down.
+# Cosmetic: the handle tilts with progress (with a clunk when it gets there); red light while
+# cooling down.
 func _process(_delta: float) -> void:
 	if _handle != null:
-		_handle.rotation.x = lerpf(-0.6, 0.6, progress)
+		_handle.rotation.x = lerpf(-0.6, 0.7, progress)
+		if progress >= 0.99 and not _clunked:
+			Sfx.play_at(self, "lever", _handle.global_position)
+		_clunked = progress >= 0.99 if progress >= 0.99 or progress < 0.5 else _clunked
 	if _light != null and index != -1:
 		var cooling := _plant().cooldown_left(index) > 0.0
 		_light.light_color = Color(1, 0.15, 0.1) if cooling else (Color(1, 0.85, 0.2) if holder_count > 0 else Color(0.3, 1, 0.4))

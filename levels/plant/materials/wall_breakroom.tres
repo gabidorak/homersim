@@ -1,10 +1,17 @@
-[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/third_party/kenney_prototype/light_01.png" id="1_tex"]
+[ext_resource type="Shader" path="res://shaders/toon_world.gdshader" id="1_shader"]
 
 [resource]
-albedo_texture = ExtResource("1_tex")
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-uv1_triplanar = true
-uv1_world_triplanar = true
-albedo_color = Color(0.92, 0.66, 0.72, 1)
+shader = ExtResource("1_shader")
+shader_parameter/pattern = 0
+shader_parameter/base_color = Color(0.8006, 0.7937, 0.7696, 1)
+shader_parameter/trim_color = Color(0.9098, 0.2902, 0.3725, 1)
+shader_parameter/line_color = Color(0.1059, 0.1059, 0.1216, 1)
+shader_parameter/line_strength = 0.3
+shader_parameter/cell = Vector2(2, 2.6)
+shader_parameter/band_low = 0.02
+shader_parameter/band_high = 0.14
+shader_parameter/band_soft = 0.09
+shader_parameter/shade_mid = 0.66
+shader_parameter/rim_strength = 0

@@ -31,11 +31,23 @@ sky_material = SubResource("ProceduralSkyMaterial_1")
 background_mode = 2
 sky = SubResource("Sky_2")
 ambient_light_source = 2
-ambient_light_color = Color(0.55, 0.6, 0.75, 1)
-ambient_light_energy = 0.45
+ambient_light_color = Color(0.62, 0.62, 0.7, 1)
+ambient_light_energy = 0.32
 tonemap_mode = 2
+tonemap_exposure = 0.85
+tonemap_white = 1.6
+ssao_enabled = true
+ssao_radius = 0.8
+ssao_intensity = 1.2
+ssao_light_affect = 0.15
 glow_enabled = true
-glow_bloom = 0.1
+glow_intensity = 0.6
+glow_bloom = 0.04
+glow_hdr_threshold = 0.9
+glow_blend_mode = 1
+adjustment_enabled = true
+adjustment_saturation = 1.2
+adjustment_contrast = 1.05
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_4"]
 size = Vector3(300, 52, 300)
@@ -93,8 +105,11 @@ environment = SubResource("Environment_3")
 [node name="Moon" type="DirectionalLight3D" parent="."]
 rotation = Vector3(-0.8727, 0.5236, 0)
 light_color = Color(0.6, 0.7, 1, 1)
-light_energy = 0.25
+light_energy = 0.35
 sky_mode = 1
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 70
 
 [node name="POIs" type="Node3D" parent="."]
 

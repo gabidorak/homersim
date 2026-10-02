@@ -1,16 +1,25 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
-[ext_resource type="Material" path="res://levels/plant/materials/wall_valvecorridor.tres" id="2_wall_valveco"]
-[ext_resource type="Material" path="res://levels/plant/materials/floor_valvecorridor.tres" id="3_floor_valvec"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_machine.tres" id="4_prop_machine"]
-[ext_resource type="Script" path="res://levels/station_label.gd" id="5_station_labe"]
-[ext_resource type="PackedScene" path="res://interactables/repair_point/RepairPoint.tscn" id="6_repairpoint"]
-[ext_resource type="PackedScene" path="res://interactables/sabotage_point/SabotagePoint.tscn" id="7_sabotagepoin"]
-[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="8_cctvcamera"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_pipe.tres" id="9_prop_pipe"]
-[ext_resource type="Material" path="res://levels/plant/materials/prop_crate.tres" id="10_prop_crate"]
-[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="11_alarmbeacon"]
+[ext_resource type="ArrayMesh" path="res://levels/plant/baked/ValveCorridor_shell.res" id="2_valvecorrido"]
+[ext_resource type="ConcavePolygonShape3D" path="res://levels/plant/baked/ValveCorridor_shell_col.res" id="3_valvecorrido"]
+[ext_resource type="PackedScene" path="res://assets/generated/vent_grille.glb" id="4_vent_grille"]
+[ext_resource type="Script" path="res://levels/plant/props/plant_prop.gd" id="5_plant_prop"]
+[ext_resource type="PackedScene" path="res://assets/generated/machine_valves.glb" id="6_machine_valv"]
+[ext_resource type="Script" path="res://levels/station_label.gd" id="7_station_labe"]
+[ext_resource type="PackedScene" path="res://interactables/repair_point/RepairPoint.tscn" id="8_repairpoint"]
+[ext_resource type="PackedScene" path="res://interactables/sabotage_point/SabotagePoint.tscn" id="9_sabotagepoin"]
+[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="10_cctvcamera"]
+[ext_resource type="PackedScene" path="res://assets/generated/valve_rack_4m.glb" id="11_valve_rack_4"]
+[ext_resource type="Script" path="res://levels/plant/props/prop_multimesh.gd" id="12_prop_multime"]
+[ext_resource type="PackedScene" path="res://assets/generated/crate.glb" id="13_crate"]
+[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="14_alarmbeacon"]
+[ext_resource type="Script" path="res://hazards/steam_jet/steam_jet.gd" id="15_steam_jet"]
+[ext_resource type="PackedScene" path="res://assets/generated/wall_pipe_bundle.glb" id="16_wall_pipe_bu"]
+[ext_resource type="PackedScene" path="res://assets/generated/barrel_yellow.glb" id="17_barrel_yello"]
+[ext_resource type="PackedScene" path="res://assets/generated/barrel_blue.glb" id="18_barrel_blue"]
+[ext_resource type="PackedScene" path="res://assets/generated/fire_extinguisher.glb" id="19_fire_extingu"]
+[ext_resource type="Script" path="res://levels/ambient_sound.gd" id="20_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
 size = Vector3(0.24, 4, 7.9)
@@ -24,23 +33,39 @@ size = Vector3(0.24, 4, 5.9)
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
 size = Vector3(14.5, 4, 0.24)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_5"]
+size = Vector3(2, 1.6, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6"]
+size = Vector3(2, 2.2, 12)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(0.6, 0.6, 31)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8"]
+size = Vector3(1.5, 1, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_9"]
+size = Vector3(0.7, 0.9, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_10"]
+size = Vector3(0.7, 0.9, 0.7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_11"]
+size = Vector3(14, 4, 32)
+
 [node name="ValveCorridor" type="Node3D"]
 script = ExtResource("1_poi")
 display_name = "Valve Corridor"
 bounds = Array[AABB]([AABB(-52, -1, -6, 14, 5, 32)])
 
-[node name="Shell" type="CSGCombiner3D" parent="."]
-use_collision = true
+[node name="Shell" type="StaticBody3D" parent="."]
 
-[node name="FloorVC" type="CSGBox3D" parent="Shell"]
-position = Vector3(-45, -0.25, 10)
-size = Vector3(14, 0.5, 32)
-material = ExtResource("3_floor_valvec")
+[node name="Mesh" type="MeshInstance3D" parent="Shell"]
+mesh = ExtResource("2_valvecorrido")
 
-[node name="CeilingVC" type="CSGBox3D" parent="Shell"]
-position = Vector3(-45, 4.15, 10)
-size = Vector3(14, 0.3, 32)
-material = ExtResource("2_wall_valveco")
+[node name="Collision" type="CollisionShape3D" parent="Shell"]
+shape = ExtResource("3_valvecorrido")
 
 [node name="Lights" type="Node3D" parent="."]
 
@@ -65,89 +90,27 @@ light_energy = 0.9
 omni_range = 8.8
 omni_attenuation = 0.8
 
-[node name="Wall" type="CSGBox3D" parent="Shell"]
-position = Vector3(-38, 2, 0.375)
-size = Vector3(0.5, 4, 1.25)
-material = ExtResource("2_wall_valveco")
-
-[node name="Wall2" type="CSGBox3D" parent="Shell"]
-position = Vector3(-38, 3.5, 3)
-size = Vector3(0.5, 1, 4)
-material = ExtResource("2_wall_valveco")
-
-[node name="Wall3" type="CSGBox3D" parent="Shell"]
-position = Vector3(-38, 2, 5.625)
-size = Vector3(0.5, 4, 1.25)
-material = ExtResource("2_wall_valveco")
-
-[node name="Wall4" type="CSGBox3D" parent="Shell"]
-position = Vector3(-38, 2, 20.375)
-size = Vector3(0.5, 4, 1.25)
-material = ExtResource("2_wall_valveco")
-
-[node name="Wall5" type="CSGBox3D" parent="Shell"]
-position = Vector3(-38, 3.5, 23)
-size = Vector3(0.5, 1, 4)
-material = ExtResource("2_wall_valveco")
-
-[node name="Wall6" type="CSGBox3D" parent="Shell"]
-position = Vector3(-38, 2, 25.625)
-size = Vector3(0.5, 4, 1.25)
-material = ExtResource("2_wall_valveco")
-
-[node name="Wall7" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52, 2, -2.3)
-size = Vector3(0.5, 4, 7.9)
-material = ExtResource("2_wall_valveco")
-
 [node name="Occluders" type="Node3D" parent="."]
 
 [node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-52, 2, -2.3)
 occluder = SubResource("BoxOccluder3D_1")
 
-[node name="Wall8" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52, 2.3, 2)
-size = Vector3(0.5, 3.4, 0.7)
-material = ExtResource("2_wall_valveco")
-
-[node name="Wall9" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52, 2, 11)
-size = Vector3(0.5, 4, 17.3)
-material = ExtResource("2_wall_valveco")
-
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-52, 2, 11)
 occluder = SubResource("BoxOccluder3D_2")
-
-[node name="Wall10" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52, 2.3, 20)
-size = Vector3(0.5, 3.4, 0.7)
-material = ExtResource("2_wall_valveco")
-
-[node name="Wall11" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52, 2, 23.3)
-size = Vector3(0.5, 4, 5.9)
-material = ExtResource("2_wall_valveco")
 
 [node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-52, 2, 23.3)
 occluder = SubResource("BoxOccluder3D_3")
 
-[node name="VentSill" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52.125, -0.25, 2)
-size = Vector3(0.25, 0.5, 0.7)
-material = ExtResource("3_floor_valvec")
+[node name="VentGrille" parent="." instance=ExtResource("4_vent_grille")]
+position = Vector3(-51.75, 0, 2)
+rotation = Vector3(0, 1.5708, 0)
 
-[node name="VentSill2" type="CSGBox3D" parent="Shell"]
-position = Vector3(-52.125, -0.25, 20)
-size = Vector3(0.25, 0.5, 0.7)
-material = ExtResource("3_floor_valvec")
-
-[node name="Wall12" type="CSGBox3D" parent="Shell"]
-position = Vector3(-45, 2, 26)
-size = Vector3(14.5, 4, 0.5)
-material = ExtResource("2_wall_valveco")
+[node name="VentGrille2" parent="." instance=ExtResource("4_vent_grille")]
+position = Vector3(-51.75, 0, 20)
+rotation = Vector3(0, 1.5708, 0)
 
 [node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(-45, 2, 26)
@@ -157,36 +120,43 @@ occluder = SubResource("BoxOccluder3D_4")
 position = Vector3(-45, 0, 0)
 rotation = Vector3(0, 3.1416, 0)
 
-[node name="Machine" type="CSGBox3D" parent="CoolantValves"]
+[node name="Body" type="StaticBody3D" parent="CoolantValves"]
+
+[node name="Box" type="CollisionShape3D" parent="CoolantValves/Body"]
 position = Vector3(0, 0.8, 0)
-size = Vector3(2, 1.6, 2)
-material = ExtResource("4_prop_machine")
-use_collision = true
+shape = SubResource("BoxShape3D_5")
+
+[node name="Machine" parent="CoolantValves" instance=ExtResource("6_machine_valv")]
+position = Vector3(0, 0, 0)
+script = ExtResource("5_plant_prop")
+subsystem_id = &"valves"
+motion = "wheels"
+axis = Vector3(1, 0, 0)
 
 [node name="Label" type="Label3D" parent="CoolantValves"]
-position = Vector3(0, 2.3, 0)
+position = Vector3(0, 2.6, 0)
 billboard = 1
 font_size = 56
 outline_size = 12
 text = "valves"
-script = ExtResource("5_station_labe")
+script = ExtResource("7_station_labe")
 subsystem_id = &"valves"
 
-[node name="RepairPoint" parent="CoolantValves" instance=ExtResource("6_repairpoint")]
+[node name="RepairPoint" parent="CoolantValves" instance=ExtResource("8_repairpoint")]
 position = Vector3(0, 1, 1.3)
 subsystem_id = &"valves"
 
-[node name="SabotageA" parent="CoolantValves" instance=ExtResource("7_sabotagepoin")]
+[node name="SabotageA" parent="CoolantValves" instance=ExtResource("9_sabotagepoin")]
 position = Vector3(-1.3, 0.3, 0)
 rotation = Vector3(0, -1.5708, 0)
 subsystem_id = &"valves"
 
-[node name="SabotageB" parent="CoolantValves" instance=ExtResource("7_sabotagepoin")]
+[node name="SabotageB" parent="CoolantValves" instance=ExtResource("9_sabotagepoin")]
 position = Vector3(1.3, 0.3, 0)
 rotation = Vector3(0, 1.5708, 0)
 subsystem_id = &"valves"
 
-[node name="Camera4" parent="." instance=ExtResource("8_cctvcamera")]
+[node name="Camera4" parent="." instance=ExtResource("10_cctvcamera")]
 position = Vector3(-41, 0.4, -5.4)
 rotation = Vector3(0, 0, 0)
 number = 4
@@ -195,64 +165,51 @@ lens_height = 3
 lens_pitch_deg = 18
 lens_yaw_deg = -30
 
-[node name="ValveRack" type="CSGBox3D" parent="Shell"]
+[node name="PropCollision" type="StaticBody3D" parent="."]
+
+[node name="Box" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-45, 1.1, 10)
-size = Vector3(2, 2.2, 12)
-material = ExtResource("9_prop_pipe")
+shape = SubResource("BoxShape3D_6")
 
-[node name="ValveWheel" type="CSGCylinder3D" parent="."]
-position = Vector3(-46.15, 1.3, 6)
-rotation = Vector3(0, 0, 1.5708)
-radius = 0.35
-height = 0.08
-material = ExtResource("10_prop_crate")
+[node name="ValveRack" parent="." instance=ExtResource("11_valve_rack_4")]
+position = Vector3(-45, 0, 6)
+script = ExtResource("5_plant_prop")
+subsystem_id = &"valves"
+motion = "wheels"
+axis = Vector3(1, 0, 0)
 
-[node name="ValveWheel2" type="CSGCylinder3D" parent="."]
-position = Vector3(-43.85, 1.3, 6)
-rotation = Vector3(0, 0, 1.5708)
-radius = 0.35
-height = 0.08
-material = ExtResource("10_prop_crate")
+[node name="ValveRack2" parent="." instance=ExtResource("11_valve_rack_4")]
+position = Vector3(-45, 0, 10)
+script = ExtResource("5_plant_prop")
+subsystem_id = &"valves"
+motion = "wheels"
+axis = Vector3(1, 0, 0)
 
-[node name="ValveWheel3" type="CSGCylinder3D" parent="."]
-position = Vector3(-46.15, 1.3, 10)
-rotation = Vector3(0, 0, 1.5708)
-radius = 0.35
-height = 0.08
-material = ExtResource("10_prop_crate")
+[node name="ValveRack3" parent="." instance=ExtResource("11_valve_rack_4")]
+position = Vector3(-45, 0, 14)
+script = ExtResource("5_plant_prop")
+subsystem_id = &"valves"
+motion = "wheels"
+axis = Vector3(1, 0, 0)
 
-[node name="ValveWheel4" type="CSGCylinder3D" parent="."]
-position = Vector3(-43.85, 1.3, 10)
-rotation = Vector3(0, 0, 1.5708)
-radius = 0.35
-height = 0.08
-material = ExtResource("10_prop_crate")
-
-[node name="ValveWheel5" type="CSGCylinder3D" parent="."]
-position = Vector3(-46.15, 1.3, 14)
-rotation = Vector3(0, 0, 1.5708)
-radius = 0.35
-height = 0.08
-material = ExtResource("10_prop_crate")
-
-[node name="ValveWheel6" type="CSGCylinder3D" parent="."]
-position = Vector3(-43.85, 1.3, 14)
-rotation = Vector3(0, 0, 1.5708)
-radius = 0.35
-height = 0.08
-material = ExtResource("10_prop_crate")
-
-[node name="PipeHigh" type="CSGBox3D" parent="Shell"]
+[node name="Box2" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-51.3, 2.9, 10)
-size = Vector3(0.6, 0.6, 31)
-material = ExtResource("9_prop_pipe")
+shape = SubResource("BoxShape3D_7")
 
-[node name="Crate" type="CSGBox3D" parent="Shell"]
+[node name="PipeHigh" type="Node3D" parent="."]
+script = ExtResource("12_prop_multime")
+model = "pipe_2m"
+transforms = Array[Transform3D]([Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, -4.5312), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, -2.5938), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, -0.6562), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 1.2812), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 3.2188), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 5.1562), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 7.0938), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 9.0312), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 10.9688), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 12.9062), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 14.8438), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 16.7812), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 18.7188), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 20.6562), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 22.5938), Transform3D(0, 0, 1, 0, 1, 0, -0.9688, 0, 0, -51.3, 2.9, 24.5312)])
+
+[node name="Box3" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-39.75, 0.5, 18.25)
-size = Vector3(1.5, 1, 1.5)
-material = ExtResource("10_prop_crate")
+shape = SubResource("BoxShape3D_8")
 
-[node name="AlarmBeacon" parent="." instance=ExtResource("11_alarmbeacon")]
+[node name="Crate" parent="." instance=ExtResource("13_crate")]
+position = Vector3(-39.75, 0, 18.25)
+scale = Vector3(1.5, 1, 1.5)
+
+[node name="AlarmBeacon" parent="." instance=ExtResource("14_alarmbeacon")]
 position = Vector3(-45, 3.7, 20)
 
 [node name="Sign" type="Label3D" parent="."]
@@ -261,3 +218,72 @@ billboard = 1
 text = "VALVE CORRIDOR"
 font_size = 90
 outline_size = 18
+
+[node name="SteamJet" type="Area3D" parent="."]
+position = Vector3(-46.1, 0, 8)
+script = ExtResource("15_steam_jet")
+rotation = Vector3(0, -1.5708, 0)
+subsystem_id = &"valves"
+size = Vector3(1.8, 1.6, 4)
+
+[node name="SteamJet2" type="Area3D" parent="."]
+position = Vector3(-43.9, 0, 12)
+script = ExtResource("15_steam_jet")
+rotation = Vector3(0, 1.5708, 0)
+subsystem_id = &"valves"
+size = Vector3(1.8, 1.6, 4)
+phase = 3
+
+[node name="SteamJet3" type="Area3D" parent="."]
+position = Vector3(-46.1, 0, 14)
+script = ExtResource("15_steam_jet")
+rotation = Vector3(0, -1.5708, 0)
+subsystem_id = &"valves"
+size = Vector3(1.8, 1.6, 4)
+phase = 1.5
+
+[node name="Dressing" parent="." instance=ExtResource("16_wall_pipe_bu")]
+position = Vector3(-51.75, 1, -1)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Dressing2" parent="." instance=ExtResource("16_wall_pipe_bu")]
+position = Vector3(-51.75, 1, 20)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Dressing3" parent="." instance=ExtResource("17_barrel_yello")]
+position = Vector3(-51, 0, 24.6)
+
+[node name="Box4" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(-51, 0.45, 24.6)
+shape = SubResource("BoxShape3D_9")
+
+[node name="Dressing4" parent="." instance=ExtResource("18_barrel_blue")]
+position = Vector3(-51.1, 0, -5)
+rotation = Vector3(0, 0.5236, 0)
+
+[node name="Box5" type="CollisionShape3D" parent="PropCollision"]
+position = Vector3(-51.1, 0.45, -5)
+shape = SubResource("BoxShape3D_10")
+
+[node name="Dressing5" parent="." instance=ExtResource("19_fire_extingu")]
+position = Vector3(-38.25, 1, 8)
+rotation = Vector3(0, -1.5708, 0)
+
+[node name="Ambient" type="Marker3D" parent="."]
+position = Vector3(-45, 2.5, 10)
+script = ExtResource("20_ambient_soun")
+sound = "hum_room"
+volume_db = -4
+
+[node name="Reverb" type="Area3D" parent="."]
+position = Vector3(-45, 2, 10)
+collision_layer = 8
+collision_mask = 0
+monitoring = false
+reverb_bus_enabled = true
+reverb_bus_name = &"HallReverb"
+reverb_bus_amount = 0.2
+reverb_bus_uniformity = 0.6
+
+[node name="Shape" type="CollisionShape3D" parent="Reverb"]
+shape = SubResource("BoxShape3D_11")

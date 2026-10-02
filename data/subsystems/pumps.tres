@@ -10,3 +10,4 @@ short_name = "PMP"
 heat_weight = 2.5
 critical = false
 hazard_kind = 2
+minigame = "wrench_rhythm"
