@@ -26,7 +26,7 @@ bot() {  # bot <log name> <args...>
 		> "$LOGS/$log.log" 2>&1 &
 }
 
-timeout -s KILL 70 "$GODOT" --headless --max-fps 120 -- --server --no-heatmap --port "$PORT" --config "$LOGS/server.cfg" \
+timeout -s KILL 70 "$GODOT" --headless --max-fps 120 -- --server --no-heatmap --no-lan --port "$PORT" --config "$LOGS/server.cfg" \
 	--allow-debug --test-duration 40 --exit-after-match --result-file "$RESULT" \
 	> "$LOGS/server.log" 2>&1 &
 SERVER=$!

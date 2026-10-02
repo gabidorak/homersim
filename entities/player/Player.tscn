@@ -74,6 +74,7 @@ script = ExtResource("5_abilities")
 script = ExtResource("6_inventory")
 
 [node name="NameTag" type="Label3D" parent="."]
+auto_translate_mode = 2
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, 0)
 billboard = 1
 text = "Player"
@@ -81,6 +82,7 @@ font_size = 40
 outline_size = 10
 
 [node name="StatusTag" type="Label3D" parent="."]
+auto_translate_mode = 2
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 0)
 visible = false
 billboard = 1

@@ -14,10 +14,12 @@ extends Node
 ## must load the same one, so the join handshake compares them.
 ##
 ## Join flow:
-##   client connects ─▶ request_join(name, version) ─▶ server validates
+##   client connects ─▶ request_join(name, version, level, password) ─▶ server validates
 ##     ok:  on_join_accepted(peer_id, roster) to the client, on_player_joined to the others,
 ##          player_added (MatchManager spawns a lobby body)
-##     bad: on_join_rejected(reason), then the server drops the peer
+##     bad: on_join_rejected(LeaveReason.Code, detail), then the server drops the peer
+## Whatever ends a client's session (refused, kicked, connection lost, the player leaving) goes
+## through _leave_to_menu(code, detail): the menu reopens and explains it (MainMenu.leave_code).
 
 signal joined  ## client: the server accepted us
 signal roster_changed
@@ -35,8 +37,8 @@ const LEVELS := {"plant": "res://levels/plant/Plant.tscn", "test": "res://levels
 const DEFAULT_LEVEL := "plant"
 ## Server: drop peers that connect but never send request_join.
 const PENDING_TIMEOUT_S := 5.0
-## Server: delay before dropping a rejected peer, so on_join_rejected reaches it first
-## (ENet discards queued packets when a peer is disconnected).
+## Server: delay before dropping a rejected or kicked peer, so on_join_rejected / on_kicked reaches
+## it first (ENet discards queued packets when a peer is disconnected).
 const REJECT_DISCONNECT_DELAY_S := 0.5
 ## Server, retire_bodies(): how long to wait for owners to confirm they stopped sending positions,
 ## then a little more for packets they sent just before (unreliable, so they can trail the reply).
@@ -48,8 +50,11 @@ static var current: Session
 ## Server settings, set by ServerMain before the node enters the tree.
 var max_players := 6
 var match_rules: MatchRules
-## Client setting, set by MainMenu before the node enters the tree.
+var server_name := "HomerSim server"
+var password := ""  ## "" = anyone may join
+## Client settings, set by the menu before the node enters the tree.
 var desired_name := JoinRules.DEFAULT_NAME
+var desired_password := ""
 
 ## Joined players by peer id (on the server and, via RPCs, on clients).
 var players: Dictionary[int, PlayerInfo] = {}
@@ -67,6 +72,7 @@ var minigames: MinigameService
 var level: Node3D  ## the loaded level scene (Plant or TestArena)
 
 var _pending: Dictionary[int, bool] = {}  # server: connected peers that haven't joined yet
+var _kicked: Dictionary[int, bool] = {}  # server: peers told to go, about to be dropped
 var _retire_acks: Dictionary[int, bool] = {}  # server: peers asked to stop syncing -> confirmed
 var _leaving := false
 
@@ -139,10 +145,15 @@ func _ready() -> void:
 		var hazards := HazardDirector.new()
 		hazards.name = "HazardDirector"
 		server_only.add_child(hazards)
+		if not Cli.has_arg("no-lan"):
+			var lan := LanAnnouncer.new()
+			lan.name = "LanAnnouncer"
+			server_only.add_child(lan)
 	else:
 		Net.connected.connect(_on_connected)
-		Net.connection_failed.connect(_leave_to_menu)
-		Net.disconnected.connect(_leave_to_menu.bind("Disconnected from server"))
+		Net.connection_failed.connect(_on_connection_failed)
+		Net.disconnected.connect(_leave_to_menu.bind(LeaveReason.Code.LOST, ""))
+		Config.apply_environment(_level_environment())
 		_build_client_ui()
 
 
@@ -184,6 +195,7 @@ func _on_peer_joined(peer_id: int) -> void:
 
 func _on_peer_left(peer_id: int) -> void:
 	_pending.erase(peer_id)
+	_kicked.erase(peer_id)
 	if not players.has(peer_id):
 		return
 	var info: PlayerInfo = players[peer_id]
@@ -193,23 +205,27 @@ func _on_peer_left(peer_id: int) -> void:
 	Log.info("session", "%s (peer %d) left, %d player(s) remain" % [info.name, peer_id, players.size()])
 	for other: int in players:
 		on_player_left.rpc_id(other, peer_id)
-	chat.broadcast_system("%s left" % info.name)
+	chat.broadcast_system("%s left", [info.name])
 	player_removed.emit(peer_id)
 
 
 @rpc("any_peer", "reliable")
-func request_join(player_name: String, version: String, level_name: String) -> void:
+func request_join(player_name: String, version: String, level_name: String, join_password: String) -> void:
 	if not multiplayer.is_server():
 		return
 	var peer_id := multiplayer.get_remote_sender_id()
 	if not _pending.erase(peer_id):
 		return  # already joined, or unknown
-	var reason := JoinRules.check(version, game_version(), players.size(), max_players)
-	if reason == "" and level_name != level_id():
-		reason = "The server plays another level (%s, you have %s)" % [level_id(), level_name]
-	if reason != "":
-		Log.info("session", "rejected peer %d (%s): %s" % [peer_id, player_name, reason])
-		on_join_rejected.rpc_id(peer_id, reason)
+	var code := JoinRules.check(version, game_version(), players.size(), max_players, join_password, password)
+	var detail := ""
+	if code == LeaveReason.Code.VERSION:
+		detail = "%s|%s" % [game_version(), version]
+	elif code == LeaveReason.Code.NONE and level_name != level_id():
+		code = LeaveReason.Code.LEVEL
+		detail = "%s|%s" % [level_id(), level_name]
+	if code != LeaveReason.Code.NONE:
+		Log.info("session", "rejected peer %d (%s): %s" % [peer_id, player_name, LeaveReason.log_text(code, detail)])
+		on_join_rejected.rpc_id(peer_id, code, detail)
 		get_tree().create_timer(REJECT_DISCONNECT_DELAY_S).timeout.connect(Net.kick.bind(peer_id))
 		return
 
@@ -223,8 +239,20 @@ func request_join(player_name: String, version: String, level_name: String) -> v
 	for other: int in players:
 		if other != peer_id:
 			on_player_joined.rpc_id(other, info.to_dict())
-	chat.broadcast_system("%s joined" % info.name)
+	chat.broadcast_system("%s joined", [info.name])
 	player_added.emit(peer_id)
+
+
+## Server: remove a joined player, telling it why first (`reason`, English; the client translates
+## it when it knows the line). Nothing kicks players automatically yet: the movement validator and the
+## server console get kick commands in M9.
+func kick(peer_id: int, reason: String) -> void:
+	if not players.has(peer_id) or _kicked.has(peer_id):
+		return
+	_kicked[peer_id] = true
+	Log.info("session", "kicking %s: %s" % [name_of(peer_id), reason])
+	on_kicked.rpc_id(peer_id, reason)
+	get_tree().create_timer(REJECT_DISCONNECT_DELAY_S).timeout.connect(Net.kick.bind(peer_id))
 
 
 ## Server: spawn `peer_id`'s body as `role` at `point`. `locked` = frozen (LOCKED status) from
@@ -333,6 +361,18 @@ func request_debug_teleport(pos: Vector3) -> void:
 	body.server_force_position(pos)
 
 
+## Test-only (M8): kick the sender, to test the client's "kicked" message. Refused unless debug_allowed().
+@rpc("any_peer", "reliable")
+func request_debug_kick_me() -> void:
+	if not multiplayer.is_server():
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	if not debug_allowed():
+		Log.warn("session", "refused a debug kick from peer %d" % peer)
+		return
+	kick(peer, "Kicked for testing")
+
+
 ## Test-only (M6 bots): put the plant in a state that would take minutes of play. `what`:
 ## "health" sets subsystem `id`'s health to `value` (0 also takes it offline), "core_temp" sets the
 ## core temperature. Refused unless debug_allowed() on the server.
@@ -351,7 +391,11 @@ func request_debug_plant(what: String, id: StringName, value: float) -> void:
 
 func _on_connected() -> void:
 	Log.info("session", "connected, requesting to join as '%s'" % desired_name)
-	request_join.rpc_id(1, desired_name, game_version(), level_id())
+	request_join.rpc_id(1, desired_name, game_version(), level_id(), desired_password)
+
+
+func _on_connection_failed(reason: String) -> void:
+	_leave_to_menu(LeaveReason.Code.TIMEOUT if reason == Net.FAIL_TIMEOUT else LeaveReason.Code.CANNOT_CONNECT, "")
 
 
 @rpc("authority", "reliable")
@@ -377,9 +421,14 @@ func on_retire_body() -> void:
 
 
 @rpc("authority", "reliable")
-func on_join_rejected(reason: String) -> void:
-	Log.info("session", "join rejected: %s" % reason)
-	_leave_to_menu(reason)
+func on_join_rejected(code: int, detail: String) -> void:
+	Log.info("session", "join rejected: %s" % LeaveReason.log_text(code, detail))
+	_leave_to_menu(code, detail)
+
+
+@rpc("authority", "reliable")
+func on_kicked(reason: String) -> void:
+	_leave_to_menu(LeaveReason.Code.KICKED, reason)
 
 
 @rpc("authority", "reliable")
@@ -398,24 +447,44 @@ func on_player_left(peer_id: int) -> void:
 	roster_changed.emit()
 
 
-## Client: tear the session down and show the menu with `reason`. Safe to call more than once.
-func _leave_to_menu(reason: String) -> void:
+## Client: leave the server on purpose (the pause menu's Leave, Cancel while connecting).
+func leave() -> void:
+	_leave_to_menu(LeaveReason.Code.NONE, "")
+
+
+## Client: tear the session down and reopen the menu, which explains `code`. Safe to call more than once.
+func _leave_to_menu(code: LeaveReason.Code, detail: String) -> void:
 	if _leaving:
 		return
 	_leaving = true
-	Log.info("session", "back to menu: %s" % reason)
-	MainMenu.notice = reason
+	Log.info("session", "back to menu: %s" % LeaveReason.log_text(code, detail))
+	MainMenu.leave_code = code
+	MainMenu.leave_detail = detail
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_teardown.call_deferred()
 
 
+func _level_environment() -> Environment:
+	var world_env := level.find_child("WorldEnvironment", false, false) as WorldEnvironment if level != null else null
+	return world_env.environment if world_env != null else null
+
+
 func _teardown() -> void:
 	var tree := get_tree()
-	Net.leave()
-	# Remove now (not just queue_free) so the name "Session" is free if we reconnect right away.
+	# Out of the tree first (also so the name "Session" is free if we reconnect right away), then
+	# drop the connection: the multiplayer node cache forgets nodes as they leave the tree, so it is
+	# (nearly) empty when the peer resets. Godot 4.7 release builds log "Attempt to disconnect a
+	# nonexistent connection" for every node still cached at that moment.
 	get_parent().remove_child(self)
+	Net.leave()
 	queue_free()
-	tree.change_scene_to_file(MENU_SCENE_PATH)
+	# A join that failed or was cancelled: the menu is still open, it only has to explain.
+	var scene := tree.current_scene
+	var menu := scene as MainMenu if is_instance_valid(scene) else null
+	if menu != null and not menu.is_queued_for_deletion():
+		menu.show_leave_reason()
+	else:
+		tree.change_scene_to_file(MENU_SCENE_PATH)
 
 
 func _build_client_ui() -> void:
@@ -445,6 +514,10 @@ func _build_client_ui() -> void:
 	var overlay := DebugOverlay.new()
 	overlay.name = "DebugOverlay"
 	client_only.add_child(overlay)
+	# M8: the event feed, first-time hints, the scoreboard (Tab) and the pause menu (Esc).
+	for node: Node in [EventFeed.new(), Hints.new(), Scoreboard.new(), PauseMenu.new()]:
+		node.name = (node.get_script() as Script).get_global_name()
+		client_only.add_child(node)
 	if OS.is_debug_build() and DebugHooks.wanted():
 		var hooks := DebugHooks.new()
 		hooks.name = "DebugHooks"

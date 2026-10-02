@@ -25,10 +25,10 @@ func is_available(player: Player) -> bool:
 
 func prompt_for(player: Player) -> String:
 	if door.open:
-		return "Open"
+		return tr("Open")
 	if not player.inventory.keycard:
-		return "Keycard needed"
-	return "Open (keycard)"
+		return tr("Keycard needed")
+	return tr("Open (keycard)")
 
 
 func _complete(player: Player) -> void:

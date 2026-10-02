@@ -41,10 +41,10 @@ func prompt_for(player: Player) -> String:
 	if not supervisor.inventory.keycard:
 		return "%s has no keycard" % supervisor.display_name
 	if player.inventory.stolen_item != &"":
-		return "Your paws are full"
+		return tr("Your paws are full")
 	if not facing_away_from(player):
-		return "Sneak behind %s to steal" % supervisor.display_name
-	return "Steal %s's keycard" % supervisor.display_name
+		return tr("Sneak behind %s to steal") % supervisor.display_name
+	return tr("Steal %s's keycard") % supervisor.display_name
 
 
 func _complete(player: Player) -> void:

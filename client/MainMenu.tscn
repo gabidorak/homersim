@@ -1,6 +1,17 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://client/main_menu.gd" id="1_menu"]
+[ext_resource type="Script" path="res://client/menu_background.gd" id="2_bg"]
+
+[sub_resource type="Gradient" id="Gradient_shade"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(0.03, 0.04, 0.08, 0.92, 0.03, 0.04, 0.08, 0.55, 0.03, 0.04, 0.08, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_shade"]
+gradient = SubResource("Gradient_shade")
+width = 256
+height = 4
+fill_to = Vector2(1, 0)
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -11,63 +22,135 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="Node3D" parent="."]
+script = ExtResource("2_bg")
+
+[node name="Shade" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 760.0
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_shade")
+expand_mode = 1
+
+[node name="Home" type="MarginContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.11, 0.13, 0.12, 1)
+theme_override_constants/margin_left = 64
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 64
+theme_override_constants/margin_bottom = 36
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Column" type="VBoxContainer" parent="Home"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Home/Column"]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "HOMERSIM"
+
+[node name="Tagline" type="Label" parent="Home/Column"]
+layout_mode = 2
+theme_type_variation = &"SubheaderLabel"
+text = "Keep the plant running... or melt it down!"
+
+[node name="Gap" type="Control" parent="Home/Column"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+
+[node name="Buttons" type="VBoxContainer" parent="Home/Column"]
+custom_minimum_size = Vector2(340, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 12
+
+[node name="PlayButton" type="Button" parent="Home/Column/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+theme_type_variation = &"AccentButton"
+theme_override_font_sizes/font_size = 26
+text = "Play"
+
+[node name="HowToButton" type="Button" parent="Home/Column/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "How to play"
+
+[node name="SettingsButton" type="Button" parent="Home/Column/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "Settings"
+
+[node name="CreditsButton" type="Button" parent="Home/Column/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "Credits"
+
+[node name="QuitButton" type="Button" parent="Home/Column/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "Quit"
+
+[node name="Spacer" type="Control" parent="Home/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="NameRow" type="HBoxContainer" parent="Home/Column"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NameLabel" type="Label" parent="Home/Column/NameRow"]
+unique_name_in_owner = true
+layout_mode = 2
+auto_translate_mode = 2
+text = "Playing as Player"
+
+[node name="NameButton" type="Button" parent="Home/Column/NameRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"FlatButton"
+text = "Change name"
+
+[node name="Version" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -36.0
+offset_right = -16.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_type_variation = &"MutedLabel"
+auto_translate_mode = 2
+text = "v0.1.0"
+horizontal_alignment = 2
+
+[node name="Screens" type="Control" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="Box" type="VBoxContainer" parent="Center"]
-custom_minimum_size = Vector2(360, 0)
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Title" type="Label" parent="Center/Box"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 36
-text = "HomerSim"
-horizontal_alignment = 1
-
-[node name="NameLabel" type="Label" parent="Center/Box"]
-layout_mode = 2
-text = "Name"
-
-[node name="NameEdit" type="LineEdit" parent="Center/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Player"
-placeholder_text = "Your name"
-max_length = 16
-
-[node name="AddressLabel" type="Label" parent="Center/Box"]
-layout_mode = 2
-text = "Server address"
-
-[node name="AddressEdit" type="LineEdit" parent="Center/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "127.0.0.1:7777"
-placeholder_text = "host:port"
-
-[node name="ConnectButton" type="Button" parent="Center/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Connect"
-
-[node name="StatusLabel" type="Label" parent="Center/Box"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 0)
-layout_mode = 2
-horizontal_alignment = 1
-autowrap_mode = 3
+mouse_filter = 2

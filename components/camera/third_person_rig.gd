@@ -38,6 +38,10 @@ func move_yaw() -> float:
 	return _yaw
 
 
+func _third_person() -> bool:
+	return true
+
+
 func _look(delta: Vector2) -> void:
 	_yaw = wrapf(_yaw - delta.x, -PI, PI)
 	arm.rotation.x = clampf(arm.rotation.x - delta.y, MIN_PITCH, MAX_PITCH)

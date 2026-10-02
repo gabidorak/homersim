@@ -1,0 +1,485 @@
+keys,en,fr
+Esc: skip and play this version,Esc: skip and play this version,Échap : passer et jouer cette version
+Checking for updates...,Checking for updates...,Recherche de mises à jour...
+Starting the new version...,Starting the new version...,Lancement de la nouvelle version...
+Downloading the update... %d / %d MB,Downloading the update... %d / %d MB,Téléchargement de la mise à jour... %d / %d Mo
+"Say something (Enter sends, Esc cancels)","Say something (Enter sends, Esc cancels)","Dites quelque chose (Entrée envoie, Échap annule)"
+Credits,Credits,Crédits
+Back,Back,Retour
+How to play,How to play,Comment jouer
+Got it,Got it,Compris
+I'd like to play,I'd like to play,Je voudrais jouer
+Any,Any,Peu importe
+Supervisor,Supervisor,Superviseur
+Rat,Rat,Rat
+Ready?,Ready?,Prêt ?
+HOMERSIM,HOMERSIM,HOMERSIM
+Keep the plant running... or melt it down!,Keep the plant running... or melt it down!,Faites tourner la centrale... ou faites-la fondre !
+Play,Play,Jouer
+Settings,Settings,Paramètres
+Quit,Quit,Quitter
+Change name,Change name,Changer de nom
+Find a server,Find a server,Trouver un serveur
+Address,Address,Adresse
+"host:port, e.g. 192.168.1.20:7777","host:port, e.g. 192.168.1.20:7777","hôte:port, par ex. 192.168.1.20:7777"
+Save,Save,Enregistrer
+Join,Join,Rejoindre
+Reset this tab,Reset this tab,Réinitialiser cet onglet
+Done,Done,Terminé
+NO SIGNAL,NO SIGNAL,PAS DE SIGNAL
+%s / %s: previous / next camera  ·  %s: stand up  ·  you can still be bitten!,%s / %s: previous / next camera  ·  %s: stand up  ·  you can still be bitten!,%s / %s : caméra précédente / suivante  ·  %s : se lever  ·  vous pouvez encore être mordu !
+CAM %d,CAM %d,CAM %d
+BROKEN,BROKEN,EN PANNE
+(team) Say something to your team,(team) Say something to your team,(équipe) Un mot pour votre équipe
+(ghost) Only other ghosts will read this,(ghost) Only other ghosts will read this,(fantôme) Seuls les autres fantômes liront ceci
+team,team,équipe
+ghost,ghost,fantôme
+BONK! You're stunned,BONK! You're stunned,BONK ! Vous êtes assommé
+The rats knocked you down!,The rats knocked you down!,Les rats vous ont mis à terre !
+Knockdown!,Knockdown!,À terre !
+SNAP! A trap caught a rat,SNAP! A trap caught a rat,CLAC ! Un piège a attrapé un rat
+Thanks for playing!,Thanks for playing!,Merci d'avoir joué !
+CREDITS.md is missing from this build.,CREDITS.md is missing from this build.,CREDITS.md manque dans cette version.
+Tips show once. Settings > Gameplay brings them back.,Tips show once. Settings > Gameplay brings them back.,Chaque astuce ne s'affiche qu'une fois. Paramètres > Jeu les fait revenir.
+Welcome to the lobby!,Welcome to the lobby!,Bienvenue au salon !
+"Pick the role you'd like with %s / %s / %s (any, supervisor, rat) and press %s when you're ready. The match starts once more than half of the players are ready. %s opens the menu.","Pick the role you'd like with %s / %s / %s (any, supervisor, rat) and press %s when you're ready. The match starts once more than half of the players are ready. %s opens the menu.","Choisissez le rôle que vous voulez avec %s / %s / %s (peu importe, superviseur, rat) et appuyez sur %s quand vous êtes prêt. La partie commence dès que plus de la moitié des joueurs sont prêts. %s ouvre le menu."
+You're a supervisor,You're a supervisor,Vous êtes superviseur
+"Keep the plant alive until the shift ends. Repair damaged machines (%s at their repair panel), bonk rats with your broom (%s) and carry them to a cage (%s).","Keep the plant alive until the shift ends. Repair damaged machines (%s at their repair panel), bonk rats with your broom (%s) and carry them to a cage (%s).","Gardez la centrale en vie jusqu'à la fin du service. Réparez les machines abîmées (%s devant leur panneau de réparation), assommez les rats avec votre balai (%s) et portez-les dans une cage (%s)."
+You're a rat,You're a rat,Vous êtes un rat
+"Sabotage the machines (hold %s at their red junction boxes) until the meltdown meter hits 100%%. Use the vents, bite supervisors (%s) and free your caged friends.","Sabotage the machines (hold %s at their red junction boxes) until the meltdown meter hits 100%%. Use the vents, bite supervisors (%s) and free your caged friends.","Sabotez les machines (maintenez %s devant leurs boîtiers électriques rouges) jusqu'à ce que la jauge de fusion atteigne 100 %%. Passez par les conduits, mordez les superviseurs (%s) et libérez vos amis en cage."
+Caged!,Caged!,En cage !
+Another rat can free you by holding %s at the cage. Get caught a second time and you're out of the match.,Another rat can free you by holding %s at the cage. Get caught a second time and you're out of the match.,"Un autre rat peut vous libérer en maintenant %s devant la cage. Attrapé une deuxième fois, vous êtes éliminé de la partie."
+Knocked down,Knocked down,À terre
+"The rats bit you three times in a row. You get up in a few seconds, and nobody can knock you down again right away.","The rats bit you three times in a row. You get up in a few seconds, and nobody can knock you down again right away.","Les rats vous ont mordu trois fois de suite. Vous vous relevez dans quelques secondes, et personne ne peut vous remettre à terre tout de suite."
+Got one!,Got one!,Attrapé !
+"Carry the rat to a cage in the Cage Room and press %s there. Hurry: it wriggles free after a few seconds, and a bite from another rat makes you drop it.","Carry the rat to a cage in the Cage Room and press %s there. Hurry: it wriggles free after a few seconds, and a bite from another rat makes you drop it.","Portez le rat jusqu'à une cage de la salle des cages et appuyez sur %s. Vite : il se libère au bout de quelques secondes, et une morsure d'un autre rat vous le fait lâcher."
+Keycard stolen,Keycard stolen,Badge volé
+"Without it, the keycard doors stay shut. Stun the thief to drop it, or pick up the spare in Storage when it's ready.","Without it, the keycard doors stay shut. Stun the thief to drop it, or pick up the spare in Storage when it's ready.","Sans lui, les portes à badge restent fermées. Assommez le voleur pour qu'il le lâche, ou prenez le badge de secours dans la Réserve quand il est prêt."
+CCTV,CCTV,Caméras
+"%s / %s switch cameras, %s stands up. Rats can break cameras: repair them where they hang.","%s / %s switch cameras, %s stands up. Rats can break cameras: repair them where they hang.","%s / %s changent de caméra, %s fait se lever. Les rats peuvent casser les caméras : réparez-les sur place."
+Critical alarm!,Critical alarm!,Alarme critique !
+"The core is overheating. Fix the broken machines fast, or use the Control Room: emergency coolant cools it down, and SCRAM buys time.","The core is overheating. Fix the broken machines fast, or use the Control Room: emergency coolant cools it down, and SCRAM buys time.","Le cœur surchauffe. Réparez vite les machines cassées, ou passez par la salle de contrôle : le refroidissement d'urgence le refroidit, et le SCRAM fait gagner du temps."
+The core is overheating: keep the machines broken and the meltdown meter climbs faster.,The core is overheating: keep the machines broken and the meltdown meter climbs faster.,Le cœur surchauffe : gardez les machines cassées et la jauge de fusion monte plus vite.
+You're out,You're out,Vous êtes éliminé
+"You were caught twice. Watch the rest of the match: %s / %s follow players, %s flies. Only other ghosts can read your messages.","You were caught twice. Watch the rest of the match: %s / %s follow players, %s flies. Only other ghosts can read your messages.","Vous avez été attrapé deux fois. Regardez la fin de la partie : %s / %s suivent les joueurs, %s pour voler. Seuls les autres fantômes lisent vos messages."
+Watching,Watching,Spectateur
+"A match is under way: you join in at the next one. %s / %s follow players, %s flies.","A match is under way: you join in at the next one. %s / %s follow players, %s flies.","Une partie est en cours : vous jouerez à la suivante. %s / %s suivent les joueurs, %s pour voler."
+"One or two supervisors must keep the nuclear plant running until their shift ends. Three or four rats sneak through the vents and sabotage it until the meltdown meter hits 100%. Machines that break spray steam, sparks and radiation, and those hurt everyone.","One or two supervisors must keep the nuclear plant running until their shift ends. Three or four rats sneak through the vents and sabotage it until the meltdown meter hits 100%. Machines that break spray steam, sparks and radiation, and those hurt everyone.","Un ou deux superviseurs doivent faire tourner la centrale nucléaire jusqu'à la fin de leur service. Trois ou quatre rats se faufilent dans les conduits et la sabotent jusqu'à ce que la jauge de fusion atteigne 100 %. Les machines en panne crachent de la vapeur, des étincelles et des radiations, et ça fait mal à tout le monde."
+Keep the plant alive,Keep the plant alive,Garder la centrale en vie
+Damaged machines heat up the core. Press %s at a machine's repair panel and win the short minigame to fix it. Keep the meltdown meter (top of the screen) away from 100%% until the shift timer runs out. The Control Room has emergency coolant and a SCRAM button for bad moments.,Damaged machines heat up the core. Press %s at a machine's repair panel and win the short minigame to fix it. Keep the meltdown meter (top of the screen) away from 100%% until the shift timer runs out. The Control Room has emergency coolant and a SCRAM button for bad moments.,Les machines abîmées font chauffer le cœur. Appuyez sur %s devant le panneau de réparation d'une machine et réussissez le petit mini-jeu pour la réparer. Gardez la jauge de fusion (en haut de l'écran) loin des 100 %% jusqu'à la fin du service. La salle de contrôle a un refroidissement d'urgence et un bouton SCRAM pour les coups durs.
+"Bonk, carry, cage","Bonk, carry, cage","Assommer, porter, enfermer"
+"Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room (%s at the cage). A rat caught twice is out for the match. Hold %s, then release, to place a trap. Donuts in the Break Room make you faster.","Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room (%s at the cage). A rat caught twice is out for the match. Hold %s, then release, to place a trap. Donuts in the Break Room make you faster.","Donnez un coup de balai avec %s pour assommer un rat, appuyez sur %s pour le ramasser et portez-le jusqu'à une cage de la salle des cages (%s devant la cage). Un rat attrapé deux fois est éliminé pour la partie. Maintenez %s puis relâchez pour poser un piège. Les donuts de la salle de pause vous rendent plus rapide."
+Sabotage!,Sabotage!,Sabotage !
+"Sneak through the vents to the machines and hold %s at their red junction boxes. The critical machines (control rods, turbine) need two rats pulling their levers at the same time. Each broken machine pushes the meltdown meter up: reach 100%% and the rats win.","Sneak through the vents to the machines and hold %s at their red junction boxes. The critical machines (control rods, turbine) need two rats pulling their levers at the same time. Each broken machine pushes the meltdown meter up: reach 100%% and the rats win.","Faufilez-vous par les conduits jusqu'aux machines et maintenez %s devant leurs boîtiers électriques rouges. Les machines critiques (barres de contrôle, turbine) demandent deux rats qui tirent leurs leviers en même temps. Chaque machine cassée fait monter la jauge de fusion : à 100 %%, les rats gagnent."
+"Bite, steal, rescue","Bite, steal, rescue","Mordre, voler, libérer"
+"Bite supervisors with %s: one bite makes them drop the rat they carry, and 3 bites within 6 seconds knock them down. Hold %s behind a supervisor to steal their keycard: without it they lose their shortcut doors. A friend in a cage? Hold %s at the cage to set them free.","Bite supervisors with %s: one bite makes them drop the rat they carry, and 3 bites within 6 seconds knock them down. Hold %s behind a supervisor to steal their keycard: without it they lose their shortcut doors. A friend in a cage? Hold %s at the cage to set them free.","Mordez les superviseurs avec %s : une morsure leur fait lâcher le rat qu'ils portent, et 3 morsures en 6 secondes les mettent à terre. Maintenez %s derrière un superviseur pour voler son badge : sans lui, il perd ses portes raccourcis. Un ami en cage ? Maintenez %s devant la cage pour le libérer."
+Move,Move,Se déplacer
+Look,Look,Regarder
+Mouse,Mouse,Souris
+Menu (free the mouse),Menu (free the mouse),Menu (libère la souris)
+Controls,Controls,Commandes
+SCRAM %d s,SCRAM %d s,SCRAM %d s
+(+%d s SCRAM),(+%d s SCRAM),(+%d s SCRAM)
+Meltdown %d%%,Meltdown %d%%,Fusion %d %%
+Core %d°,Core %d°,Cœur %d°
+frozen,frozen,figé
+%s chat,%s chat,%s chat
+%s team chat,%s team chat,%s chat d'équipe
+%s scores,%s scores,%s scores
+Esc menu,Esc menu,Échap menu
+You're caged! A free rat can let you out (hold %s at the cage),You're caged! A free rat can let you out (hold %s at the cage),Vous êtes en cage ! Un rat libre peut vous sortir (en maintenant %s devant la cage)
+"%s (hold, release) %s: %s · %d left · %s switch","%s (hold, release) %s: %s · %d left · %s switch","%s (maintenir, relâcher) %s : %s · %d restants · %s pour changer"
+Keycard: yes,Keycard: yes,Badge : oui
+Keycard: STOLEN · spare in Storage in %d s,Keycard: STOLEN · spare in Storage in %d s,Badge : VOLÉ · badge de secours dans la Réserve dans %d s
+Keycard: STOLEN · a spare is waiting in Storage,Keycard: STOLEN · a spare is waiting in Storage,Badge : VOLÉ · un badge de secours attend dans la Réserve
+Carrying %s: get to a cage!,Carrying %s: get to a cage!,Vous portez %s : direction une cage !
+You carry a %s (a bit slower; a stun drops it),You carry a %s (a bit slower; a stun drops it),"Vous portez un %s (un peu plus lent ; assommé, vous le lâchez)"
+ready,ready,prêt
+You were eliminated,You were eliminated,Vous avez été éliminé
+Spectating until the next match,Spectating until the next match,Spectateur jusqu'à la prochaine partie
+ghost chat only (%s),ghost chat only (%s),chat des fantômes seulement (%s)
+%s / %s: watch the next / previous player · %s + %s / %s: fly,%s / %s: watch the next / previous player · %s + %s / %s: fly,%s / %s : joueur suivant / précédent · %s + %s / %s : voler
+Lobby,Lobby,Salon
+Matches of %s (%s with one supervisor) · %d+ players to start · %d / %d here,Matches of %s (%s with one supervisor) · %d+ players to start · %d / %d here,Parties de %s (%s avec un seul superviseur) · %d joueurs minimum · %d / %d présents
+Waiting for players: %d / %d,Waiting for players: %d / %d,En attente de joueurs : %d / %d
+%d / %d ready. The match starts when more than half are ready.,%d / %d ready. The match starts when more than half are ready.,%d / %d prêts. La partie commence quand plus de la moitié est prête.
+Esc opens the menu and frees the mouse to click here.,Esc opens the menu and frees the mouse to click here.,Échap ouvre le menu et libère la souris pour cliquer ici.
+Ready!,Ready!,Prêt !
+(you),(you),(vous)
+READY,READY,PRÊT
+not ready,not ready,pas prêt
+%d ms,%d ms,%d ms
+You are a SUPERVISOR!,You are a SUPERVISOR!,Vous êtes SUPERVISEUR !
+You are a RAT!,You are a RAT!,Vous êtes un RAT !
+Keep the plant running until the shift ends!,Keep the plant running until the shift ends!,Faites tourner la centrale jusqu'à la fin du service !
+Sabotage the plant until it melts down!,Sabotage the plant until it melts down!,Sabotez la centrale jusqu'à la fusion !
+Starting in %d,Starting in %d,Début dans %d
+GO!,GO!,C'EST PARTI !
+Playing as %s,Playing as %s,Vous jouez en tant que %s
+Welcome to the plant!,Welcome to the plant!,Bienvenue à la centrale !
+Your name,Your name,Votre nom
+What should the others call you?,What should the others call you?,Comment les autres doivent-ils vous appeler ?
+Connecting...,Connecting...,Connexion...
+Joining %s,Joining %s,Connexion à %s
+Cancel,Cancel,Annuler
+Back to menu,Back to menu,Retour au menu
+That password is not the right one. Try again?,That password is not the right one. Try again?,Ce n'est pas le bon mot de passe. Réessayer ?
+%s needs a password.,%s needs a password.,%s demande un mot de passe.
+Wrong password,Wrong password,Mauvais mot de passe
+Password,Password,Mot de passe
+Esc: give up (no penalty),Esc: give up (no penalty),Échap : abandonner (sans pénalité)
+Fixed! (wrapping up...),Fixed! (wrapping up...),Réparé ! (on termine...)
+Fixed!,Fixed!,Réparé !
+Botched it! The repair point jams for a moment,Botched it! The repair point jams for a moment,Raté ! Le point de réparation se bloque un instant
+Menu,Menu,Menu
+Resume,Resume,Reprendre
+Leave the server,Leave the server,Quitter le serveur
+The game goes on while this menu is open.,The game goes on while this menu is open.,Le jeu continue pendant que ce menu est ouvert.
+Leave the server?,Leave the server?,Quitter le serveur ?
+The match goes on without you.,The match goes on without you.,La partie continue sans vous.
+You can come back from the server browser.,You can come back from the server browser.,Vous pourrez revenir depuis la liste des serveurs.
+Leave,Leave,Quitter
+Stay,Stay,Rester
+Back to the lobby in %d s,Back to the lobby in %d s,Retour au salon dans %d s
+SUPERVISORS WIN!,SUPERVISORS WIN!,LES SUPERVISEURS GAGNENT !
+RATS WIN!,RATS WIN!,LES RATS GAGNENT !
+You win!,You win!,Vous gagnez !
+You lose...,You lose...,Vous perdez...
+Supervisors,Supervisors,Superviseurs
+Rats,Rats,Rats
+Watching: %s,Watching: %s,Spectateurs : %s
+Hold %s to see this board,Hold %s to see this board,Maintenez %s pour voir ce tableau
+%d / %d players,%d / %d players,%d / %d joueurs
+Ping,Ping,Ping
+OUT,OUT,ÉLIMINÉ
+Caged,Caged,En cage
+Caught!,Caught!,Attrapé !
+Stunned,Stunned,Assommé
+Wants to play,Wants to play,Veut jouer
+On your network,On your network,Sur votre réseau
+Favourites,Favourites,Favoris
+"LAN search is off: another copy of the game is using UDP ports 7778-7781. Close it, or type the server's address below.","LAN search is off: another copy of the game is using UDP ports 7778-7781. Close it, or type the server's address below.","La recherche locale est coupée : une autre copie du jeu utilise les ports UDP 7778-7781. Fermez-la, ou tapez l'adresse du serveur ci-dessous."
+"Looking for servers on your network... Nothing yet? The server may be on another network (type its address below), or a firewall blocks it: on Windows, allow HomerSim on private networks.","Looking for servers on your network... Nothing yet? The server may be on another network (type its address below), or a firewall blocks it: on Windows, allow HomerSim on private networks.","Recherche de serveurs sur votre réseau... Toujours rien ? Le serveur est peut-être sur un autre réseau (tapez son adresse ci-dessous), ou un pare-feu le bloque : sous Windows, autorisez HomerSim sur les réseaux privés."
+Servers on your network. They refresh by themselves.,Servers on your network. They refresh by themselves.,Les serveurs de votre réseau. La liste se met à jour toute seule.
+Save to favourites,Save to favourites,Ajouter aux favoris
+Needs a password,Needs a password,Demande un mot de passe
+Other version,Other version,Autre version
+"The server runs %s, you have %s","The server runs %s, you have %s","Le serveur a la version %s, vous avez la %s"
+You can join during a match: you watch until the next one.,You can join during a match: you watch until the next one.,Vous pouvez rejoindre pendant une partie : vous regardez jusqu'à la suivante.
+Server full,Server full,Serveur plein
+"No favourites yet. Type an address below and press Save, or press the star next to a server on your network.","No favourites yet. Type an address below and press Save, or press the star next to a server on your network.","Pas encore de favoris. Tapez une adresse ci-dessous et appuyez sur Enregistrer, ou sur l'étoile à côté d'un serveur de votre réseau."
+Your saved servers.,Your saved servers.,Vos serveurs enregistrés.
+Rename,Rename,Renommer
+A name for %s,A name for %s,Un nom pour %s
+Remove,Remove,Supprimer
+Remove %s from your favourites?,Remove %s from your favourites?,Retirer %s de vos favoris ?
+Display,Display,Affichage
+Window mode,Window mode,Mode d'affichage
+Windowed,Windowed,Fenêtré
+Fullscreen (borderless),Fullscreen (borderless),Plein écran (sans bordure)
+Fullscreen (exclusive),Fullscreen (exclusive),Plein écran (exclusif)
+Window size,Window size,Taille de la fenêtre
+VSync (no tearing),VSync (no tearing),Synchro verticale (pas de déchirure)
+Unlimited,Unlimited,Illimité
+%d FPS,%d FPS,%d IPS
+Frame rate limit,Frame rate limit,Limite d'images par seconde
+Quality,Quality,Qualité
+3D resolution,3D resolution,Résolution 3D
+Shadows,Shadows,Ombres
+Low,Low,Basses
+Medium,Medium,Moyennes
+High,High,Hautes
+Ambient occlusion (SSAO),Ambient occlusion (SSAO),Occlusion ambiante (SSAO)
+Glow,Glow,Halo lumineux
+Renderer,Renderer,Moteur de rendu
+Forward+ (best looking),Forward+ (best looking),Forward+ (le plus beau)
+Compatibility (older graphics cards),Compatibility (older graphics cards),Compatibilité (cartes graphiques anciennes)
+Restart the game to switch renderers.,Restart the game to switch renderers.,Relancez le jeu pour changer de moteur de rendu.
+Compatibility runs on older graphics cards; 3D resolution then scales without FSR.,Compatibility runs on older graphics cards; 3D resolution then scales without FSR.,Compatibilité tourne sur les cartes graphiques anciennes ; la résolution 3D est alors mise à l'échelle sans FSR.
+Mouse sensitivity (first person),Mouse sensitivity (first person),Sensibilité de la souris (vue subjective)
+"Mouse sensitivity (third person, rats)","Mouse sensitivity (third person, rats)","Sensibilité de la souris (troisième personne, rats)"
+Invert mouse Y,Invert mouse Y,Inverser l'axe Y de la souris
+Camera,Camera,Caméra
+Field of view,Field of view,Champ de vision
+Head bob,Head bob,Balancement de la tête
+Camera shake,Camera shake,Tremblements de caméra
+Repairs,Repairs,Réparations
+Hold to repair instead of playing the minigames,Hold to repair instead of playing the minigames,Réparer en maintenant la touche plutôt qu'avec les mini-jeux
+"Minigames repair more (+50) than holding the interact key (+35), but holding needs no mouse skills.","Minigames repair more (+50) than holding the interact key (+35), but holding needs no mouse skills.","Les mini-jeux réparent plus (+50) que maintenir la touche d'action (+35), mais maintenir ne demande aucune adresse à la souris."
+Keys,Keys,Touches
+"Click a key, then press the new key or mouse button. Esc cancels. Esc itself always opens the menu.","Click a key, then press the new key or mouse button. Esc cancels. Esc itself always opens the menu.","Cliquez sur une touche, puis appuyez sur la nouvelle touche ou le bouton de souris. Échap annule. Échap ouvre toujours le menu."
+Volume,Volume,Volume
+You,You,Vous
+Name,Name,Nom
+A new name is used from the next server you join.,A new name is used from the next server you join.,Un nouveau nom sert à partir du prochain serveur que vous rejoignez.
+Language,Language,Langue
+Interface,Interface,Interface
+Hide rude words in the chat,Hide rude words in the chat,Masquer les grossièretés dans le chat
+Show FPS and ping,Show FPS and ping,Afficher les IPS et le ping
+Show them again,Show them again,Les revoir
+Done! They come back as you play,Done! They come back as you play,C'est fait ! Ils reviendront au fil du jeu
+First-time hints,First-time hints,Astuces de découverte
+(none),(none),(aucune)
+Also: %s,Also: %s,Aussi : %s
+Press a key...,Press a key...,Appuyez sur une touche...
+OK,OK,OK
+Can't connect,Can't connect,Connexion impossible
+No answer,No answer,Pas de réponse
+Connection lost,Connection lost,Connexion perdue
+Different version,Different version,Version différente
+Different level,Different level,Niveau différent
+Kicked,Kicked,Expulsé
+Invalid address,Invalid address,Adresse invalide
+The server could not be reached. Check the address and that the server is running.,The server could not be reached. Check the address and that the server is running.,Impossible de joindre le serveur. Vérifiez l'adresse et que le serveur tourne.
+"The server didn't answer. It may be offline, or a firewall is blocking UDP port 7777.","The server didn't answer. It may be offline, or a firewall is blocking UDP port 7777.","Le serveur n'a pas répondu. Il est peut-être éteint, ou un pare-feu bloque le port UDP 7777."
+The connection to the server dropped. The server may have stopped or restarted.,The connection to the server dropped. The server may have stopped or restarted.,La connexion au serveur a été coupée. Le serveur s'est peut-être arrêté ou a redémarré.
+The server runs version %s and you have %s. Both must run the same build: restart the game to update it.,The server runs version %s and you have %s. Both must run the same build: restart the game to update it.,Le serveur a la version %s et vous la %s. Il faut exactement la même : relancez le jeu pour le mettre à jour.
+Every slot on this server is taken. Try again in a moment.,Every slot on this server is taken. Try again in a moment.,Toutes les places de ce serveur sont prises. Réessayez dans un moment.
+That password is not the right one for this server.,That password is not the right one for this server.,Ce n'est pas le bon mot de passe pour ce serveur.
+"The server plays another level (%s, you have %s).","The server plays another level (%s, you have %s).","Le serveur joue sur un autre niveau (%s, vous avez %s)."
+The server removed you from the game.,The server removed you from the game.,Le serveur vous a retiré de la partie.
+'%s' is not a server address. Type it like 192.168.1.20:7777 or myserver.net (the port defaults to 7777).,'%s' is not a server address. Type it like 192.168.1.20:7777 or myserver.net (the port defaults to 7777).,« %s » n'est pas une adresse de serveur. Tapez-la comme 192.168.1.20:7777 ou monserveur.net (le port par défaut est 7777).
+Your hands are full,Your hands are full,Vous avez les mains prises
+Stun %s first,Stun %s first,Assommez d'abord %s
+Grab %s,Grab %s,Attraper %s
+Your paws are full,Your paws are full,Vous avez les pattes prises
+Sneak behind %s to steal,Sneak behind %s to steal,Glissez-vous derrière %s pour voler
+Steal %s's keycard,Steal %s's keycard,Voler le badge de %s
+CAGE,CAGE,CAGE
+Cage (bring a stunned rat),Cage (bring a stunned rat),Cage (apportez un rat assommé)
+The cage is full,The cage is full,La cage est pleine
+Cage %s,Cage %s,Mettre %s en cage
+Empty cage,Empty cage,Cage vide
+Free %s,Free %s,Libérer %s
+CAGE (%d),CAGE (%d),CAGE (%d)
+Repair camera %d,Repair camera %d,Réparer la caméra %d
+Camera %d works,Camera %d works,La caméra %d marche
+Camera %d is broken,Camera %d is broken,La caméra %d est cassée
+Break camera %d,Break camera %d,Casser la caméra %d
+%s is watching the cameras,%s is watching the cameras,%s regarde les caméras
+Cage the rat first,Cage the rat first,Mettez d'abord le rat en cage
+Watch the cameras (CCTV),Watch the cameras (CCTV),Regarder les caméras
+EMERGENCY COOLANT,EMERGENCY COOLANT,REFROIDISSEMENT D'URGENCE
+PARTIAL SCRAM,PARTIAL SCRAM,SCRAM PARTIEL
+%s ready in %d s,%s ready in %d s,%s prêt dans %d s
+Emergency coolant,Emergency coolant,Refroidissement d'urgence
+SCRAM,SCRAM,SCRAM
+No power for the coolant pumps (grid below %d%%),No power for the coolant pumps (grid below %d%%),Pas de courant pour les pompes (réseau sous %d %%)
+Emergency coolant (core −%d°),Emergency coolant (core −%d°),Refroidissement d'urgence (cœur −%d°)
+Lift the SCRAM cover,Lift the SCRAM cover,Soulever le cache du SCRAM
+"SCRAM! (heat ×%.1f for %d s, the shift gets %d s longer)","SCRAM! (heat ×%.1f for %d s, the shift gets %d s longer)","SCRAM ! (chaleur ×%.1f pendant %d s, le service dure %d s de plus)"
+NO POWER,NO POWER,PAS DE COURANT
+ACTIVE %d s  ·  %s,ACTIVE %d s  ·  %s,ACTIF %d s  ·  %s
+%s is already broken,%s is already broken,%s est déjà en panne
+"%s: cooling down, %d s","%s: cooling down, %d s","%s : refroidissement, %d s"
+%s lever: needs a 2nd rat on the other lever,%s lever: needs a 2nd rat on the other lever,Levier %s : il faut un 2e rat sur l'autre levier
+Pull the %s lever,Pull the %s lever,Tirer le levier %s
+Open,Open,Ouvrir
+Keycard needed,Keycard needed,Badge nécessaire
+Open (keycard),Open (keycard),Ouvrir (badge)
+Traps are full,Traps are full,Pièges au complet
+Refill traps,Refill traps,Recharger les pièges
+You have your keycard,You have your keycard,Vous avez votre badge
+Spare keycard in %d s,Spare keycard in %d s,Badge de secours dans %d s
+Take the spare keycard,Take the spare keycard,Prendre le badge de secours
+Next donut in %d s,Next donut in %d s,Prochain donut dans %d s
+Eat a donut,Eat a donut,Manger un donut
+You have a keycard,You have a keycard,Vous avez un badge
+Pick up the keycard,Pick up the keycard,Ramasser le badge
+%s jammed: %d s,%s jammed: %d s,"%s : bloqué, %d s"
+Reboot %s (hold),Reboot %s (hold),Redémarrer %s (maintenir)
+%s is fine,%s is fine,%s va bien
+%s is fixing %s,%s is fixing %s,%s répare %s
+Repair %s (%d%%),Repair %s (%d%%),Réparer %s (%d %%)
+Sabotage %s,Sabotage %s,Saboter %s
+OFFLINE,OFFLINE,HORS SERVICE
+  (2 rats),  (2 rats),  (2 rats)
+BREAK ROOM,BREAK ROOM,SALLE DE PAUSE
+CAGE ROOM,CAGE ROOM,SALLE DES CAGES
+CONTROL ROOM,CONTROL ROOM,SALLE DE CONTRÔLE
+LOCKER ROOM,LOCKER ROOM,VESTIAIRES
+PUMP HOUSE,PUMP HOUSE,STATION DE POMPAGE
+RAT NEST,RAT NEST,NID DES RATS
+REACTOR HALL,REACTOR HALL,HALL DU RÉACTEUR
+STORAGE,STORAGE,RÉSERVE
+SUBSTATION,SUBSTATION,POSTE ÉLECTRIQUE
+TURBINE HALL,TURBINE HALL,HALL DES TURBINES
+VALVE CORRIDOR,VALVE CORRIDOR,COULOIR DES VANNES
+VENT ROOF,VENT ROOF,TOIT DES AÉRATIONS
+YARD,YARD,COUR
+SUNNY ACRES  ·  PLANT STATUS,SUNNY ACRES  ·  PLANT STATUS,SUNNY ACRES  ·  ÉTAT DE LA CENTRALE
+no power,no power,pas de courant
+SCRAM ACTIVE %d s,SCRAM ACTIVE %d s,SCRAM ACTIF %d s
+sparks %d s,sparks %d s,étincelles %d s
+"Watch the breakers flash, then flip them in the same order","Watch the breakers flash, then flip them in the same order","Regardez les disjoncteurs clignoter, puis basculez-les dans le même ordre"
+Your turn: flip them in the same order (%d / %d),Your turn: flip them in the same order (%d / %d),À vous : basculez-les dans le même ordre (%d / %d)
+"Drag in circles to turn the wheel into the green, then hold it there","Drag in circles to turn the wheel into the green, then hold it there","Tournez en cercles pour amener le volant dans le vert, puis tenez-le là"
+"Click when the marker is in the green zone, %d times in a row","Click when the marker is in the green zone, %d times in a row","Cliquez quand le repère est dans la zone verte, %d fois de suite"
+%s caged %s!,%s caged %s!,%s a mis %s en cage !
+%s caught %s again: out of the match!,%s caught %s again: out of the match!,%s a rattrapé %s : éliminé !
+%s freed %s!,%s freed %s!,%s a libéré %s !
+BONK! %s stunned %s,BONK! %s stunned %s,BONK ! %s a assommé %s
+The rats knocked %s down!,The rats knocked %s down!,Les rats ont mis %s à terre !
+SNAP! %s stepped in a trap,SNAP! %s stepped in a trap,CLAC ! %s a marché dans un piège
+%s sniffed the cheese lure: revealed!,%s sniffed the cheese lure: revealed!,%s a reniflé l'appât au fromage : repéré !
+A rat stole %s's keycard!,A rat stole %s's keycard!,Un rat a volé le badge de %s !
+%s sabotaged!,%s sabotaged!,Sabotage : %s !
+%s is offline! It needs a reboot,%s is offline! It needs a reboot,Hors service : %s ! Il faut redémarrer
+%s repaired,%s repaired,Réparé : %s
+%s is back online,%s is back online,De nouveau en marche : %s
+SWARM! Every supervisor is down: meltdown +%s%%,SWARM! Every supervisor is down: meltdown +%s%%,ESSAIM ! Tous les superviseurs sont à terre : fusion +%s %%
+Move forward,Move forward,Avancer
+Move back,Move back,Reculer
+Move left,Move left,Aller à gauche
+Move right,Move right,Aller à droite
+Jump (CCTV: stand up),Jump (CCTV: stand up),Sauter (caméras : se lever)
+Sprint,Sprint,Sprinter
+Crouch / squeeze,Crouch / squeeze,S'accroupir / se faufiler
+Broom / bite,Broom / bite,Balai / morsure
+"Place a trap (hold, release)","Place a trap (hold, release)","Poser un piège (maintenir, relâcher)"
+Interact (hold),Interact (hold),Interagir (maintenir)
+Switch trap (CCTV: previous camera),Switch trap (CCTV: previous camera),Changer de piège (caméras : précédente)
+Emote,Emote,Emote
+Chat,Chat,Chat
+Team chat,Team chat,Chat d'équipe
+Scoreboard (hold),Scoreboard (hold),Tableau des scores (maintenir)
+Lobby: ready,Lobby: ready,Salon : prêt
+Lobby: play any role,Lobby: play any role,Salon : n'importe quel rôle
+Lobby: play supervisor,Lobby: play supervisor,Salon : jouer superviseur
+Lobby: play rat,Lobby: play rat,Salon : jouer rat
+Spectator: fly up,Spectator: fly up,Spectateur : monter
+Spectator: fly down,Spectator: fly down,Spectateur : descendre
+Debug overlay,Debug overlay,Infos de débogage
+Route stopwatch,Route stopwatch,Chronomètre de trajet
+LMB,LMB,Clic G
+RMB,RMB,Clic D
+MMB,MMB,Clic M
+Wheel up,Wheel up,Molette haut
+Wheel down,Wheel down,Molette bas
+Mouse 4,Mouse 4,Souris 4
+Mouse 5,Mouse 5,Souris 5
+Space,Space,Espace
+Shift,Shift,Maj
+Ctrl,Ctrl,Ctrl
+Enter,Enter,Entrée
+Kp Enter,Kp Enter,Entrée (pavé num.)
+Tab,Tab,Tab
+F3,F3,F3
+F4,F4,F4
+Escape,Escape,Échap
+CAGED,CAGED,EN CAGE
+CAUGHT!,CAUGHT!,ATTRAPÉ !
+KNOCKED DOWN,KNOCKED DOWN,À TERRE
+* STUNNED *,* STUNNED *,* ASSOMMÉ *
+slowed,slowed,ralenti
+donut rush,donut rush,ivresse du donut
+safe,safe,protégé
+revealed,revealed,repéré
+Spectator,Spectator,Spectateur
+Most bonks,Most bonks,Roi du balai
+%d bonks,%d bonks,%d coups de balai
+Sneakiest rat,Sneakiest rat,Rat le plus discret
+"%d sabotages, never caught","%d sabotages, never caught","%d sabotages, jamais attrapé"
+Donut addict,Donut addict,Accro aux donuts
+%d donuts,%d donuts,%d donuts
+Rat catcher,Rat catcher,Chasseur de rats
+%d rats caged,%d rats caged,%d rats en cage
+Ankle biter,Ankle biter,Croqueur de chevilles
+%d bites,%d bites,%d morsures
+Fix-it hero,Fix-it hero,Héros de la clé à molette
+%d repairs,%d repairs,%d réparations
+Jailbreaker,Jailbreaker,Briseur de cages
+%d friends freed,%d friends freed,%d amis libérés
+Pickpocket,Pickpocket,Pickpocket
+%d keycards stolen,%d keycards stolen,%d badges volés
+Chief saboteur,Chief saboteur,Saboteur en chef
+%d sabotages,%d sabotages,%d sabotages
+Accident prone,Accident prone,Aimant à accidents
+%d hazard hits,%d hazard hits,%d accidents
+Automatic,Automatic,Automatique
+keycard,keycard,badge
+Video,Video,Vidéo
+Audio,Audio,Audio
+Gameplay,Gameplay,Jeu
+100% (native),100% (native),100 % (native)
+85%,85%,85 %
+77% (FSR ultra quality),77% (FSR ultra quality),77 % (FSR ultra qualité)
+67% (FSR quality),67% (FSR quality),67 % (FSR qualité)
+59% (FSR balanced),59% (FSR balanced),59 % (FSR équilibré)
+50% (FSR performance),50% (FSR performance),50 % (FSR performance)
+Master volume,Master volume,Volume général
+Music,Music,Musique
+Sound effects,Sound effects,Effets sonores
+Ambience,Ambience,Ambiance
+Catches,Catches,Captures
+Bonks,Bonks,Coups
+Sabotages,Sabotages,Sabotages
+Bites,Bites,Morsures
+Frees,Frees,Libérés
+Donuts,Donuts,Donuts
+Knockdowns,Knockdowns,À terre
+Steals,Steals,Vols
+Caught,Caught,Pris
+In the lobby,In the lobby,Au salon
+Starting,Starting,Démarrage
+Match on,Match on,Partie en cours
+Results,Results,Résultats
+Tighten the bolts,Tighten the bolts,Serrez les boulons
+Reset the breakers,Reset the breakers,Réarmez les disjoncteurs
+Turn the valve,Turn the valve,Tournez la vanne
+TRAPS,TRAPS,PIÈGES
+SPARE KEYCARD,SPARE KEYCARD,BADGE DE SECOURS
+DONUTS,DONUTS,DONUTS
+Bite,Bite,Morsure
+Broom,Broom,Balai
+Cheese lure,Cheese lure,Appât au fromage
+Snap trap,Snap trap,Tapette
+Power grid,Power grid,Réseau électrique
+GRD,GRD,RÉS
+Coolant pumps,Coolant pumps,Pompes de refroidissement
+PMP,PMP,PMP
+Control rods,Control rods,Barres de contrôle
+ROD,ROD,BAR
+Turbine,Turbine,Turbine
+TRB,TRB,TRB
+Coolant valves,Coolant valves,Vannes de refroidissement
+VLV,VLV,VAN
+Ventilation,Ventilation,Ventilation
+VNT,VNT,VNT
+Only eliminated players can use the ghost chat.,Only eliminated players can use the ghost chat.,Seuls les joueurs éliminés peuvent utiliser le chat des fantômes.
+Team chat only works during a match.,Team chat only works during a match.,Le chat d'équipe ne marche que pendant une partie.
+Slow down: one message per second.,Slow down: one message per second.,Doucement : un message par seconde.
+%s left,%s left,%s est parti
+%s joined,%s joined,%s a rejoint la partie
+"A rat stole your keycard! Stun it to get it back, or take the spare in Storage in %d s.","A rat stole your keycard! Stun it to get it back, or take the spare in Storage in %d s.","Un rat vous a volé votre badge ! Assommez-le pour le récupérer, ou prenez le badge de secours dans la Réserve dans %d s."
+Meltdown!,Meltdown!,Fusion du cœur !
+All rats left the game,All rats left the game,Tous les rats ont quitté la partie
+Every rat is caught,Every rat is caught,Tous les rats sont attrapés
+All supervisors left the game,All supervisors left the game,Tous les superviseurs ont quitté la partie
+The shift is over: the plant survived,The shift is over: the plant survived,Le service est fini : la centrale a tenu
+Emergency coolant! Core −%d°,Emergency coolant! Core −%d°,Refroidissement d'urgence ! Cœur −%d°
+SCRAM! Heat halved for %d s · the shift is %d s longer,SCRAM! Heat halved for %d s · the shift is %d s longer,SCRAM ! Chaleur divisée par deux pendant %d s · le service dure %d s de plus
+Use,Use,Utiliser
+Ouch!,Ouch!,Aïe !
+CLANG! Something fell on you,CLANG! Something fell on you,BLANG ! Quelque chose vous est tombé dessus
+BZZZT! Zapped!,BZZZT! Zapped!,BZZZT ! Électrocuté !
+"You're glowing! (slowed, visible through walls)","You're glowing! (slowed, visible through walls)","Vous brillez ! (ralenti, visible à travers les murs)"
+PSSSHHT! Steamed!,PSSSHHT! Steamed!,PSCHHHT ! Ébouillanté !
+Grab,Grab,Attraper
+Steal,Steal,Voler
+Cage,Cage,Cage
+Watch the cameras,Watch the cameras,Regarder les caméras
+Pull the lever,Pull the lever,Tirer le levier
+Repair,Repair,Réparer
+Sabotage,Sabotage,Saboter
+Cage Room,Cage Room,Salle des cages
+Main Hall West,Main Hall West,Grand couloir ouest
+Pump House,Pump House,Station de pompage
+Reactor Hall,Reactor Hall,Hall du réacteur
+Substation,Substation,Poste électrique
+Turbine Hall,Turbine Hall,Hall des turbines
+Valve Corridor,Valve Corridor,Couloir des vannes
+Vent Roof,Vent Roof,Toit des aérations
+Kicked for testing,Kicked for testing,Expulsé pour un test
+Repair minigames (Esc gives up),Repair minigames (Esc gives up),Mini-jeux de réparation (Échap abandonne)
+Hazards,Hazards,Accidents

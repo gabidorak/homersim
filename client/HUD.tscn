@@ -35,10 +35,13 @@ unique_name_in_owner = true
 layout_mode = 0
 offset_left = 12.0
 offset_top = 8.0
-offset_right = 700.0
+offset_right = 440.0
 offset_bottom = 60.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 16
+auto_translate_mode = 2
+autowrap_mode = 3
 
 [node name="PlantPanel" type="VBoxContainer" parent="."]
 unique_name_in_owner = true
@@ -73,6 +76,7 @@ custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
+auto_translate_mode = 2
 text = "Meltdown 0%"
 
 [node name="MeltdownBar" type="ProgressBar" parent="PlantPanel/MeltdownRow"]
@@ -94,6 +98,7 @@ custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
+auto_translate_mode = 2
 text = "Core 300°"
 
 [node name="TempBar" type="ProgressBar" parent="PlantPanel/TempRow"]

@@ -20,7 +20,7 @@ var _flash_good := false
 
 
 func instructions() -> String:
-	return "Click when the marker is in the green zone, %d times in a row" % HITS_TO_WIN
+	return tr("Click when the marker is in the green zone, %d times in a row") % HITS_TO_WIN
 
 
 func _setup() -> void:

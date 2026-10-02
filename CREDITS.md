@@ -20,6 +20,13 @@ Add one row **at the moment an asset is imported**, including CC0 assets: credit
 | Sci-fi Sounds (selected OGGs) | Kenney | https://kenney.nl/assets/sci-fi-sounds | CC0 1.0 | door slides, the meltdown explosion | assets/third_party/kenney_sci-fi-sounds/ |
 | Digital Audio (selected OGGs) | Kenney | https://kenney.nl/assets/digital-audio | CC0 1.0 | keycard beeps, zap, power-up | assets/third_party/kenney_digital-audio/ |
 | RPG Audio (selected OGGs) | Kenney | https://kenney.nl/assets/rpg-audio | CC0 1.0 | cage latch, creak | assets/third_party/kenney_rpg-audio/ |
+| Game Icons (37 of the white PNGs) | Kenney | https://kenney.nl/assets/game-icons | CC0 1.0 | menu icons: lock, ping bars, star, trophy, trash, info (M8) | assets/third_party/kenney_game-icons/ |
+
+## Fonts
+| Font | Designer | Source URL | Licence | Used for | Path in repo |
+|---|---|---|---|---|---|
+| Luckiest Guy | Astigmatic | https://fonts.google.com/specimen/Luckiest+Guy | Apache 2.0 (LuckiestGuy-LICENSE.txt) | titles and banners (client/ui/theme.tres) | assets/fonts/LuckiestGuy-Regular.ttf |
+| Fredoka (variable font) | Milena Brandão, Hafontia | https://fonts.google.com/specimen/Fredoka | SIL OFL 1.1 (Fredoka-OFL.txt) | all other text | assets/fonts/Fredoka.ttf |
 
 The model packs keep only their GLB files (plus the colormap textures and `License.txt`); a `.gdignore`
 in each keeps Godot from importing them, since the game uses the palette versions in
@@ -34,4 +41,7 @@ in each keeps Godot from importing them, since the game uses the palette version
 Models in `assets/generated/` are produced by the scripts in `tools/blender/` and belong to this project
 (except the supervisor and the `k_*` models, which are recoloured Kenney CC0 models, see above).
 Sounds and music in `assets/audio/` are synthesized from scratch by `tools/audio/` (numpy) and belong to this
-project. The colour palette (`assets/palette.png`) comes from `tools/art/palette.py`.
+project. The colour palette (`assets/palette.png`) comes from `tools/art/palette.py`. The How to play illustrations
+(`assets/ui/howto/`) are renders of the game's models (`tests/helpers/HowToShots.tscn`), and the UI theme
+(`client/ui/theme.tres`) is built by `tools/godot/make_theme.gd`. The French translation
+(`translations/strings.csv`) belongs to this project too.

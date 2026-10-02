@@ -48,14 +48,14 @@ func is_available(_player: Player) -> bool:
 
 func prompt_for(player: Player) -> String:
 	var plant := _plant()
-	var subsystem := plant.data(index).display_name
+	var subsystem := tr(plant.data(index).display_name)
 	if plant.health(index) <= 0.0:
-		return "%s is already broken" % subsystem
+		return tr("%s is already broken") % subsystem
 	if not is_available(player):
-		return "%s: cooling down, %d s" % [subsystem, ceili(plant.cooldown_left(index))]
+		return tr("%s: cooling down, %d s") % [subsystem, ceili(plant.cooldown_left(index))]
 	if partner != null and partner.holder_count == 0:
-		return "%s lever: needs a 2nd rat on the other lever" % subsystem
-	return "Pull the %s lever" % subsystem
+		return tr("%s lever: needs a 2nd rat on the other lever") % subsystem
+	return tr("Pull the %s lever") % subsystem
 
 
 ## Per-holder time doesn't matter here: the leader advances the shared progress itself.

@@ -6,13 +6,18 @@ const MAX_NAME_LENGTH := 16
 const DEFAULT_NAME := "Player"
 
 
-## Returns "" if the join is allowed, otherwise a reason to show the player.
-static func check(client_version: String, server_version: String, player_count: int, max_players: int) -> String:
+## Whether a join is allowed: LeaveReason.Code.NONE, or why not (VERSION, FULL, PASSWORD_REQUIRED,
+## WRONG_PASSWORD). The version comes first (an old client can't do anything else right), then the
+## room, then the password (nobody types a password only to hear the server is full).
+static func check(client_version: String, server_version: String, player_count: int, max_players: int,
+		password: String = "", server_password: String = "") -> LeaveReason.Code:
 	if client_version != server_version:
-		return "Version mismatch: server is %s, you have %s" % [server_version, client_version]
+		return LeaveReason.Code.VERSION
 	if player_count >= max_players:
-		return "Server full"
-	return ""
+		return LeaveReason.Code.FULL
+	if server_password != "" and password != server_password:
+		return LeaveReason.Code.PASSWORD_REQUIRED if password == "" else LeaveReason.Code.WRONG_PASSWORD
+	return LeaveReason.Code.NONE
 
 
 ## Trims, drops control characters and BBCode brackets, collapses spaces, caps the length.

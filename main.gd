@@ -57,4 +57,4 @@ func _start_client_with_updates() -> void:
 
 
 func _on_update_status(text: String) -> void:
-	_update_label.text = text + "\n\nEsc: skip and play this version"
+	_update_label.text = text + "\n\n" + tr("Esc: skip and play this version")

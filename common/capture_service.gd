@@ -86,17 +86,18 @@ func cage(supervisor: Player, target: Cage) -> void:
 	rat.server_attach_to(NodePath())
 	captures[rat.peer_id] = captures.get(rat.peer_id, 0) + 1
 	session.match_manager.add_stat(supervisor.peer_id, "catches")
+	session.match_manager.add_stat(rat.peer_id, "caught")
 	session.items.drop_stolen(rat)
 	if captures[rat.peer_id] >= tuning.captures_to_eliminate:
 		Log.info("capture", "%s caught %s again: eliminated" % [supervisor.display_name, rat.display_name])
-		session.chat.broadcast_system("%s eliminated %s!" % [supervisor.display_name, rat.display_name])
+		session.match_manager.feed("eliminated", supervisor.display_name, rat.display_name)
 		session.match_manager.eliminate(rat.peer_id)
 		return
 	var spot := target.add_occupant(rat.peer_id)
 	rat.status.apply(StatusComponent.Status.CAGED)
 	rat.server_force_position(spot)
 	Log.info("capture", "%s caged %s (capture %d)" % [supervisor.display_name, rat.display_name, captures[rat.peer_id]])
-	session.chat.broadcast_system("%s caged %s!" % [supervisor.display_name, rat.display_name])
+	session.match_manager.feed("caged", supervisor.display_name, rat.display_name)
 
 
 ## Server (Cage, rat side): `helper` freed the oldest occupant of `target`.
@@ -113,7 +114,7 @@ func free_rat(helper: Player, target: Cage) -> void:
 	rat.server_force_position(target.door_position())
 	session.match_manager.add_stat(helper.peer_id, "frees")
 	Log.info("capture", "%s freed %s" % [helper.display_name, rat.display_name])
-	session.chat.broadcast_system("%s freed %s!" % [helper.display_name, rat.display_name])
+	session.match_manager.feed("freed", helper.display_name, rat.display_name)
 
 
 func _physics_process(_delta: float) -> void:

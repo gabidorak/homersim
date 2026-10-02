@@ -15,6 +15,9 @@ extends Node
 ## "ghosts" for the chat (chat_members()).
 ## Swarm bonus (GDD §2): every supervisor knocked down at once adds swarm_bonus % to the meltdown,
 ## at most once every swarm_cooldown_s.
+## For the UI (M8) it also replicates the server's name and match settings (`server_info`, lobby),
+## everyone's ping (`pings`, lobby cards and scoreboard), the stats so far (`live_stats`, scoreboard),
+## and sends the event feed (feed(): "Alice caged Bob!", "Turbine sabotaged!", client/event_feed.gd).
 ##
 ## Test-only server flags (debug builds): --test-duration S (match length), --result-file PATH
 ## (JSON summary written when the match ends), --exit-after-match (quit right after that).
@@ -28,9 +31,11 @@ enum State { LOBBY, ROLE_ASSIGN, COUNTDOWN, PLAYING, POST_MATCH }
 const EXIT_DELAY_S := 1.5
 ## Nodes in this group get reset_for_match() at every match start (server): CCTV cameras, the chair.
 const RESET_GROUP := "match_reset"
-## Per-player counters in the result (same order as the post-match columns).
+## Per-player counters in the result. bonks = broom stuns, caught = times caged (or eliminated).
 const STAT_KEYS: Array[String] = ["sabotages", "repairs", "catches", "frees", "bites", "knockdowns", "steals",
-	"hazard_hits"]
+	"hazard_hits", "bonks", "donuts", "caught"]
+const PING_EVERY_S := 2.0
+const STATS_EVERY_S := 1.0  ## live_stats goes out at most this often
 
 signal state_changed(state: State)
 signal roster_changed
@@ -57,8 +62,12 @@ var roster: Dictionary = {}:
 		roster_changed.emit()
 ## The last match's outcome, set when POST_MATCH starts:
 ## {"winner": MatchRulesModel.Team, "reason": String, "stats": Array of
-##  {"name", "role", and one count per STAT_KEYS}}
+##  {"peer", "name", "role", and one count per STAT_KEYS}}
 var result: Dictionary = {}
+## {"name", "max_players", "duration_s", "duration_single_s", "min_players", "locked"}: the lobby shows it.
+var server_info: Dictionary = {}
+var pings: Dictionary = {}  ## peer -> round trip in ms
+var live_stats: Dictionary = {}  ## peer -> {stat: count} during PLAYING (only the stats that are not 0)
 
 # --- Server only ----------------------------------------------------------------
 var rules: MatchRules
@@ -77,6 +86,9 @@ var _swarm_was_down := false
 var _state_path: Array[String] = []  # every state entered, for the test result file
 var _events: Array[String] = []  # plant events this match, for the test result file
 var _bots_done: Dictionary[int, bool] = {}  # peers whose test scenario is over (request_debug_done)
+var _next_ping_ms := 0
+var _next_stats_ms := 0
+var _stats_dirty := false
 
 @onready var session: Session = get_parent()
 
@@ -94,6 +106,14 @@ func _ready() -> void:
 	session.player_added.connect(_on_player_added)
 	session.player_removed.connect(_on_player_removed)
 	session.plant.subsystem_changed.connect(_on_subsystem_changed)
+	server_info = {
+		"name": session.server_name,
+		"max_players": session.max_players,
+		"duration_s": rules.duration_s,
+		"duration_single_s": rules.duration_single_supervisor_s,
+		"min_players": rules.min_players,
+		"locked": session.password != "",
+	}
 
 
 func entry(peer_id: int) -> Dictionary:
@@ -263,10 +283,11 @@ func _begin_playing() -> void:
 	_stats.clear()
 	_events.clear()
 	_bots_done.clear()
+	live_stats = {}
 	for peer: int in roster:
 		var role: Role.Kind = roster[peer]["role"]
 		if role == Role.Kind.SUPERVISOR or role == Role.Kind.RAT:
-			var row := {"name": roster[peer]["name"], "role": role}
+			var row := {"peer": peer, "name": roster[peer]["name"], "role": role}
 			for key in STAT_KEYS:
 				row[key] = 0
 			_stats[peer] = row
@@ -284,9 +305,10 @@ func _begin_playing() -> void:
 
 
 func _process(_delta: float) -> void:
+	var now := Time.get_ticks_msec()
+	_publish(now)
 	if _swapping:
 		return  # bodies are being swapped; the state machine resumes when that's done
-	var now := Time.get_ticks_msec()
 	match state:
 		State.COUNTDOWN:
 			countdown_left = maxi(ceili((_countdown_end_ms - now) / 1000.0), 0)
@@ -327,6 +349,41 @@ func _win_state(ms_left: int) -> Dictionary:
 func add_stat(peer: int, key: String, amount: int = 1) -> void:
 	if state == State.PLAYING and _stats.has(peer) and _stats[peer].has(key):
 		_stats[peer][key] += amount
+		_stats_dirty = true
+
+
+## Server: a line in everyone's event feed. `kind` names the line (client/event_feed.gd words it, in
+## each player's language); `a` and `b` are its names or ids.
+func feed(kind: String, a: String = "", b: String = "") -> void:
+	for peer: int in session.players:
+		on_feed.rpc_id(peer, kind, a, b)
+
+
+@rpc("authority", "reliable")
+func on_feed(kind: String, a: String, b: String) -> void:
+	Events.feed_event.emit(kind, a, b)
+
+
+## Server: refresh the pings and the live stats now and then (they replicate on change).
+func _publish(now_ms: int) -> void:
+	if now_ms >= _next_ping_ms:
+		_next_ping_ms = now_ms + int(PING_EVERY_S * 1000.0)
+		var fresh := {}
+		for peer: int in session.players:
+			fresh[peer] = Net.peer_ping_ms(peer)
+		if fresh != pings:
+			pings = fresh
+	if _stats_dirty and now_ms >= _next_stats_ms:
+		_stats_dirty = false
+		_next_stats_ms = now_ms + int(STATS_EVERY_S * 1000.0)
+		var fresh := {}
+		for peer: int in _stats:
+			var counts := {}
+			for key in STAT_KEYS:
+				if _stats[peer][key] != 0:
+					counts[key] = _stats[peer][key]
+			fresh[peer] = counts
+		live_stats = fresh
 
 
 ## Server (SCRAM): the shift gets `seconds` longer.
@@ -366,7 +423,7 @@ func _check_swarm(now_ms: int) -> void:
 		var line := "swarm bonus: +%d%% meltdown" % roundi(rules.swarm_bonus)
 		_events.append(line)
 		Log.info("match", line)
-		session.chat.broadcast_system("SWARM! Every supervisor is down: meltdown +%d%%" % roundi(rules.swarm_bonus))
+		feed("swarm", str(roundi(rules.swarm_bonus)))
 	_swarm_was_down = all_down
 
 
@@ -393,15 +450,26 @@ func _on_subsystem_changed(index: int, what: String, peers: Array[int], before: 
 	for peer in peers:
 		names.append(_stats[peer]["name"] if _stats.has(peer) else str(peer))
 		if _stats.has(peer):
+			_stats_dirty = true
 			match what:
 				"sabotage":
 					_stats[peer]["sabotages"] += 1
 				"repair":
 					_stats[peer]["repairs"] += 1
-	var line := "%s %s by %s: health %d -> %d" % [what, session.plant.data(index).id, " + ".join(names),
-		roundi(before), roundi(after)]
+	var id := String(session.plant.data(index).id)
+	var line := "%s %s by %s: health %d -> %d" % [what, id, " + ".join(names), roundi(before), roundi(after)]
 	_events.append(line)
 	Log.info("match", line)
+	if state != State.PLAYING:
+		return
+	match what:
+		"sabotage":
+			feed("offline" if session.plant.needs_reboot(index) else "sabotaged", id)
+		"repair":
+			if after >= 99.5 and before < 99.5:
+				feed("repaired", id)
+		"reboot":
+			feed("rebooted", id)
 
 
 func _write_test_result() -> void:
@@ -451,6 +519,7 @@ func _back_to_lobby() -> void:
 		copy[peer]["ready"] = false
 		copy[peer]["eliminated"] = false
 	roster = copy
+	live_stats = {}
 	state = State.LOBBY
 	_spawn_counters.clear()
 	for peer: int in roster:

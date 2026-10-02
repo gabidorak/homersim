@@ -36,7 +36,7 @@ When there is a single supervisor, the *match timer* drops to 8 min (otherwise 9
 2. **Role assign** (instant): roles are assigned from preferences plus the balance table above.
 3. **Countdown, 10 s**: everyone is spawned and frozen. Supervisors start in the Break Room, rats in the Rat Nest.
 4. **Playing, 9:00** (8:00 with one supervisor).
-5. **Post-match, 15 s**: winner banner and stats (sabotages, repairs, catches, bites, hazard hits). Then everyone returns to the lobby.
+5. **Post-match, 15 s**: winner banner, each team's stats (sabotages, repairs, catches, bites, hazard hits…) and a few fun awards (most bonks, sneakiest rat, donut addict…). Then everyone returns to the lobby.
 
 ## 4. Plant simulation
 There are six subsystems, each with `health` from 0 to 100 that starts at 100.
@@ -202,7 +202,10 @@ One level, about **104 × 64 m** plus the sewer nest, two floors in places (catw
 - The vent network has 1-way drop exits, so rats can't camp vents forever.
 - 8 CCTV cameras cover the key rooms, with blind spots on purpose.
 
-## 8. Controls (defaults, rebindable in M8)
+## 8. Controls (defaults, rebindable in Settings → Controls since M8)
+Keys are physical positions: on an AZERTY keyboard WASD is ZQSD, and the game shows the keys as printed on the
+player's keyboard. Esc can't be rebound (it always opens the menu).
+
 | Action | Key |
 |---|---|
 | Move / look | WASD / mouse |
@@ -211,7 +214,9 @@ One level, about **104 × 64 m** plus the sewer nest, two floors in places (catw
 | Secondary (trap / –) | RMB |
 | Interact (hold) | E |
 | Chat / team chat | Enter / T |
-| Scoreboard | Tab |
+| Scoreboard (hold) | Tab |
+| Menu (frees the mouse; the game keeps running) | Esc |
+| Lobby: role preference any / supervisor / rat, ready | 1 / 2 / 3, R |
 | Emote | Z |
 | CCTV chair: previous / next camera, stand up | Q / E, Space |
 | Repair minigames: play / give up | Mouse / Esc |

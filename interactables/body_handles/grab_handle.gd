@@ -41,10 +41,10 @@ func is_available(player: Player) -> bool:
 
 func prompt_for(player: Player) -> String:
 	if player.status.carrying != 0:
-		return "Your hands are full"
+		return tr("Your hands are full")
 	if not grabbable():
-		return "Stun %s first" % rat.display_name
-	return "Grab %s" % rat.display_name
+		return tr("Stun %s first") % rat.display_name
+	return tr("Grab %s") % rat.display_name
 
 
 func _complete(player: Player) -> void:

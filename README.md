@@ -8,7 +8,7 @@ A goofy, cartoon-style **asymmetric multiplayer** game set in a nuclear power pl
 
 Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows**.
 
-> Status: **M7 implemented** (M3–M7 still waiting for a playtest). M7 is the art and audio pass: toon shading with outlines, a generated cartoon plant (baked room shells, machines, furniture, clutter), an animated supervisor (Kenney CC0 character, recoloured) and rat, first-person arms and broom, particle effects, camera shake, synthesized sounds and music (alarm-driven layers, lobby loop, stingers), ambient hums and hall reverb. Screenshots in [docs/screenshots/](docs/screenshots/). Earlier: M3 plant simulation, sabotage and repairs, meltdown meter, HUD; M4 PvP (broom, bites, carry and cage, keycards, traps, donuts); M5 the plant layout; M6 hazards, repair minigames, Control Room consoles. Next: playtest with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), including a run at 100 ms of simulated latency, then [M8](docs/milestones/M8-menus-and-ux.md).
+> Status: **M8 implemented** (M3–M8 still waiting for a playtest). M8 is everything around the gameplay: a main menu over a little 3D diorama, a server browser (LAN discovery with ping, favourites, direct connect, server passwords), settings (video, controls with key rebinding, audio, gameplay, all saved), a polished lobby (player cards, pings, server info), an Esc menu, a Tab scoreboard, an event feed, a post-match screen with awards, How to play with illustrations, first-time hints, a clear message for every way a connection can fail, a cartoon UI theme, and the whole game in English and French. Screenshots in [docs/screenshots/](docs/screenshots/). Earlier: M3 plant simulation, sabotage and repairs, meltdown meter, HUD; M4 PvP (broom, bites, carry and cage, keycards, traps, donuts); M5 the plant layout; M6 hazards, repair minigames, Control Room consoles; M7 the art and audio pass. Next: playtest with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), including someone who has never seen the game (M8's last check) and a run at 100 ms of simulated latency, then [M9](docs/milestones/M9-ship-v1.md).
 
 ## Documents
 | Doc | What's inside |
@@ -68,24 +68,45 @@ godot --headless --export-release "Windows Server" build/server-windows/homersim
 ```
 Each export is a single file (the `.pck` is embedded).
 
+## Translations
+Every text the player reads goes through `tr()` and lives in [translations/strings.csv](translations/strings.csv)
+(`keys,en,fr`; the key is the English text itself, so a missing row still shows English). After adding a text:
+add its row (keep `%s` / `%d` in the same order in each language), run the unit tests (`test_translations.gd` lists
+any text missing from the CSV), and `godot --headless --import` to rebuild the `.translation` files. A new
+language is one more column plus an entry in `Config.LANGUAGES`.
+
 ## Running
+Start the game with no arguments: the menu asks for a name the first time, then **Play** opens the server
+browser. Servers on your network show up by themselves (with their ping); others are joined by typing their
+address, and can be saved as favourites. Settings and How to play are in the menu, and in game behind Esc.
 ```bash
 # dedicated server (from the editor build or an exported server binary)
-godot --headless -- --server --port 7777          # also: --max-players N, --config path, --debug-start [N]
-# client (or run without args and use the menu)
+godot --headless -- --server --port 7777          # also: --max-players N, --config path, --password X, --no-lan, --debug-start [N]
+# client: straight into a server (skips the browser), and/or as someone else for this run
 godot -- --connect 127.0.0.1:7777 --name Alice
 # server + 3 clients in one go (Ctrl+C stops all)
 tools/dev/run_local.sh 3
 ```
-Server settings live in `server.cfg` (copy [server.cfg.example](server.cfg.example)); CLI args override them.
-In game: WASD, mouse, Space to jump, Shift to sprint, **hold E** to sabotage (rats) or repair (supervisors),
-Enter to chat, T to chat with your team. Supervisors: LMB swings the broom, E grabs a stunned rat and cages it, hold RMB
-then release to place a trap (Q switches snap trap / cheese lure). Rats: LMB bites, hold E behind a supervisor to steal
-its keycard, hold E at a cage to free a friend. Supervisors repair with a short mouse minigame (E at a repair point;
-Esc gives up; `--hold-repairs` on the client uses the old 6 s hold instead), and use the Control Room consoles
-(emergency coolant; SCRAM: press twice, cover then button). Broken subsystems spawn hazards that hit both teams. Eliminated rats spectate (LMB / RMB cycle players, WASD flies). Z emotes (a whistle, a squeak); `--no-shake` on the client turns off camera shake. Esc frees the mouse (to click the lobby buttons), a click captures it again. Rats win when the
-meltdown meter hits 100%; supervisors win when the shift timer runs out first. The match starts when at least 3 players are in and more than half of
-them are ready; `--debug-start N` on the server skips the vote once N players joined.
+Server settings live in `server.cfg` (copy [server.cfg.example](server.cfg.example): name, password, port,
+players, match rules); CLI args override them. A server announces itself on the local network (UDP 7778–7781)
+unless started with `--no-lan`. **Windows**: the first time the game or the server runs, Windows asks whether to
+allow it through the firewall: allow it on private networks, or LAN servers stay invisible (joining by address
+still works if UDP 7777 is open). User settings are saved in `user://settings.cfg`
+(`~/.local/share/godot/app_userdata/HomerSim/` on Linux, `%APPDATA%\Godot\app_userdata\HomerSim\` on Windows);
+`--settings PATH` uses another file. The language follows the system (English or French) or the Gameplay setting.
+In game (default keys, all rebindable in Settings → Controls; the game shows them as printed on your keyboard):
+WASD, mouse, Space to jump, Shift to sprint, **hold E** to sabotage (rats) or repair (supervisors), Enter to chat,
+T to chat with your team, hold Tab for the scoreboard, Esc for the menu (the game keeps running; a click in the
+view goes back to it). In the lobby, 1 / 2 / 3 pick the role you would like and R readies you up. Supervisors: LMB
+swings the broom, E grabs a stunned rat and cages it, hold RMB then release to place a trap (Q switches snap trap /
+cheese lure). Rats: LMB bites, hold E behind a supervisor to steal its keycard, hold E at a cage to free a friend.
+Supervisors repair with a short mouse minigame (E at a repair point; Esc gives up; Settings → Controls, or
+`--hold-repairs`, uses the 6 s hold instead), and use the Control Room consoles (emergency coolant; SCRAM: press
+twice, cover then button). Broken subsystems spawn hazards that hit both teams. Eliminated rats spectate (LMB / RMB
+cycle players, WASD flies). Z emotes (a whistle, a squeak); camera shake can be turned off in the settings
+(or `--no-shake`). Rats win when the meltdown meter hits 100%; supervisors win when the shift timer runs out first.
+The match starts when at least 3 players are in and more than half of them are ready; `--debug-start N` on the
+server skips the vote once N players joined.
 
 From the editor: *Debug → Customize Run Instances…* → enable multiple instances, set 4. Give instance 1
 the arguments `-- --server --headless` and instances 2–4 `-- --connect 127.0.0.1:7777 --name P2` (P3, P4).
@@ -105,8 +126,10 @@ tests/integration/map_check.sh        # navmesh paths on the plant vs the GDD de
 tests/integration/hazards.sh          # on the plant: steam jets (both teams, on/off hysteresis), puddle, radiation, debris, smoke
 tests/integration/minigames.sh        # on the plant: the 3 repair minigames through the real overlay, a loss, a hacked instant win
 tests/integration/control_room.sh     # on the plant: emergency coolant (power, cooldown), SCRAM (cover, timer +30 s)
+tests/integration/menus_smoke.sh      # M8, the real menus: LAN discovery + join, password prompt, kicked, lost, timeout, bad address
 # test-only client flags (debug builds): --pref rat|supervisor|any, --auto-ready, --say TEXT,
-#   --auto-move, --debug-speed N (fake speed hack), --screenshot PATH [--screenshot-delay S]
+#   --auto-move, --debug-speed N (fake speed hack), --screenshot PATH [--screenshot-delay S | --screenshot-times T1,T2,…],
+#   --debug-kick-me; in the menu (M8): --lan-join NAME, --auto-password A,B,…, --dismiss-errors
 # test-only server flags (debug builds): --allow-debug (debug RPCs such as teleport), --test-duration S,
 #   --exit-after-match, --result-file PATH
 # scripted bot client (debug builds): --bot rat|supervisor [--bot-target ID] [--bot-lever A|B] [--bot-delay S]
@@ -120,6 +143,9 @@ tools/build_assets.sh [models|audio|level|all]   # M7: palette, Blender models, 
 godot tests/helpers/MapTour.tscn -- --players 6 --no-vsync   # + animated bodies, uncapped fps (perf check)
 godot tests/helpers/CharacterTour.tscn -- --out /tmp/chars   # windowed: every character animation state
 godot tests/helpers/ArtGallery.tscn -- --files crate,lever     # windowed: models under the real shaders
+godot tests/helpers/UiTour.tscn -- --settings /tmp/tour.cfg --out /tmp/ui [--lang fr|en] [--only NAME]   # windowed: every menu and in-game screen
+godot tests/helpers/HowToShots.tscn -- --out /tmp/howto          # windowed: renders the How to play illustrations (copy to assets/ui/howto/)
+godot --headless -s tools/godot/make_theme.gd                    # rebuilds client/ui/theme.tres (fonts, colours, buttons)
 python3 tools/heatmap.py ~/.local/share/godot/app_userdata/HomerSim/heatmap_*.csv   # playtest heatmap
 godot -- --connect 127.0.0.1:7777 --game-version 0.0.0   # debug builds only: fake an old client
 # simulate a bad network on localhost (needs sudo, remove it afterwards!)

@@ -17,7 +17,7 @@ var _last_angle := 0.0
 
 
 func instructions() -> String:
-	return "Drag in circles to turn the wheel into the green, then hold it there"
+	return tr("Drag in circles to turn the wheel into the green, then hold it there")
 
 
 func _setup() -> void:

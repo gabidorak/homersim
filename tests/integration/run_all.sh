@@ -11,7 +11,7 @@ JOBS=4
 if [ "${1:-}" = "-j" ]; then JOBS=$2; shift 2; fi
 # Longest first, so the slowest ones don't start last.
 ALL=(pvp_capture pvp_items hazards minigames critical_lever pvp_swarm plant_cctv run_match_loop
-	control_room pvp_hack lobby_smoke join_smoke map_check)
+	control_room pvp_hack menus_smoke lobby_smoke join_smoke map_check)
 if [ $# -gt 0 ]; then
 	TESTS=("$@")
 else

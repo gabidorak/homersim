@@ -34,12 +34,13 @@ func _ready() -> void:
 	_root.add_child(_static)
 	_title = _label(28, Control.PRESET_TOP_LEFT, Vector2(24, 16))
 	_no_signal = _label(64, Control.PRESET_CENTER, Vector2.ZERO)
-	_no_signal.text = "NO SIGNAL"
+	_no_signal.text = tr("NO SIGNAL")
 	_no_signal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_no_signal.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_no_signal.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var hint := _label(20, Control.PRESET_CENTER_BOTTOM, Vector2(0, -40))
-	hint.text = "Q / E: previous / next camera  ·  Space: stand up  ·  you can still be bitten!"
+	hint.text = tr("%s / %s: previous / next camera  ·  %s: stand up  ·  you can still be bitten!") % [
+		Keys.label(&"next_trap"), Keys.label(&"interact"), Keys.label(&"jump")]
 	hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
 
 
@@ -74,7 +75,7 @@ func _process(_delta: float) -> void:
 	selected = posmod(selected, cameras.size())
 	var cam := cameras[selected]
 	_camera.global_transform = cam.lens.global_transform
-	_title.text = "CAM %d  ·  %s%s" % [cam.number, cam.label, "  ·  BROKEN" if cam.broken else ""]
+	_title.text = "%s  ·  %s%s" % [tr("CAM %d") % cam.number, tr(cam.label), "  ·  " + tr("BROKEN") if cam.broken else ""]
 	_static.visible = cam.broken
 	_no_signal.visible = cam.broken
 

@@ -2,7 +2,10 @@ class_name ChatService
 extends Node
 ## Text chat. A client calls send(); the server checks the request (sender joined, length,
 ## 1 message/s, channel allowed) and strips BBCode brackets, then relays on_message to the
-## recipients. An empty from_name marks a system message (joins, leaves, warnings).
+## recipients. An empty from_name marks a system message (joins, leaves, warnings): its text is an
+## English format string and `args` its values, so each client shows it in its own language
+## (tr(text) % args, M8). Gameplay events (cages, sabotages…) go to the event feed instead
+## (MatchManager.feed).
 ##
 ## Channels (routing is server-side, see route()):
 ##   ALL    everyone
@@ -15,7 +18,7 @@ enum Channel { ALL, TEAM, GHOST, SYSTEM }
 const MAX_LENGTH := 200
 const MIN_INTERVAL_MS := 1000
 
-signal message_received(from_name: String, text: String, channel: Channel)
+signal message_received(from_name: String, text: String, channel: Channel)  ## text already translated
 
 var _last_sent_ms: Dictionary[int, int] = {}  # server: peer -> time of its last accepted message
 
@@ -70,16 +73,26 @@ func send(text: String, channel: Channel = Channel.ALL) -> void:
 	request_send.rpc_id(1, text, channel)
 
 
-## Server: a message from "the server" to everyone.
-func broadcast_system(text: String) -> void:
-	Log.info("chat", "* %s" % text)
+## Server: a message from "the server" to everyone. `text` is an English format string for `args`.
+func broadcast_system(text: String, args: Array = []) -> void:
+	Log.info("chat", "* %s" % format(text, args, false))
 	for peer: int in Session.current.players:
-		on_message.rpc_id(peer, "", text, Channel.SYSTEM)
+		on_message.rpc_id(peer, "", text, Channel.SYSTEM, args)
 
 
 ## Server: a system message to one peer.
-func tell(peer_id: int, text: String) -> void:
-	on_message.rpc_id(peer_id, "", text, Channel.SYSTEM)
+func tell(peer_id: int, text: String, args: Array = []) -> void:
+	on_message.rpc_id(peer_id, "", text, Channel.SYSTEM, args)
+
+
+## A system message's text: `text` (translated when `translate`) with `args` filled in. A format
+## that doesn't match its args shows as is rather than failing.
+static func format(text: String, args: Array, translate: bool = true) -> String:
+	var pattern: String = TranslationServer.translate(text) if translate else text
+	if args.is_empty():
+		return pattern
+	var count := pattern.count("%s") + pattern.count("%d")
+	return pattern % args if count == args.size() else text
 
 
 ## Server: forget a peer that left.
@@ -112,12 +125,16 @@ func request_send(text: String, channel: int) -> void:
 	var used: int = routed["channel"]
 	Log.info("chat", "%s%s: %s" % [_tag(used), info.name, cleaned])
 	for other: int in routed["to"]:
-		on_message.rpc_id(other, info.name, cleaned, used)
+		on_message.rpc_id(other, info.name, cleaned, used, [])
 
 
 @rpc("authority", "reliable")
-func on_message(from_name: String, text: String, channel: int) -> void:
-	Log.info("chat", ("* %s" % text) if from_name.is_empty() else ("%s%s: %s" % [_tag(channel), from_name, text]))
+func on_message(from_name: String, text: String, channel: int, args: Array) -> void:
+	if from_name.is_empty():
+		Log.info("chat", "* %s" % format(text, args, false))
+		text = format(text, args)
+	else:
+		Log.info("chat", "%s%s: %s" % [_tag(channel), from_name, text])
 	message_received.emit(from_name, text, channel)
 	Events.chat_message.emit(from_name, text, channel)
 

@@ -109,8 +109,9 @@ func steal(rat: Player, supervisor: Player) -> void:
 	rat.inventory.stolen_item = &"keycard"
 	session.match_manager.add_stat(rat.peer_id, "steals")
 	Log.info("item", "%s stole %s's keycard" % [rat.display_name, supervisor.display_name])
-	session.chat.tell(supervisor.peer_id, "A rat stole your keycard! Stun it to get it back, or take the spare in Storage in %d s."
-		% roundi(tuning.spare_keycard_delay_s))
+	session.match_manager.feed("stolen", supervisor.display_name)
+	session.chat.tell(supervisor.peer_id, "A rat stole your keycard! Stun it to get it back, or take the spare in Storage in %d s.",
+		[roundi(tuning.spare_keycard_delay_s)])
 
 
 ## A stunned or caught rat drops what it stole, as a pickup at its feet.
@@ -125,6 +126,7 @@ func drop_stolen(rat: Player) -> void:
 ## Trap: `trap` went off under `rat` (the status is already applied).
 func trap_sprung(trap: Trap, rat: Player) -> void:
 	Log.info("item", "%s stepped on a %s trap" % [rat.display_name, trap.trap_kind])
+	session.match_manager.feed("trap_snap" if trap.trap_kind == "snap" else "trap_lure", rat.display_name)
 	if trap.trap_kind == "snap":
 		for node in session.players_root.get_children():
 			var p := node as Player

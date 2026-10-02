@@ -84,16 +84,16 @@ func prefers_minigame(player: Player) -> bool:
 
 func prompt_for(player: Player) -> String:
 	var plant := _plant()
-	var subsystem := plant.data(index).display_name
+	var subsystem := tr(plant.data(index).display_name)
 	if lockout_left() > 0.0:
-		return "%s jammed: %d s" % [subsystem, ceili(lockout_left())]
+		return tr("%s jammed: %d s") % [subsystem, ceili(lockout_left())]
 	if _rebooting():
-		return "Reboot %s (hold)" % subsystem
+		return tr("Reboot %s (hold)") % subsystem
 	if plant.health(index) >= plant.tuning.max_health:
-		return "%s is fine" % subsystem
+		return tr("%s is fine") % subsystem
 	if minigame_user != 0 and minigame_user != player.peer_id and Config.minigame_repairs:
-		return "%s is fixing %s" % [Session.current.name_of(minigame_user), subsystem]
-	return "Repair %s (%d%%)" % [subsystem, roundi(plant.health(index))]
+		return tr("%s is fixing %s") % [Session.current.name_of(minigame_user), subsystem]
+	return tr("Repair %s (%d%%)") % [subsystem, roundi(plant.health(index))]
 
 
 ## Server (MatchManager, at every match start).

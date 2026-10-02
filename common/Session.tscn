@@ -32,6 +32,15 @@ properties/5/replication_mode = 2
 properties/6/path = NodePath(".:time_added")
 properties/6/spawn = true
 properties/6/replication_mode = 2
+properties/7/path = NodePath(".:server_info")
+properties/7/spawn = true
+properties/7/replication_mode = 2
+properties/8/path = NodePath(".:pings")
+properties/8/spawn = true
+properties/8/replication_mode = 2
+properties/9/path = NodePath(".:live_stats")
+properties/9/spawn = true
+properties/9/replication_mode = 2
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_plant"]
 properties/0/path = NodePath(".:healths")

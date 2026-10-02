@@ -241,7 +241,7 @@ func _update_feedback(delta: float) -> void:
 	var labels := StatusComponent.describe(status.flags)
 	status_tag.visible = not is_local() and not labels.is_empty()
 	if status_tag.visible:
-		status_tag.text = labels[0][0]
+		status_tag.text = tr(labels[0][0])
 		status_tag.modulate = labels[0][1]
 	if is_local() and anim != null and PlayerInput.has_control() and Input.is_action_just_pressed("emote"):
 		anim.start_emote()

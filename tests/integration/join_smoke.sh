@@ -18,7 +18,7 @@ expect() {  # expect <file> <pattern> <description>
 	if grep -qE "$2" "$LOGS/$1.log"; then echo "ok   - $3"; else echo "FAIL - $3"; FAIL=1; fi
 }
 
-"$GODOT" --headless --max-fps 120 -- --server --no-heatmap --port "$PORT" --max-players 2 > "$LOGS/server.log" 2>&1 &
+"$GODOT" --headless --max-fps 120 -- --server --no-heatmap --no-lan --port "$PORT" --max-players 2 > "$LOGS/server.log" 2>&1 &
 SERVER=$!
 sleep 2
 client A 9
@@ -42,6 +42,8 @@ expect B "spawned A .*peer"               "B: sees A's body"
 expect B "spawned B .*\[local\]"          "B: owns its body"
 expect Full "back to menu: Server full"   "3rd player: told the server is full"
 expect Old "back to menu: Version mismatch" "old client: told about the version"
+expect Full "error box: Server full"      "3rd player: an error box says so"
+expect Old "error box: Version mismatch"  "old client: an error box says so"
 if grep -lE "SCRIPT ERROR|^ERROR" "$LOGS"/*.log; then echo "FAIL - errors in the logs above"; FAIL=1; fi
 
 if [ $FAIL -ne 0 ]; then echo "logs kept in $LOGS"; exit 1; fi

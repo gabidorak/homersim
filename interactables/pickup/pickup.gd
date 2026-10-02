@@ -52,15 +52,15 @@ func prompt_for(player: Player) -> String:
 	var inv := player.inventory
 	match item:
 		"trap_refill":
-			return "Traps are full" if inv.trap_charges >= tuning.trap_charges else "Refill traps"
+			return tr("Traps are full") if inv.trap_charges >= tuning.trap_charges else tr("Refill traps")
 		"spare_keycard":
 			if inv.keycard:
-				return "You have your keycard"
-			return "Spare keycard in %d s" % inv.spare_wait_left if inv.spare_wait_left > 0 else "Take the spare keycard"
+				return tr("You have your keycard")
+			return tr("Spare keycard in %d s") % inv.spare_wait_left if inv.spare_wait_left > 0 else tr("Take the spare keycard")
 		"donut":
-			return "Next donut in %d s" % inv.donut_wait_left if inv.donut_wait_left > 0 else "Eat a donut"
+			return tr("Next donut in %d s") % inv.donut_wait_left if inv.donut_wait_left > 0 else tr("Eat a donut")
 		"keycard":
-			return "You have a keycard" if inv.keycard else "Pick up the keycard"
+			return tr("You have a keycard") if inv.keycard else tr("Pick up the keycard")
 	return prompt
 
 
@@ -74,6 +74,7 @@ func _complete(player: Player) -> void:
 		"donut":
 			inv.eat_donut()
 			player.status.set_speed_factor(&"donut", tuning.donut_speed, tuning.donut_duration_s)
+			Session.current.match_manager.add_stat(player.peer_id, "donuts")
 	super(player)
 	if item == "keycard":
 		_taken = true
@@ -94,7 +95,7 @@ func _build_look() -> void:
 	add_child(shape)
 	if look[3] != "":
 		var label := Label3D.new()
-		label.text = look[3]
+		label.text = tr(look[3])
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.font_size = 36
 		label.outline_size = 8

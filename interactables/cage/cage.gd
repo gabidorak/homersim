@@ -82,13 +82,13 @@ func is_available(player: Player) -> bool:
 func prompt_for(player: Player) -> String:
 	if player.role == Role.Kind.SUPERVISOR:
 		if player.status.carrying == 0:
-			return "Cage (bring a stunned rat)"
+			return tr("Cage (bring a stunned rat)")
 		if is_full():
-			return "The cage is full"
-		return "Cage %s" % _name_of(player.status.carrying)
+			return tr("The cage is full")
+		return tr("Cage %s") % _name_of(player.status.carrying)
 	if occupants.is_empty():
-		return "Empty cage"
-	return "Free %s" % _name_of(occupants[0])
+		return tr("Empty cage")
+	return tr("Free %s") % _name_of(occupants[0])
 
 
 func _complete(player: Player) -> void:
@@ -131,7 +131,7 @@ func _physics_process(_delta: float) -> void:
 
 func _process(_delta: float) -> void:
 	if _label != null:
-		_label.text = "CAGE" if occupants.is_empty() else "CAGE (%d)" % occupants.size()
+		_label.text = tr("CAGE") if occupants.is_empty() else tr("CAGE (%d)") % occupants.size()
 	# Cosmetic: the door swings open and slams when a rat goes in or gets out.
 	if occupants.size() != _shown_count:
 		var caged := occupants.size() > _shown_count

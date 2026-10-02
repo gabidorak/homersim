@@ -6,6 +6,7 @@ const SESSION_SCENE: PackedScene = preload("res://common/Session.tscn")
 ## Extra ENet slots beyond max_players. Without them ENet itself refuses surplus clients, who then
 ## only see "could not reach the server"; with them they connect and get a clear "Server full".
 const EXTRA_SLOTS := 2
+const SERVER_NAME_DEFAULT := "HomerSim server"
 
 
 func _ready() -> void:
@@ -28,9 +29,12 @@ func _boot() -> void:
 	var session: Session = SESSION_SCENE.instantiate()
 	session.max_players = max_players
 	session.match_rules = Config.load_match_rules(path)
+	var server_name := ChatService.clean(str(cfg["name"])).substr(0, LanDiscovery.MAX_NAME)
+	session.server_name = server_name if server_name != "" else SERVER_NAME_DEFAULT
+	session.password = Cli.get_str("password", str(cfg["password"]))
 	get_tree().root.add_child(session)
-	Log.info("server", "'%s' listening on UDP %d, max %d players, version %s"
-		% [cfg["name"], port, max_players, Session.game_version()])
+	Log.info("server", "'%s' listening on UDP %d, max %d players, version %s%s"
+		% [session.server_name, port, max_players, Session.game_version(), ", password protected" if session.password != "" else ""])
 
 
 ## From source: the project folder. Exported: next to the server binary.

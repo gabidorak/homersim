@@ -122,7 +122,7 @@ func supervise() -> void:
 func _update() -> bool:
 	var tag := tag_for(channel())
 	var base := "%s/%s" % [Cli.get_str("update-url", "https://github.com/%s/releases/download" % BuildInfo.REPO), tag.uri_encode()]
-	_set_status("Checking for updates…")
+	_set_status(tr("Checking for updates..."))
 	var got := await _fetch(base + "/" + MANIFEST, "")
 	if not got["error"].is_empty():
 		Log.info("update", "no update info for branch '%s' (%s)" % [channel(), got["error"]])
@@ -156,7 +156,7 @@ func _update() -> bool:
 	if not _swap(exe, download):
 		return false
 	Log.info("update", "installed build %d of '%s'" % [number, channel()])
-	_set_status("Starting the new version…")
+	_set_status(tr("Starting the new version..."))
 	return true
 
 
@@ -185,7 +185,7 @@ func _fetch(url: String, file: String) -> Dictionary:
 		elif idle > STALL_TIMEOUT_S:
 			error = "no data for %d s" % STALL_TIMEOUT_S
 		elif not file.is_empty() and http.get_body_size() > 0:
-			_set_status("Downloading update… %d / %d MB" % [bytes >> 20, http.get_body_size() >> 20])
+			_set_status(tr("Downloading the update... %d / %d MB") % [bytes >> 20, http.get_body_size() >> 20])
 	if not error.is_empty():
 		http.cancel_request()
 	elif response[0] == HTTPRequest.RESULT_DOWNLOAD_FILE_CANT_OPEN:

@@ -25,7 +25,7 @@ func _on_broom(attacker: int, victim: int, stunned: bool) -> void:
 		Sfx.play_at(self, "bonk", hit)
 		Vfx.bonk(self, hit)
 		if victim == session.local_peer_id:
-			banner.emit("BONK! You're stunned")
+			banner.emit(tr("BONK! You're stunned"))
 			Vfx.shake(0.7)
 		elif attacker == session.local_peer_id:
 			Vfx.shake(0.35)
@@ -40,9 +40,9 @@ func _on_bite(attacker: int, victim: int, result: int) -> void:
 	if victim == session.local_peer_id:
 		Vfx.shake(0.3)
 	if victim == session.local_peer_id and result == StatusRules.Bite.KNOCKED_DOWN:
-		banner.emit("The rats knocked you down!")
+		banner.emit(tr("The rats knocked you down!"))
 	elif attacker == session.local_peer_id and result == StatusRules.Bite.KNOCKED_DOWN:
-		banner.emit("Knockdown!")
+		banner.emit(tr("Knockdown!"))
 
 
 func _on_snap(pos: Vector3) -> void:
@@ -50,4 +50,4 @@ func _on_snap(pos: Vector3) -> void:
 	Sfx.play_at(self, "snap", pos)
 	Vfx.puff(self, pos + Vector3.UP * 0.1, Vfx.DUST, 10, 0.5)
 	Vfx.sparks(self, pos + Vector3.UP * 0.1, 10, Color.WHITE)
-	banner.emit("SNAP! A trap caught a rat")
+	banner.emit(tr("SNAP! A trap caught a rat"))

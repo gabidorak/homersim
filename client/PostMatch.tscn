@@ -1,17 +1,6 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://client/post_match.gd" id="1_post"]
-
-[sub_resource type="StyleBoxFlat" id="panel_bg"]
-content_margin_left = 24.0
-content_margin_top = 16.0
-content_margin_right = 24.0
-content_margin_bottom = 16.0
-bg_color = Color(0.08, 0.08, 0.1, 0.85)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
 
 [node name="PostMatch" type="Control"]
 layout_mode = 3
@@ -23,6 +12,16 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_post")
 
+[node name="Dim" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"DimPanel"
+
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -32,42 +31,51 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
-unique_name_in_owner = true
+[node name="Col" type="VBoxContainer" parent="Center"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("panel_bg")
+theme_override_constants/separation = 12
 
-[node name="Box" type="VBoxContainer" parent="Center/Panel"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 10
-
-[node name="Banner" type="Label" parent="Center/Panel/Box"]
+[node name="Banner" type="Label" parent="Center/Col"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 10
-theme_override_font_sizes/font_size = 48
+theme_type_variation = &"TitleLabel"
+auto_translate_mode = 2
 text = "SUPERVISORS WIN!"
 horizontal_alignment = 1
 
-[node name="Reason" type="Label" parent="Center/Panel/Box"]
+[node name="YouLine" type="Label" parent="Center/Col"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"HeaderLabel"
+auto_translate_mode = 2
+horizontal_alignment = 1
+
+[node name="Reason" type="Label" parent="Center/Col"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
+auto_translate_mode = 2
 horizontal_alignment = 1
 
-[node name="Stats" type="GridContainer" parent="Center/Panel/Box"]
+[node name="Tables" type="HBoxContainer" parent="Center/Col"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/h_separation = 28
-theme_override_constants/v_separation = 4
-columns = 10
+theme_override_constants/separation = 16
+alignment = 1
 
-[node name="Footer" type="Label" parent="Center/Panel/Box"]
+[node name="Awards" type="HBoxContainer" parent="Center/Col"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
+mouse_filter = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Footer" type="Label" parent="Center/Col"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+theme_override_font_sizes/font_size = 18
+auto_translate_mode = 2
 horizontal_alignment = 1

@@ -138,7 +138,7 @@ func _hit(player: Player) -> void:
 @rpc("authority", "call_remote", "reliable")
 func on_hit(peer_id: int) -> void:
 	if Session.current != null and peer_id == Session.current.local_peer_id:
-		Events.local_hazard_hit.emit(hit_text())
+		Events.local_hazard_hit.emit(tr(hit_text()))
 	_on_hit_cosmetic(peer_id)
 
 

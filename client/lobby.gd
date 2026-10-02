@@ -1,19 +1,28 @@
 extends Control
-## Lobby panel (role preference, Ready) plus the centre banner for the countdown and "GO!".
-## It only shows the replicated MatchManager state and sends requests; the server decides.
+## The lobby panel (M8): the server's name and match settings, one card per player (name, preferred
+## role, ready, ping), the role preference and the Ready button, plus the centre banner for the
+## countdown ("You are a RAT!", the goal, the seconds left) and "GO!". Keys work without the mouse:
+## 1 / 2 / 3 pick a preference, R toggles ready (rebindable). It only shows the replicated
+## MatchManager state and sends requests; the server decides.
 
 const GO_BANNER_MS := 1500
+const SUPERVISOR_COLOR := Color("ffc93c")
+const RAT_COLOR := Color("7bd389")
 
 var _go_until_ms := 0
+var _cards_key := ""  # what the cards show, to rebuild them only when it changes
 
 @onready var panel: Control = %Panel
 @onready var status_label: Label = %StatusLabel
-@onready var roster_label: RichTextLabel = %RosterLabel
+@onready var cards: VBoxContainer = %Cards
 @onready var any_button: Button = %AnyButton
 @onready var supervisor_button: Button = %SupervisorButton
 @onready var rat_button: Button = %RatButton
 @onready var ready_button: Button = %ReadyButton
-@onready var banner: Label = %Banner
+@onready var banner: Control = %Banner
+@onready var role_line: Label = %RoleLine
+@onready var goal_line: Label = %GoalLine
+@onready var count_line: Label = %CountLine
 
 
 func _ready() -> void:
@@ -23,10 +32,19 @@ func _ready() -> void:
 	any_button.pressed.connect(_request_pref.bind(Role.Kind.NONE))
 	supervisor_button.pressed.connect(_request_pref.bind(Role.Kind.SUPERVISOR))
 	rat_button.pressed.connect(_request_pref.bind(Role.Kind.RAT))
-	ready_button.toggled.connect(func(on: bool) -> void: _match().request_set_ready.rpc_id(1, on))
+	ready_button.toggled.connect(_request_ready)
 	_match().state_changed.connect(_on_state_changed)
 	_match().roster_changed.connect(_refresh)
+	Config.changed.connect(func(key: String) -> void:
+		if key == "bindings" or key == "language":
+			_refresh())
 	_refresh()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		_cards_key = ""
+		_refresh.call_deferred()  # (children can't change while the notification goes down the tree)
 
 
 func _match() -> MatchManager:
@@ -37,6 +55,33 @@ func _request_pref(pref: Role.Kind) -> void:
 	_match().request_set_pref.rpc_id(1, pref)
 
 
+func _request_ready(on: bool) -> void:
+	_match().request_set_ready.rpc_id(1, on)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _match().state != MatchManager.State.LOBBY or PlayerInput.blocked:
+		return
+	var pref := -1
+	if event.is_action_pressed(&"lobby_pref_any"):
+		pref = Role.Kind.NONE
+	elif event.is_action_pressed(&"lobby_pref_supervisor"):
+		pref = Role.Kind.SUPERVISOR
+	elif event.is_action_pressed(&"lobby_pref_rat"):
+		pref = Role.Kind.RAT
+	elif event.is_action_pressed(&"lobby_ready"):
+		var me := _match().entry(Session.current.local_peer_id)
+		if not me.is_empty():
+			Ui.play("ui_confirm" if not me["ready"] else "ui_click")
+			_request_ready(not me["ready"])
+		get_viewport().set_input_as_handled()
+		return
+	if pref >= 0:
+		Ui.play("ui_click")
+		_request_pref(pref)
+		get_viewport().set_input_as_handled()
+
+
 func _on_state_changed(state: MatchManager.State) -> void:
 	if state == MatchManager.State.PLAYING:
 		_go_until_ms = Time.get_ticks_msec() + GO_BANNER_MS
@@ -45,50 +90,116 @@ func _on_state_changed(state: MatchManager.State) -> void:
 
 func _process(_delta: float) -> void:
 	_update_banner()  # countdown_left changes every second without a signal
+	if panel.visible:
+		_update_cards()  # pings change without a roster change
 
 
 func _refresh() -> void:
 	var mm := _match()
 	panel.visible = mm.state == MatchManager.State.LOBBY
-	var me := mm.entry(Session.current.local_peer_id)
-	var lines: Array[String] = []
-	for peer: int in mm.roster:
-		var e: Dictionary = mm.roster[peer]
-		lines.append("%s%s  [color=#9ab]%s[/color]%s" % [
-			e["name"], " (you)" if peer == Session.current.local_peer_id else "",
-			Role.pref_name(e["pref"]), "  [color=#6e6]READY[/color]" if e["ready"] else ""])
-	roster_label.text = "\n".join(lines)
+	var info := mm.server_info
+	%ServerName.text = str(info.get("name", tr("Lobby")))
+	var minutes := func(s: int) -> String: return "%d:%02d" % [s / 60, s % 60]
+	%Summary.text = tr("Matches of %s (%s with one supervisor) · %d+ players to start · %d / %d here") % [
+		minutes.call(int(info.get("duration_s", 540))), minutes.call(int(info.get("duration_single_s", 480))),
+		mm.min_players, mm.roster.size(), int(info.get("max_players", 6))]
 	var count := mm.roster.size()
 	if count < mm.min_players:
-		status_label.text = "Waiting for players: %d / %d" % [count, mm.min_players]
+		status_label.text = tr("Waiting for players: %d / %d") % [count, mm.min_players]
 	else:
-		status_label.text = "%d / %d ready. The match starts when more than half are ready." % [mm.ready_count(), count]
+		status_label.text = tr("%d / %d ready. The match starts when more than half are ready.") % [mm.ready_count(), count]
+	any_button.text = "%s  [%s]" % [tr("Any"), Keys.label(&"lobby_pref_any")]
+	supervisor_button.text = "%s  [%s]" % [tr("Supervisor"), Keys.label(&"lobby_pref_supervisor")]
+	rat_button.text = "%s  [%s]" % [tr("Rat"), Keys.label(&"lobby_pref_rat")]
+	%Hint.text = tr("Esc opens the menu and frees the mouse to click here.")
+	var me := mm.entry(Session.current.local_peer_id)
 	if not me.is_empty():
-		match int(me["pref"]):
-			Role.Kind.SUPERVISOR:
-				supervisor_button.set_pressed_no_signal(true)
-			Role.Kind.RAT:
-				rat_button.set_pressed_no_signal(true)
-			_:
-				any_button.set_pressed_no_signal(true)
+		# All three: set_pressed_no_signal() doesn't release the other buttons of the group.
+		var pref := int(me["pref"])
+		any_button.set_pressed_no_signal(pref not in [Role.Kind.SUPERVISOR, Role.Kind.RAT])
+		supervisor_button.set_pressed_no_signal(pref == Role.Kind.SUPERVISOR)
+		rat_button.set_pressed_no_signal(pref == Role.Kind.RAT)
 		ready_button.set_pressed_no_signal(me["ready"])
-		ready_button.text = "Ready!" if me["ready"] else "Ready?"
+		ready_button.text = "%s  [%s]" % [tr("Ready!") if me["ready"] else tr("Ready?"), Keys.label(&"lobby_ready")]
+	_update_cards()
 	_update_banner()
+
+
+func _update_cards() -> void:
+	var mm := _match()
+	var key := "%s|%s" % [mm.roster, mm.pings]
+	if key == _cards_key:
+		return
+	_cards_key = key
+	for child in cards.get_children():
+		cards.remove_child(child)
+		child.queue_free()
+	for peer: int in mm.roster:
+		cards.add_child(_card(peer, mm.roster[peer]))
+
+
+func _card(peer: int, e: Dictionary) -> Control:
+	var card := PanelContainer.new()
+	card.theme_type_variation = &"CardPanel"
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	card.add_child(row)
+	var me := peer == Session.current.local_peer_id
+	var name_label := _label(str(e["name"]), Color("ffc93c") if me else Color.WHITE)  # (yellow: you)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.clip_text = true
+	row.add_child(name_label)
+	var pref: Role.Kind = e["pref"]
+	row.add_child(_label(tr(Role.pref_name(pref)), SUPERVISOR_COLOR if pref == Role.Kind.SUPERVISOR
+		else RAT_COLOR if pref == Role.Kind.RAT else Color(0.75, 0.76, 0.8)))
+	var ready_label := _label(tr("READY") if e["ready"] else tr("not ready"),
+		Color(0.5, 1, 0.55) if e["ready"] else Color(0.55, 0.57, 0.62))
+	ready_label.custom_minimum_size = Vector2(84, 0)
+	ready_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	row.add_child(ready_label)
+	var ping: int = _match().pings.get(peer, -1)
+	var ping_label := _label(tr("%d ms") % ping if ping >= 0 else "-", Scoreboard.ping_color(ping))
+	ping_label.custom_minimum_size = Vector2(58, 0)
+	ping_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(ping_label)
+	return card
+
+
+func _label(text: String, color: Color) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_font_size_override("font_size", 17)
+	return label
 
 
 func _update_banner() -> void:
 	var mm := _match()
 	var role := mm.local_role()
+	var role_text := ""
+	var goal := ""
+	var count := ""
+	var color := Color.WHITE
 	match mm.state:
 		MatchManager.State.ROLE_ASSIGN, MatchManager.State.COUNTDOWN:
 			if role == Role.Kind.SPECTATOR:
-				banner.text = "Spectating until the next match"
+				goal = tr("Spectating until the next match")
 			else:
-				banner.text = "You are a %s!\nStarting in %d" % [Role.display_name(role), mm.countdown_left]
+				role_text = tr("You are a SUPERVISOR!") if role == Role.Kind.SUPERVISOR else tr("You are a RAT!")
+				color = SUPERVISOR_COLOR if role == Role.Kind.SUPERVISOR else RAT_COLOR
+				goal = tr("Keep the plant running until the shift ends!") if role == Role.Kind.SUPERVISOR \
+					else tr("Sabotage the plant until it melts down!")
+				count = tr("Starting in %d") % mm.countdown_left if mm.state == MatchManager.State.COUNTDOWN else ""
 		MatchManager.State.PLAYING:
 			if role == Role.Kind.SPECTATOR:
-				banner.text = "Spectating until the next match"
-			else:
-				banner.text = "GO!" if Time.get_ticks_msec() < _go_until_ms else ""
-		_:
-			banner.text = ""
+				goal = tr("Spectating until the next match")
+			elif Time.get_ticks_msec() < _go_until_ms:
+				role_text = tr("GO!")
+				color = SUPERVISOR_COLOR if role == Role.Kind.SUPERVISOR else RAT_COLOR
+	role_line.text = role_text
+	role_line.add_theme_color_override("font_color", color)
+	goal_line.text = goal
+	count_line.text = count
+	banner.visible = role_text != "" or goal != ""

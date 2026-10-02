@@ -132,7 +132,7 @@ func kind_for(_player: Player) -> String:
 
 ## The prompt line for the local player ("Sabotage Coolant pumps", "Cooling down: 12 s").
 func prompt_for(_player: Player) -> String:
-	return prompt
+	return tr(prompt)
 
 
 ## Server: the effect. Subclasses do their thing, then call super() to emit and reset.

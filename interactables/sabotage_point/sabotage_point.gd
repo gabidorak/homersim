@@ -36,12 +36,12 @@ func is_available(_player: Player) -> bool:
 
 func prompt_for(player: Player) -> String:
 	var plant := _plant()
-	var subsystem := plant.data(index).display_name
+	var subsystem := tr(plant.data(index).display_name)
 	if plant.health(index) <= 0.0:
-		return "%s is already broken" % subsystem
+		return tr("%s is already broken") % subsystem
 	if not is_available(player):
-		return "%s: cooling down, %d s" % [subsystem, ceili(plant.cooldown_left(index))]
-	return "Sabotage %s" % subsystem
+		return tr("%s: cooling down, %d s") % [subsystem, ceili(plant.cooldown_left(index))]
+	return tr("Sabotage %s") % subsystem
 
 
 func _complete(player: Player) -> void:

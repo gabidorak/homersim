@@ -3,7 +3,7 @@ extends Camera3D
 ## The camera of a client without a body during a match: eliminated rats and late joiners.
 ## Free-fly (noclip) by default: mouse look, WASD, Space / C up and down, Shift faster.
 ## LMB / RMB cycle forward / back through the players' bodies and follow one from behind; cycling
-## past the last body returns to the free camera. Esc frees the mouse, a click captures it.
+## past the last body returns to the free camera. A click captures the mouse (Esc: the pause menu).
 ## Caged rats keep their own body, so they get the cage camera (ThirdPersonRig) instead.
 
 const FLY_SPEED := 8.0
@@ -57,10 +57,7 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _active:
 		return
-	if event.is_action_pressed("pause"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED \
-			else Input.MOUSE_MODE_CAPTURED
-	elif event is InputEventMouseButton and event.is_pressed():
+	if event is InputEventMouseButton and event.is_pressed():
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		elif event.is_action_pressed("primary"):
@@ -68,7 +65,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.is_action_pressed("secondary"):
 			cycle(-1)
 	elif event is InputEventMouseMotion and PlayerInput.has_control():
-		var motion := (event as InputEventMouseMotion).relative * Config.mouse_sensitivity
+		var motion := (event as InputEventMouseMotion).relative * Config.look_speed(false)
+		if Config.invert_y:
+			motion.y = -motion.y
 		_yaw = wrapf(_yaw - motion.x, -PI, PI)
 		_pitch = clampf(_pitch - motion.y, -MAX_PITCH, MAX_PITCH)
 

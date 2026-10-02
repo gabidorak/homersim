@@ -86,8 +86,8 @@ func is_available(player: Player) -> bool:
 
 func prompt_for(player: Player) -> String:
 	if player.role == Role.Kind.SUPERVISOR:
-		return "Repair camera %d" % number if broken else "Camera %d works" % number
-	return "Camera %d is broken" % number if broken else "Break camera %d" % number
+		return tr("Repair camera %d") % number if broken else tr("Camera %d works") % number
+	return tr("Camera %d is broken") % number if broken else tr("Break camera %d") % number
 
 
 func _complete(player: Player) -> void:

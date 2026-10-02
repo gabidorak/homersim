@@ -57,10 +57,10 @@ func is_available(player: Player) -> bool:
 
 func prompt_for(player: Player) -> String:
 	if user != 0:
-		return "%s is watching the cameras" % Session.current.name_of(user)
+		return tr("%s is watching the cameras") % Session.current.name_of(user)
 	if player.status.carrying != 0:
-		return "Cage the rat first"
-	return "Watch the cameras (CCTV)"
+		return tr("Cage the rat first")
+	return tr("Watch the cameras (CCTV)")
 
 
 func _complete(player: Player) -> void:

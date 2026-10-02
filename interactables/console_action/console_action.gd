@@ -55,7 +55,7 @@ func _synced_properties() -> Array[String]:
 
 
 func title() -> String:
-	return "EMERGENCY COOLANT" if action == "coolant" else "PARTIAL SCRAM"
+	return tr("EMERGENCY COOLANT") if action == "coolant" else tr("PARTIAL SCRAM")
 
 
 func cooldown_left() -> float:
@@ -81,14 +81,15 @@ func is_available(_player: Player) -> bool:
 func prompt_for(_player: Player) -> String:
 	var tuning := _plant().tuning
 	if cooldown_left() > 0.0:
-		return "%s ready in %d s" % [title().capitalize(), ceili(cooldown_left())]
+		return tr("%s ready in %d s") % [tr("Emergency coolant") if action == "coolant" else tr("SCRAM"),
+			ceili(cooldown_left())]
 	if action == "coolant":
 		if not has_power():
-			return "No power for the coolant pumps (grid below %d%%)" % roundi(tuning.coolant_min_grid_health)
-		return "Emergency coolant (core −%d°)" % roundi(tuning.coolant_amount)
+			return tr("No power for the coolant pumps (grid below %d%%)") % roundi(tuning.coolant_min_grid_health)
+		return tr("Emergency coolant (core −%d°)") % roundi(tuning.coolant_amount)
 	if not cover_open():
-		return "Lift the SCRAM cover"
-	return "SCRAM! (heat ×%.1f for %d s, the shift gets %d s longer)" % [tuning.scram_heat_factor,
+		return tr("Lift the SCRAM cover")
+	return tr("SCRAM! (heat ×%.1f for %d s, the shift gets %d s longer)") % [tuning.scram_heat_factor,
 		roundi(tuning.scram_duration_s), tuning.scram_time_penalty_s]
 
 
@@ -106,7 +107,7 @@ func _complete(player: Player) -> void:
 			_plant().emergency_coolant()
 			ready_at = now + tuning.coolant_cooldown_s
 			Log.info("console", "%s used the emergency coolant" % player.display_name)
-			on_used.rpc("Emergency coolant! Core −%d°" % roundi(tuning.coolant_amount))
+			on_used.rpc("Emergency coolant! Core −%d°", [roundi(tuning.coolant_amount)])
 		"scram":
 			if not cover_open():
 				cover_open_until = now + COVER_OPEN_S
@@ -117,15 +118,16 @@ func _complete(player: Player) -> void:
 				ready_at = now + tuning.scram_cooldown_s
 				cover_open_until = 0.0
 				Log.info("console", "%s pressed SCRAM" % player.display_name)
-				on_used.rpc("SCRAM! Heat halved for %d s · the shift is %d s longer" % [roundi(tuning.scram_duration_s),
+				on_used.rpc("SCRAM! Heat halved for %d s · the shift is %d s longer", [roundi(tuning.scram_duration_s),
 					tuning.scram_time_penalty_s])
 	super(player)
 
 
-## Server → clients: a plant-wide announcement (HUD banner, sound).
+## Server → clients: a plant-wide announcement (HUD banner, sound): an English format `text` for
+## `args`, which each client words in its own language.
 @rpc("authority", "call_remote", "reliable")
-func on_used(text: String) -> void:
-	Events.plant_announcement.emit(text)
+func on_used(text: String, args: Array) -> void:
+	Events.plant_announcement.emit(ChatService.format(text, args))
 	if DisplayServer.get_name() == "headless":
 		return
 	if action == "scram":
@@ -165,15 +167,15 @@ func _press_button() -> void:
 func _process(delta: float) -> void:
 	var left := cooldown_left()
 	var color := Color(0.3, 1, 0.4)
-	var state := "READY"
+	var state := tr("READY")
 	if left > 0.0:
 		state = "%d s" % ceili(left)
 		color = Color(1, 0.6, 0.2)
 	elif not has_power():
-		state = "NO POWER"
+		state = tr("NO POWER")
 		color = Color(1, 0.25, 0.2)
 	if action == "scram" and _plant().scram_left > 0.0:
-		state = "ACTIVE %d s  ·  %s" % [ceili(_plant().scram_left), state]
+		state = tr("ACTIVE %d s  ·  %s") % [ceili(_plant().scram_left), state]
 	_screen.text = "%s\n%s" % [title(), state]
 	_screen.modulate = color
 	if _button != null:  # lit while ready

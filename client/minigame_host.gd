@@ -67,7 +67,7 @@ func _ready() -> void:
 	_frame.custom_minimum_size = Vector2(200, 150)
 	box.add_child(_frame)
 	var esc := Label.new()
-	esc.text = "Esc: give up (no penalty)"
+	esc.text = tr("Esc: give up (no penalty)")
 	esc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	esc.modulate = Color(1, 1, 1, 0.6)
 	box.add_child(esc)
@@ -90,7 +90,7 @@ func open(path: NodePath, kind: String, seed_value: int, difficulty: float) -> v
 	game.finished.connect(_on_finished)
 	_frame.add_child(game)
 	game.start(seed_value, difficulty)
-	_title.text = TITLES.get(kind, kind)
+	_title.text = tr(TITLES.get(kind, kind))
 	_opened_at = Net.local_time()
 	_reported = false
 	visible = true
@@ -143,12 +143,12 @@ func _process(delta: float) -> void:
 		var since := Net.local_time() - _opened_at
 		var min_s := session.plant.tuning.minigame_min_s + REPORT_MARGIN_S
 		if game.success and since < min_s:
-			_hint.text = "Fixed! (wrapping up…)"
+			_hint.text = tr("Fixed! (wrapping up...)")
 			return
 		_reported = true
 		Log.info("minigame", "%s after %.1f s, reporting" % ["won" if game.success else "lost", since])
 		session.minigames.request_minigame_result.rpc_id(1, game.success)
-		_hint.text = "Fixed!" if game.success else "Botched it! The repair point jams for a moment"
+		_hint.text = tr("Fixed!") if game.success else tr("Botched it! The repair point jams for a moment")
 		var finished_game := game
 		get_tree().create_timer(RESULT_SHOW_S).timeout.connect(func() -> void:
 			if game == finished_game:

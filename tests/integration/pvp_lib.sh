@@ -33,7 +33,7 @@ start_server() {
 countdown_s=3
 min_players=$1
 CFG
-	timeout -s KILL "$3" "$GODOT" --headless --max-fps 120 -- --server --no-heatmap --level "$LEVEL" --port "$PORT" --config "$LOGS/server.cfg" \
+	timeout -s KILL "$3" "$GODOT" --headless --max-fps 120 -- --server --no-heatmap --no-lan --level "$LEVEL" --port "$PORT" --config "$LOGS/server.cfg" \
 		--allow-debug --test-duration "$2" --exit-after-match --result-file "$RESULT" \
 		> "$LOGS/server.log" 2>&1 &
 	SERVER=$!

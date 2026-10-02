@@ -2,7 +2,7 @@ class_name CameraRig
 extends Node3D
 ## Base for the camera rigs (FirstPersonRig, ThirdPersonRig), instanced into the player at spawn
 ## by role. Only the local player's rig is live: on remote bodies it drops its camera and stays idle.
-## Also owns mouse capture: Esc frees the mouse, a click captures it again.
+## Also captures the mouse on a click in the 3D view (Esc opens the pause menu, which frees it).
 
 var body: Player
 var camera: Camera3D
@@ -24,6 +24,7 @@ func _ready() -> void:
 		set_process_unhandled_input(false)
 		return
 	camera.fov = Config.fov
+	Config.changed.connect(_on_setting_changed)
 	_setup_local()
 	camera.make_current()
 	# Only one window can grab the mouse; with several clients open, the others wait for a click.
@@ -80,13 +81,24 @@ func _look(_delta: Vector2) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause"):
-		_capture_mouse(Input.mouse_mode != Input.MOUSE_MODE_CAPTURED)
-	elif event is InputEventMouseButton and event.is_pressed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+	if event is InputEventMouseButton and event.is_pressed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		_capture_mouse(true)
 	elif event is InputEventMouseMotion and PlayerInput.has_control() and body.seated_console() == null:
 		# event.relative is in pixels, so the look speed doesn't depend on the frame rate.
-		_look((event as InputEventMouseMotion).relative * Config.mouse_sensitivity)
+		var motion := (event as InputEventMouseMotion).relative * Config.look_speed(_third_person())
+		if Config.invert_y:
+			motion.y = -motion.y
+		_look(motion)
+
+
+## Which mouse sensitivity setting this rig uses.
+func _third_person() -> bool:
+	return false
+
+
+func _on_setting_changed(key: String) -> void:
+	if key == "fov" and camera != null:
+		camera.fov = Config.fov
 
 
 func _notification(what: int) -> void:

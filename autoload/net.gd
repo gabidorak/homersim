@@ -1,5 +1,6 @@
 extends Node
-## Networking: host/join/leave and connection signals. LAN discovery comes later (M8).
+## Networking: host/join/leave and connection signals. LAN discovery (M8) lives in
+## common/lan_discovery.gd (the protocol), server/lan_announcer.gd and client/lan_browser.gd.
 ##
 ## Everything here wraps Godot's high-level multiplayer API: once `multiplayer.multiplayer_peer`
 ## is an ENet peer, `@rpc` calls and MultiplayerSpawner/Synchronizer nodes start talking to the
@@ -19,6 +20,9 @@ signal peer_left(id: int)  ## server: a client disconnected (or timed out)
 
 const DEFAULT_PORT := 7777
 const CONNECT_TIMEOUT_S := 5.0
+## connection_failed reasons.
+const FAIL_UNREACHABLE := "Could not reach the server"
+const FAIL_TIMEOUT := "Connection timed out"
 ## ENet drops a peer that hasn't acknowledged a packet within this time, so a killed process
 ## disappears in about 5 s instead of ENet's default of up to 30 s.
 const PEER_TIMEOUT_MIN_MS := 2000
@@ -29,6 +33,8 @@ const RESYNC_S := 10.0  ## …then one every RESYNC_S
 
 ## True in the dedicated server process once `host()` succeeded.
 var is_server := false
+## Server: the UDP port it listens on (the LAN announcements carry it).
+var port := 0
 
 var _connect_timer: Timer
 var _sync_timer: Timer
@@ -59,21 +65,22 @@ func _notification(what: int) -> void:
 		leave()
 
 
-func host(port: int, max_clients: int) -> Error:
+func host(listen_port: int, max_clients: int) -> Error:
 	leave()
 	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_server(port, max_clients)
+	var err := peer.create_server(listen_port, max_clients)
 	if err != OK:
 		return err
 	multiplayer.multiplayer_peer = peer
 	is_server = true
+	port = listen_port
 	return OK
 
 
-func join(address: String, port: int) -> Error:
+func join(address: String, server_port: int) -> Error:
 	leave()
 	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_client(address, port)
+	var err := peer.create_client(address, server_port)
 	if err != OK:
 		return err
 	multiplayer.multiplayer_peer = peer
@@ -87,6 +94,7 @@ func leave() -> void:
 	_clock_offset = 0.0
 	_best_rtt = INF
 	is_server = false
+	port = 0
 	var peer := multiplayer.multiplayer_peer
 	if peer != null and not peer is OfflineMultiplayerPeer:
 		peer.close()
@@ -106,6 +114,15 @@ func ping_ms() -> int:
 		return -1
 	var server := enet.get_peer(1)
 	return int(server.get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME)) if server != null else -1
+
+
+## Server: a client's round-trip time in ms (ENet's estimate), -1 if unknown.
+func peer_ping_ms(peer_id: int) -> int:
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if not is_server or enet == null:
+		return -1
+	var packet_peer := enet.get_peer(peer_id)
+	return int(packet_peer.get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME)) if packet_peer != null else -1
 
 
 ## Seconds on the server's clock (on the server: its own clock). Comparable across machines.
@@ -140,17 +157,17 @@ func kick(peer_id: int) -> void:
 static func parse_address(text: String, default_port: int = DEFAULT_PORT) -> Dictionary:
 	var s := text.strip_edges()
 	var host := s
-	var port := default_port
+	var parsed_port := default_port
 	var colon := s.rfind(":")
 	if colon != -1:
 		host = s.substr(0, colon)
 		var port_text := s.substr(colon + 1)
 		if not port_text.is_valid_int():
 			return {}
-		port = port_text.to_int()
-	if host.is_empty() or host.contains(":") or host.contains(" ") or port < 1 or port > 65535:
+		parsed_port = port_text.to_int()
+	if host.is_empty() or host.contains(":") or host.contains(" ") or parsed_port < 1 or parsed_port > 65535:
 		return {}
-	return {"host": host, "port": port}
+	return {"host": host, "port": parsed_port}
 
 
 func _apply_timeout(peer_id: int) -> void:
@@ -213,7 +230,7 @@ func on_clock_sync(client_sent: float, server_now: float) -> void:
 func _on_connection_failed() -> void:
 	_connect_timer.stop()
 	leave.call_deferred()
-	connection_failed.emit("Could not reach the server")
+	connection_failed.emit(FAIL_UNREACHABLE)
 
 
 func _on_server_disconnected() -> void:
@@ -223,4 +240,4 @@ func _on_server_disconnected() -> void:
 
 func _on_connect_timeout() -> void:
 	leave()
-	connection_failed.emit("Connection timed out")
+	connection_failed.emit(FAIL_TIMEOUT)

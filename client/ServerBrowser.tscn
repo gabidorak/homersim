@@ -1,0 +1,124 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://client/server_browser.gd" id="1_browser"]
+
+[node name="ServerBrowser" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_browser")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 56
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 56
+theme_override_constants/margin_bottom = 40
+
+[node name="Panel" type="PanelContainer" parent="Margin"]
+layout_mode = 2
+
+[node name="Col" type="VBoxContainer" parent="Margin/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Header" type="HBoxContainer" parent="Margin/Panel/Col"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Panel/Col/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"HeaderLabel"
+text = "Find a server"
+
+[node name="BackButton" type="Button" parent="Margin/Panel/Col/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Back"
+
+[node name="Tabs" type="TabContainer" parent="Margin/Panel/Col"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Lan" type="VBoxContainer" parent="Margin/Panel/Col/Tabs"]
+layout_mode = 2
+theme_override_constants/separation = 10
+metadata/_tab_index = 0
+
+[node name="LanStatus" type="Label" parent="Margin/Panel/Col/Tabs/Lan"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+autowrap_mode = 3
+
+[node name="LanScroll" type="ScrollContainer" parent="Margin/Panel/Col/Tabs/Lan"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="LanList" type="VBoxContainer" parent="Margin/Panel/Col/Tabs/Lan/LanScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Favourites" type="VBoxContainer" parent="Margin/Panel/Col/Tabs"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+metadata/_tab_index = 1
+
+[node name="FavStatus" type="Label" parent="Margin/Panel/Col/Tabs/Favourites"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+autowrap_mode = 3
+
+[node name="FavScroll" type="ScrollContainer" parent="Margin/Panel/Col/Tabs/Favourites"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="FavList" type="VBoxContainer" parent="Margin/Panel/Col/Tabs/Favourites/FavScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Direct" type="HBoxContainer" parent="Margin/Panel/Col"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DirectLabel" type="Label" parent="Margin/Panel/Col/Direct"]
+layout_mode = 2
+text = "Address"
+
+[node name="AddressEdit" type="LineEdit" parent="Margin/Panel/Col/Direct"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "host:port, e.g. 192.168.1.20:7777"
+max_length = 120
+
+[node name="SaveButton" type="Button" parent="Margin/Panel/Col/Direct"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save"
+
+[node name="JoinButton" type="Button" parent="Margin/Panel/Col/Direct"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"AccentButton"
+text = "Join"

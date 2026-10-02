@@ -92,6 +92,9 @@ func _broom(attacker: Player, data: AbilityData, aim: Vector3) -> void:
 	Log.info("ability", "%s swung the broom: %s" % [attacker.display_name,
 		("BONK! %s is stunned" % victim.display_name) if stunned
 		else ("%s shrugged it off" % victim.display_name) if victim != null else "missed"])
+	if stunned:
+		session.match_manager.add_stat(attacker.peer_id, "bonks")
+		session.match_manager.feed("bonk", attacker.display_name, victim.display_name)
 	on_broom_swing.rpc(attacker.peer_id, victim_peer, stunned)
 
 
@@ -109,6 +112,7 @@ func _bite(attacker: Player, data: AbilityData, aim: Vector3) -> void:
 		session.minigames.interrupt(victim.peer_id, "bitten")  # a bite makes you drop the wrench
 	if result == StatusRules.Bite.KNOCKED_DOWN:
 		session.match_manager.add_stat(attacker.peer_id, "knockdowns")
+		session.match_manager.feed("knockdown", victim.display_name)
 	Log.info("ability", "%s bit %s: %s" % [attacker.display_name, victim.display_name,
 		["ignored", "slowed", "KNOCKED DOWN"][result]])
 	on_bite.rpc(attacker.peer_id, victim.peer_id, result)

@@ -23,8 +23,8 @@ var _autoplay_wait := 0.0
 
 
 func instructions() -> String:
-	return "Watch the breakers flash, then flip them in the same order" if phase == Phase.SHOW \
-		else "Your turn: flip them in the same order (%d / %d)" % [next_index, sequence.size()]
+	return tr("Watch the breakers flash, then flip them in the same order") if phase == Phase.SHOW \
+		else tr("Your turn: flip them in the same order (%d / %d)") % [next_index, sequence.size()]
 
 
 func _setup() -> void:

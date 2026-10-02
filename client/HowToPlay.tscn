@@ -1,0 +1,70 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://client/how_to_play.gd" id="1_howto"]
+
+[node name="HowToPlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_howto")
+
+[node name="Dim" type="Panel" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"DimPanel"
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 56
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 56
+theme_override_constants/margin_bottom = 40
+
+[node name="Panel" type="PanelContainer" parent="Margin"]
+layout_mode = 2
+
+[node name="Col" type="VBoxContainer" parent="Margin/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="Margin/Panel/Col"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Panel/Col/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"HeaderLabel"
+text = "How to play"
+
+[node name="BackButton" type="Button" parent="Margin/Panel/Col/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_type_variation = &"AccentButton"
+text = "Got it"
+
+[node name="Goal" type="Label" parent="Margin/Panel/Col"]
+unique_name_in_owner = true
+layout_mode = 2
+auto_translate_mode = 2
+autowrap_mode = 3
+
+[node name="Tabs" type="TabContainer" parent="Margin/Panel/Col"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0

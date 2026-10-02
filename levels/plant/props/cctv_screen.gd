@@ -83,7 +83,7 @@ func _process(delta: float) -> void:
 		return
 	_camera.global_transform = cam.lens.global_transform
 	_static.visible = cam.broken
-	_label.text = "CAM %d %s%s" % [cam.number, cam.label, " - NO SIGNAL" if cam.broken else ""]
+	_label.text = "%s %s%s" % [tr("CAM %d") % cam.number, tr(cam.label), " - " + tr("NO SIGNAL") if cam.broken else ""]
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 

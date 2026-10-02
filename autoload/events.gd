@@ -13,3 +13,5 @@ signal plant_alarm_changed(alarm: int)  ## PlantModel.Alarm, clients only
 signal local_hazard_hit(text: String)  ## a hazard hit the local player (HUD banner), clients only
 @warning_ignore("unused_signal")
 signal plant_announcement(text: String)  ## a plant-wide event (SCRAM, coolant) for the HUD banner, clients only
+@warning_ignore("unused_signal")
+signal feed_event(kind: String, a: String, b: String)  ## a line for the event feed (MatchManager.feed), clients only

@@ -7,6 +7,8 @@ extends Control
 ## a banner for big moments (BONK, SNAP, caged), and what a ghost or spectator can do.
 ## M6: hazard hits and plant-wide events (SCRAM, coolant) in the banner, the SCRAM countdown and the
 ## time it added under the timer, and a short flash of the edge tint whenever the alarm gets worse.
+## M8: every text is translated and names the player's own keys (Keys.label); the long key list moved
+## to How to play and the first-time hints, so the corner only keeps a short reminder.
 
 const ALARM_COLORS := {
 	PlantModel.Alarm.NORMAL: Color(0.35, 0.8, 0.4),
@@ -57,9 +59,9 @@ func _ready() -> void:
 		var icon := SubsystemIcon.new()
 		icon.custom_minimum_size = Vector2(52, 52)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.label = plant.data(i).short_name
+		icon.label = tr(plant.data(i).short_name)
 		icon.critical = plant.data(i).critical
-		icon.tooltip_text = plant.data(i).display_name
+		icon.tooltip_text = tr(plant.data(i).display_name)
 		subsystems_box.add_child(icon)
 		_icons.append(icon)
 	_meltdown_fill.bg_color = Color(0.85, 0.15, 0.6)
@@ -87,14 +89,14 @@ func _update_plant() -> void:
 	timer_label.text = "%d:%02d" % [floori(seconds / 60.0), seconds % 60] if mm.state == MatchManager.State.PLAYING else ""
 	if mm.state == MatchManager.State.PLAYING:
 		if plant.scram_left > 0.0:
-			timer_label.text += "\nSCRAM %d s" % ceili(plant.scram_left)
+			timer_label.text += "\n" + tr("SCRAM %d s") % ceili(plant.scram_left)
 		if mm.time_added > 0:
-			timer_label.text += "\n(+%d s SCRAM)" % mm.time_added
+			timer_label.text += "\n" + tr("(+%d s SCRAM)") % mm.time_added
 	timer_label.modulate = Color(1, 0.5, 0.4) if mm.state == MatchManager.State.PLAYING and seconds <= 30 else Color.WHITE
 	meltdown_bar.value = plant.meltdown
-	meltdown_label.text = "Meltdown %d%%" % floori(plant.meltdown)
+	meltdown_label.text = tr("Meltdown %d%%") % floori(plant.meltdown)
 	temp_bar.value = plant.core_temp
-	temp_label.text = "Core %d°" % roundi(plant.core_temp)
+	temp_label.text = tr("Core %d°") % roundi(plant.core_temp)
 	_temp_fill.bg_color = ALARM_COLORS[plant.alarm]
 	for i in _icons.size():
 		_icons[i].set_state(plant.health(i), plant.cooldown_left(i), plant.needs_reboot(i))
@@ -134,14 +136,16 @@ func _update_player() -> void:
 	var stamina := _player.movement.stamina
 	stamina_bar.value = stamina.fraction() * 100.0
 	stamina_bar.modulate = Color(1, 0.45, 0.4) if stamina.exhausted else Color.WHITE
-	var role := Role.display_name(_player.role)
-	var frozen := "  ·  frozen" if not _player.movement.can_move() else ""
-	var hint := "WASD move · Shift sprint · Space jump · E (hold) interact · Enter chat · Esc free the mouse"
+	var role := tr(Role.display_name(_player.role))
+	var frozen := "  ·  " + tr("frozen") if not _player.movement.can_move() else ""
+	var keys := [tr("%s chat") % Keys.label(&"chat")]
 	if _player.role in [Role.Kind.SUPERVISOR, Role.Kind.RAT]:
-		hint += " · T team chat"
-	info_label.text = "%s%s\n%s" % [role, frozen, hint]
+		keys.append(tr("%s team chat") % Keys.label(&"team_chat"))
+	keys.append(tr("%s scores") % Keys.label(&"scoreboard"))
+	keys.append(tr("Esc menu"))
+	info_label.text = "%s%s\n%s" % [role, frozen, " · ".join(keys)]
 	var playing := Session.current.match_manager.state == MatchManager.State.PLAYING
-	prompt_label.text = _player.interactor.prompt_text() if playing else ""
+	prompt_label.text = _player.interactor.prompt_text() if playing else ""  # (translated by the interactable)
 	ring.value = _player.interactor.hold_progress() if playing else 0.0
 	_update_statuses()
 	ability_label.text = _ability_text() if playing else ""
@@ -150,10 +154,10 @@ func _update_player() -> void:
 func _update_statuses() -> void:
 	var parts: Array[String] = []
 	for entry: Array in StatusComponent.describe(_player.status.flags):
-		parts.append("[color=#%s]%s[/color]" % [(entry[1] as Color).to_html(false), entry[0]])
+		parts.append("[color=#%s]%s[/color]" % [(entry[1] as Color).to_html(false), tr(entry[0])])
 	status_label.text = "  ".join(parts)
 	if _player.status.has(StatusComponent.Status.CAGED):
-		banner_label.text = "You're caged! A free rat can let you out (hold E at the cage)"
+		banner_label.text = tr("You're caged! A free rat can let you out (hold %s at the cage)") % Keys.label(&"interact")
 		_banner_until_ms = Time.get_ticks_msec() + 200
 
 
@@ -162,29 +166,29 @@ func _ability_text() -> String:
 	var abilities := _player.abilities
 	var primary := abilities.primary()
 	if primary != null:
-		lines.append("LMB %s: %s" % [primary.display_name, _cooldown_text(primary.id)])
+		lines.append("%s %s: %s" % [Keys.label(&"primary"), tr(primary.display_name), _cooldown_text(primary.id)])
 	var trap := abilities.selected_trap_ability()
 	if trap != null:
-		lines.append("RMB (hold, release) %s: %s · %d left · Q switch" % [trap.display_name,
-			_cooldown_text(trap.id), _player.inventory.trap_charges])
+		lines.append(tr("%s (hold, release) %s: %s · %d left · %s switch") % [Keys.label(&"secondary"),
+			tr(trap.display_name), _cooldown_text(trap.id), _player.inventory.trap_charges, Keys.label(&"next_trap")])
 	var inv := _player.inventory
 	if _player.role == Role.Kind.SUPERVISOR:
 		if inv.keycard:
-			lines.append("Keycard: yes")
+			lines.append(tr("Keycard: yes"))
 		elif inv.spare_wait_left > 0:
-			lines.append("Keycard: STOLEN · spare in Storage in %d s" % inv.spare_wait_left)
+			lines.append(tr("Keycard: STOLEN · spare in Storage in %d s") % inv.spare_wait_left)
 		else:
-			lines.append("Keycard: STOLEN · a spare is waiting in Storage")
+			lines.append(tr("Keycard: STOLEN · a spare is waiting in Storage"))
 		if _player.status.carrying != 0:
-			lines.append("Carrying %s: get to a cage!" % Session.current.name_of(_player.status.carrying))
+			lines.append(tr("Carrying %s: get to a cage!") % Session.current.name_of(_player.status.carrying))
 	elif inv.stolen_item != &"":
-		lines.append("You carry a %s (a bit slower; a stun drops it)" % inv.stolen_item)
+		lines.append(tr("You carry a %s (a bit slower; a stun drops it)") % tr(String(inv.stolen_item)))
 	return "\n".join(lines)
 
 
 func _cooldown_text(id: StringName) -> String:
 	var left := _player.abilities.cooldown_left(id)
-	return "ready" if left <= 0.0 else "%.1f s" % left
+	return tr("ready") if left <= 0.0 else "%.1f s" % left
 
 
 ## No body: in the lobby gap, eliminated, or a late joiner.
@@ -195,11 +199,13 @@ func _update_ghost() -> void:
 	ability_label.text = ""
 	var mm := Session.current.match_manager
 	if not mm.in_match():
-		info_label.text = "Enter: chat"
+		info_label.text = tr("%s chat") % Keys.label(&"chat") + " · " + tr("Esc menu")
 		return
 	var me := mm.entry(Session.current.local_peer_id)
-	var why := "You were eliminated" if me.get("eliminated", false) else "Spectating until the next match"
-	info_label.text = "%s · ghost chat only (Enter)\nLMB / RMB: watch the next / previous player · WASD + Space / C: fly (free camera)" % why
+	var why := tr("You were eliminated") if me.get("eliminated", false) else tr("Spectating until the next match")
+	info_label.text = "%s · %s\n%s" % [why, tr("ghost chat only (%s)") % Keys.label(&"chat"),
+		tr("%s / %s: watch the next / previous player · %s + %s / %s: fly") % [Keys.label(&"primary"),
+		Keys.label(&"secondary"), Keys.move_label(), Keys.label(&"spectate_up"), Keys.label(&"spectate_down")]]
 
 
 func _on_alarm_changed(alarm: int) -> void:

@@ -56,14 +56,15 @@ Supported CLI args (user args after `--`):
 - Since M4: `--bot-scenario capture|swarm|items|hack [--bot-part P]` runs a PvP scenario instead (`tests/helpers/pvp_bot.gd`); bots of one test coordinate only through replicated state and find each other by name.
 - Since M6: client `--hold-repairs` (any build: repairs use the 6 s hold instead of the minigame, until M8's settings toggle). `--bot-scenario hazards|minigame|control` (on the plant) runs an M6 scenario (`tests/helpers/m6_bot.gd`). Test-only RPC `Session.request_debug_plant(what, id, value)` (server `--allow-debug`): set a subsystem's health or the core temperature.
 - Since M5: `--level plant|test` (debug builds; server and clients must match, the join handshake checks it) picks the level, default the plant. The M4 PvP tests use `--level test` (TestArena). `--bot-scenario plant` (CCTV, ladder, shaft, out of bounds). Server: `--no-heatmap` (no position log). Client, any build: `--debug-overlay` (F3 overlay on from the start).
+- Since M8: server `--password X` (overrides server.cfg), `--no-lan` (no LAN announcements; every integration test but menus_smoke uses it). Client, any build: `--settings PATH` (another settings file; the UI tour uses a throwaway one). `--connect` and `--name` still work but are no longer needed. Test-only (debug builds): client `--debug-kick-me`, `--screenshot-times T1,T2,…`; in the main menu (`client/menu_test_hooks.gd`) `--lan-join NAME`, `--auto-password A,B,…`, `--dismiss-errors`.
 
 ### `server.cfg` (ConfigFile/INI)
 ```ini
 [server]
 port=7777
 max_players=6
-name="Sunny Acres #1"
-password=""
+name="Sunny Acres #1"   ; shown in the server browser and the lobby
+password=""            ; M8: "" = open; otherwise checked by request_join
 [match]
 rules="res://data/match_rules.tres"   ; can be overridden per key below
 duration_s=540
@@ -149,11 +150,11 @@ Godot RPCs and synchronizers only work when the node exists **at the same path, 
      │   ├─ Players (Node3D)  ← MultiplayerSpawner spawns Player.tscn, named by peer id
      │   └─ Dynamic (Node3D)  ← DynamicSpawner (MultiplayerSpawner) for traps, dropped keycards, later hazards
      ├─ ServerOnly (Node)     ← children added at runtime only when is_server():
-     │   ├─ MovementValidator, HeatmapRecorder (M5), HazardDirector (M6); later ServerConsole
-     └─ ClientOnly (Node)     ← children added only on clients: OverviewCamera, SpectatorCam, CombatFeedback (sounds + VFX), HUD, Lobby, PostMatch, Chat UI, CctvView, DebugOverlay (M5), MinigameHost, AlarmEffects (M6), MusicDirector (M7); later PauseMenu
+     │   ├─ MovementValidator, HeatmapRecorder (M5), HazardDirector (M6), LanAnnouncer (M8); later ServerConsole
+     └─ ClientOnly (Node)     ← children added only on clients: OverviewCamera, SpectatorCam, CombatFeedback (sounds + VFX), HUD, Lobby, PostMatch, Chat UI, CctvView, DebugOverlay (M5), MinigameHost, AlarmEffects (M6), MusicDirector (M7), EventFeed, Hints, Scoreboard, PauseMenu (M8)
 ```
 - `server/ServerMain.tscn` = boot logic (read config, `Net.host()`) and then adds `Session` to the root.
-- `client/MainMenu.tscn` → on a successful connection it frees the menu and adds `Session` to the root.
+- `client/MainMenu.tscn` → `connect_to()` adds `Session` to the root, connects, and frees the menu once the server accepts the join. Any end of a session (refused, kicked, lost, left) goes through `Session._leave_to_menu(LeaveReason.Code, detail)`: if the menu is still open (a failed join) it just explains, otherwise the menu scene is loaded again and explains (see §4 Menus).
 - Nodes under `ServerOnly` / `ClientOnly` must **not** be RPC targets, because they don't exist on the other side.
 
 ### Player (`entities/player/Player.tscn`)
@@ -217,23 +218,35 @@ Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `Repa
 - Rules: lay out from `size` (any window size), advance with real time (`advance(delta)`), seed the puzzle from the server's seed, and expose the player's actions as methods (`press()`, `press_breaker(i)`, `rotate_by(rad)`) that input, GUT tests and `autoplay()` (test bots) all call.
 - Flow: E on a repair point → `MinigameService.request_minigame_start(path)` → the server validates (reach, LOS, status, not jammed, nobody else playing it) and sends `on_open_minigame(path, kind, seed, difficulty)` → `MinigameHost` (ClientOnly overlay: frees the mouse, sets `PlayerInput.blocked`) plays it → `request_minigame_result(success)` → the server checks a game is open, `elapsed ≥ minigame_min_s` (3 s, faster = refused and jammed), the player is still in range and can act → +50, or +10 and a 3 s jam. The host reports a win no sooner than 3.3 s after opening. The server closes a game (`on_minigame_closed`) on a bite (`interrupt`), a stun, a 0.5 m move, nothing left to repair, 30 s, or the end of the match. Esc → `request_minigame_cancel`.
 
+### Menus and UI (M8)
+- **Screens**: `MainMenu` (home + `MenuBackground`, a 3D diorama built from the generated models) opens `ServerBrowser`, `Settings`, `HowToPlay` and `Credits` (renders `CREDITS.md`, exported with the client) in its `Screens` node; each emits `closed`. Settings and How to play are reused by the in-game `PauseMenu` (`in_game = true` dims the game behind them). Skeleton layouts are `.tscn` files (editable in the editor), rows and lists are built in code.
+- **Joining**: the browser only emits `join_requested(address, name, locked)`; `MainMenu.connect_to()` connects and shows "Connecting…" with Cancel. A locked LAN server asks for the password first; any other server that answers `PASSWORD_REQUIRED` / `WRONG_PASSWORD` brings the prompt back and retries. Every failure is a `LeaveReason.Code` (`common/leave_reason.gd`): cannot connect, timeout, lost, version, full, password, level, kicked, bad address, each with a translated title and message for the error box and an English line for logs. `Session.kick(peer, reason)` tells the player why before dropping it.
+- **LAN discovery** (`common/lan_discovery.gd`, protocol + server list; `server/lan_announcer.gd`; `client/lan_browser.gd`): JSON announcements every 2 s to UDP 7778–7781 on 255.255.255.255 and 127.0.0.1; a client listens on the first free port of that range (Godot can't share a UDP port between processes, and several clients on one PC each need one), pings the address an announcement came from (`ping`/`pong` packets) and forgets servers after 6 s. Malformed packets are dropped and names cleaned (anyone on the LAN can send anything).
+- **Settings** (`Config`, below): `Settings.tscn` generates its rows from the settings; `Config.set_value()` cleans, applies, saves (debounced) and emits `changed`. Key bindings are stored by physical key (`Keys.encode`: `key:69`, `mouse:1`) and shown as printed on the player's layout (`Keys.label`: Z Q S D on AZERTY); `Keys.GROUPS` defines which actions conflict. Esc is not rebindable. HUD, hints, lobby and How to play texts all use `Keys.label()`.
+- **In game**: `PauseMenu` owns Esc (open/close; it frees the mouse and the game keeps running; a click in the 3D view recaptures the mouse, which closes it); the chat and the minigames take Esc first in `_input`. `Scoreboard` (hold Tab) and `EventFeed` (top right, `MatchManager.feed` → `Events.feed_event`) only read replicated state. `Hints` shows each first-time tip once (`Config.seen_hints`) and drops a tip once its moment has passed. The lobby docks the chat on the left and takes 1 / 2 / 3 / R.
+- **Theme**: `client/ui/theme.tres`, generated by `tools/godot/make_theme.gd` (Luckiest Guy for titles, Fredoka for text; Fredoka is a variable font whose weight must be set by its numeric OpenType tag), set as the project theme. Type variations: AccentButton, DangerButton, FlatButton, TitleLabel, HeaderLabel, SubheaderLabel, MutedLabel, HudLabel, CardPanel, HudPanel, DimPanel. `MessageDialog` (`client/ui/message_dialog.gd`) is the one modal box (inform, confirm, ask), with the keyboard focus trapped inside.
+- **Localization**: every user-facing text goes through `tr()` (`TranslationServer.translate()` in static functions); the keys are the English texts, in `translations/strings.csv` (`keys,en,fr`, imported into `.translation` files that are not committed). Texts the server sends are English format strings plus arguments, translated by each client (`ChatService.format`, `ConsoleAction.on_used`, `MatchManager.feed`, `LeaveReason`). Headless processes stay in English (tests read their logs). Scene texts translate automatically; nodes showing runtime text set `auto_translate_mode = 2`. `tests/unit/test_translations.gd` fails on any text missing from the CSV.
+- **Known quirk** (Godot 4.7 release builds only): when a client's multiplayer peer resets with nodes still in the engine's node cache, the engine logs "Attempt to disconnect a nonexistent connection … tree_exited". `Session._teardown` leaves the tree before dropping the peer, which leaves one such line (for `Net`); a lost connection still logs one per cached node, because the engine resets its cache inside its own poll. Harmless; debug builds don't log it.
+
 ## 5. Autoloads
 | Autoload | Responsibility |
 |---|---|
-| `Net` | `host(port, max)`, `join(host, port)`, `leave()`, peer connected/disconnected signals, connection errors and timeouts, LAN discovery (UDP broadcast on 7778: the server announces `{name, players, port}` every 2 s; M8). Server clock (M6): `server_time()` is the server's clock on every machine. After connecting, a client sends `request_clock_sync` 5 times (0.2 s apart, then every 10 s) and keeps the answer with the shortest round trip: offset = server time + RTT/2 − local time |
+| `Net` | `host(port, max)`, `join(host, port)`, `leave()`, peer connected/disconnected signals, connection errors and timeouts, `ping_ms()` / `peer_ping_ms(peer)` (ENet round trips). LAN discovery is in `LanAnnouncer` / `LanBrowser` (§4 Menus). Server clock (M6): `server_time()` is the server's clock on every machine. After connecting, a client sends `request_clock_sync` 5 times (0.2 s apart, then every 10 s) and keeps the answer with the shortest round trip: offset = server time + RTT/2 − local time |
 | `Events` | Global signal bus for UI/gameplay decoupling: `local_player_spawned`, `plant_alarm_changed`, `chat_message`, `match_state_changed`… |
-| `Config` | User settings (`user://settings.cfg`: name, sensitivity, FOV, volumes, keybinds, favourites) and server config loading |
+| `Config` | User settings (M8, `user://settings.cfg`, or `--settings PATH`): video, controls and key bindings, audio volumes on top of the bus mix, gameplay (name, language, chat filter, FPS/ping), favourites, seen hints; `set_value()` applies and saves. Only windowed clients read or write the file (headless processes run on defaults, in English). The renderer goes to `user://override.cfg` (`application/config/project_settings_override`). Also server config loading (`[server]` name, port, max_players, password) |
+| `Ui` | Client UI services (M8, `client/ui/ui.gd`): hover / click sounds for every button and slider, the FPS + ping corner |
 | `Log` | `Log.info/warn/error(tag, msg)` with `[S]`/`[C<id>]` prefixes and timestamps; also writes to a file on the server |
 | `Cli` | Parses user command-line args |
 
 ## 6. Server systems
 ### MatchManager (`common/match_manager.gd`)
-Its replicated state (`MatchSync`, on change): `state`, `countdown_left` (COUNTDOWN and POST_MATCH), `time_left` (PLAYING), `min_players`, `roster` (peer → name, role preference, ready, role) and `result` (winner, reason, per-player stats, set when POST_MATCH starts). Always assign a modified copy of `roster`, never edit it in place.
+Its replicated state (`MatchSync`, on change): `state`, `countdown_left` (COUNTDOWN and POST_MATCH), `time_left` (PLAYING), `min_players`, `roster` (peer → name, role preference, ready, role) and `result` (winner, reason, per-player stats, set when POST_MATCH starts). Since M8 also `server_info` (name, max players, durations, min players, locked), `pings` (peer → ms, every 2 s) and `live_stats` (the stats so far, at most once a second, for the scoreboard). Always assign a modified copy of `roster`, never edit it in place.
+- `feed(kind, a, b)` (M8) sends a line to everyone's event feed: cages, eliminations, rescues, bonks, knockdowns, traps, stolen keycards, sabotages, machines offline / repaired / back online, the swarm bonus. Gameplay events no longer go to the chat.
 ```
 LOBBY ──ready vote / --debug-start──▶ ROLE_ASSIGN ─▶ COUNTDOWN(10s) ─▶ PLAYING ─▶ POST_MATCH(15s) ─▶ LOBBY
                                                         ▲ players < 2 during ROLE_ASSIGN/COUNTDOWN → abort to LOBBY
 ```
-- Owns `time_left`, `state`, the roles and the stats (`STAT_KEYS`: sabotages, repairs, catches, frees, bites, knockdowns, steals per player; services call `add_stat`). Checks win conditions each frame with `MatchRulesModel.check_winner`, in this order: meltdown ≥ 100 → rats win; all rats caged, eliminated or gone → supervisors win; all supervisors gone → rats win; `time_left ≤ 0` → supervisors win. A team only counts as "gone" if it had players when PLAYING began, so solo debug matches run until the timer.
+- Owns `time_left`, `state`, the roles and the stats (`STAT_KEYS`: sabotages, repairs, catches, frees, bites, knockdowns, steals, hazard hits, and since M8 bonks, donuts, caught per player; services call `add_stat`). The post-match awards come from these (`common/awards.gd`). Checks win conditions each frame with `MatchRulesModel.check_winner`, in this order: meltdown ≥ 100 → rats win; all rats caged, eliminated or gone → supervisors win; all supervisors gone → rats win; `time_left ≤ 0` → supervisors win. A team only counts as "gone" if it had players when PLAYING began, so solo debug matches run until the timer.
 - **Late join** during PLAYING: the player becomes a spectator until the next match.
 - **Body swaps** (lobby → role bodies, back to the lobby, elimination) go through `Session.retire_bodies(peers)`: each owner is first told to stop sending positions (`on_retire_body`, which turns its BodySync off) and the bodies are despawned once all owners confirm (or after 1 s) plus 0.1 s. Despawning straight away let in-flight BodySync packets reach a freed node ("Ignoring sync data … for missing node"). The state machine pauses during a swap; a swap overtaken by another (a player leaves mid-swap) stops after its await.
 - **Elimination** (CaptureService, a rat's 2nd capture): `eliminate(peer)` sets the roster entry's `eliminated` flag and despawns the body. Eliminated players and spectators are *ghosts* (`is_ghost`): SpectatorCam, ghost chat only.
@@ -288,8 +301,9 @@ The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_d
 |---|---|---|
 | Unit | GUT, headless | `plant_model`, `match_rules_model`, status stacking, team balance, data sanity, hazard rules (hysteresis, cycles), the minigames' rules, the clock offset |
 | Integration | Shell script launching separate headless processes (`tests/integration/*.sh`) | A server on a random port (`--exit-after-match --result-file`) plus bot clients (`--bot rat\|supervisor`) that connect, pick their role and ready up (the real ready vote, `min_players=2`: `--debug-start` would start before the preferences arrive), go to a sabotage point and complete it (plus a lever-pair variant). Since M4, `pvp_*.sh` run PvP scenarios: the capture chain, bites and the swarm bonus, items and traps, and a "hacked client" sending bad `request_*` calls. The scripts assert the result JSON, the exit code, the server log, and that the logs contain no errors. Since M5 the match tests run on the plant, the PvP ones on the TestArena; `plant_cctv.sh` covers the CCTV, the ladder, the shaft and the kill volumes. Since M6, on the plant: `hazards.sh` (every hazard hits, both teams, hysteresis), `minigames.sh` (wins, a loss, a hacked instant win, walking away), `control_room.sh` (coolant, SCRAM, cooldowns, the timer penalty). |
+| Menus (M8) | `test_user_settings.gd` (clean values, save/load round trip, rebinding), `test_menus_logic.gd` (key text, LAN packets and list, awards, chat filter), `test_menu_focus.gd` (arrow keys through every screen), `test_translations.gd` (every text in the CSV, both languages, same placeholders); `tests/integration/menus_smoke.sh` (the real menus, headless: LAN discovery and join, the password prompt, kicked, lost, timeout, bad address) | Run with the other tests |
 | Assets (M7) | `tests/unit/test_assets.gd` | Every sound file, music stem, model and named part the code uses exists; the characters have every clip the AnimationController plays; no CSG left in the plant |
-| Visual (M7, windowed) | `tests/helpers/MapTour.tscn` (`--players 6 --no-vsync` for the performance numbers), `CharacterTour.tscn` (every animation state), `ArtGallery.tscn` (models under the real shaders), `HazardTour.tscn` | Screenshots to look at; not run in CI |
+| Visual (M7, windowed) | `tests/helpers/MapTour.tscn` (`--players 6 --no-vsync` for the performance numbers), `CharacterTour.tscn` (every animation state), `ArtGallery.tscn` (models under the real shaders), `HazardTour.tscn`; M8: `UiTour.tscn` (every menu and in-game screen with made-up data, `--lang fr`), `HowToShots.tscn` (the How to play illustrations) | Screenshots to look at; not run in CI |
 | Map check | `tests/integration/map_check.sh` (`tests/helpers/MapCheck.tscn`) | Bakes a navigation mesh per role from the level's collision and checks the GDD §7 rules: reachability, walk times, two rat routes per sabotage point, supervisors kept out of the vents and the nest. `--update-docs` refreshes the table in docs/map/README.md. |
 | Manual | Run Instances (editor: *Debug → Customize Run Instances*) | 1 instance with `-- --server --debug-start`, 3 instances with `-- --connect 127.0.0.1:7777` |
 | Network conditions | `tc netem` on Linux (`sudo tc qdisc add dev lo root netem delay 80ms 20ms loss 1%`) | Play with 80–150 ms latency before calling any PvP feature done |
@@ -311,7 +325,7 @@ tests/integration/run_match_loop.sh
 ## 12. Security and robustness checklist
 - Validate every `request_*` (sender exists, role, status, distance, LOS, cooldown, rate limit of about 20 requests/s per peer).
 - Chat: max 200 characters, rate limit of 1 message/s, strip BBCode.
-- An optional server password is checked in a `request_join(name, password, version)` handshake. Reject protocol/version mismatches with a clear message.
+- An optional server password is checked in the `request_join(name, version, level, password)` handshake (M8). Protocol/version mismatches, a full server and a wrong password are refused with a `LeaveReason.Code` the client turns into a clear message.
 - Names are sanitised and unique-ified ("Bob (2)").
 - Kick on repeated validator strikes. A `kick`/`ban` console command on the server (stdin) arrives in M9.
 
@@ -323,10 +337,15 @@ homersim/
   common/          Session.tscn session.gd match_manager.gd match_rules_model.gd
                    plant_sim.gd plant_model.gd interaction_service.gd chat_service.gd role.gd
                    ability_service.gd capture_service.gd item_service.gd minigame_service.gd hit_check.gd rate_limiter.gd
-  server/          ServerMain.tscn server_main.gd hazard_director.gd movement_validator.gd heatmap_recorder.gd server_console.gd
-  client/          MainMenu.tscn ServerBrowser.tscn Settings.tscn HUD.tscn Chat.tscn Scoreboard.tscn
-                   PostMatch.tscn SpectatorCam.tscn minigame_host.gd alarm_effects.gd
+                   keys.gd leave_reason.gd lan_discovery.gd awards.gd (M8)
+  server/          ServerMain.tscn server_main.gd hazard_director.gd movement_validator.gd heatmap_recorder.gd lan_announcer.gd
+                   (later server_console.gd)
+  translations/    strings.csv (keys = English, en, fr)
+  client/          MainMenu.tscn menu_background.gd ServerBrowser.tscn lan_browser.gd Settings.tscn HowToPlay.tscn
+                   Credits.tscn HUD.tscn Chat.tscn chat_filter.gd Lobby.tscn PostMatch.tscn pause_menu.gd scoreboard.gd
+                   event_feed.gd hints.gd SpectatorCam.tscn minigame_host.gd alarm_effects.gd menu_test_hooks.gd
                    sfx.gd (sound bank) vfx.gd music_director.gd stun_stars.gd
+                   ui/ (theme.tres, ui.gd autoload, message_dialog.gd)
   entities/player/ Player.tscn player.gd character_visual.gd  supervisor/ rat/ LobbyVisual.tscn (role visuals)
   components/      movement/ camera/ status/ interactor/ abilities/ inventory/
                    animation/ (animation_controller.gd body_fx.gd)
@@ -341,13 +360,14 @@ homersim/
   data/            match_rules.tres plant_tuning.tres roles/ subsystems/ abilities/
                    (scripts: match_rules.gd role_data.gd plant_tuning.gd subsystem_data.gd)
   shaders/         toon.gdshader toon_light.gdshaderinc outline.gdshader toon_world.gdshader toon_glass.gdshader materials/
-  assets/          palette.png  third_party/<pack>/  generated/  audio/{sfx,music}/  fonts/  ui/
+  assets/          palette.png  third_party/<pack>/  generated/  audio/{sfx,music}/  fonts/ (Luckiest Guy, Fredoka)
+                   ui/howto/ (How to play illustrations)
   default_bus_layout.tres  (audio buses)
   addons/          gut/  (later: netfox/ …)
   tools/blender/   common.py export_all.py preview.py + one script per family (machines, plant, interactables,
                    furniture, dressing, kenney, supervisor, rat, fp_arms, broom, crate)
   tools/art/       palette.py make_palette.py   tools/audio/ make_audio.py synth.py music.py
-  tools/godot/     toon_import.gd (glTF import script) bake_shells.gd   tools/build_assets.sh (all of it)
+  tools/godot/     toon_import.gd (glTF import script) bake_shells.gd make_theme.gd (UI theme)   tools/build_assets.sh (all of it)
   tools/map/       gen_plant.py (the graybox plant + its plan)   tools/heatmap.py (playtest position logs)
   tests/           unit/ integration/ helpers/bot_client.gd helpers/pvp_bot.gd helpers/m6_bot.gd
                    helpers/{MapTour,CharacterTour,ArtGallery,HazardTour}.tscn (windowed visual checks)

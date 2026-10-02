@@ -1,9 +1,13 @@
 ; Dedicated server config. Copy to server.cfg (next to the server binary, or the project
-; root when running from source) or pass --config path. CLI args --port / --max-players win.
+; root when running from source) or pass --config path. CLI args --port / --max-players /
+; --password win; --no-lan stops the LAN announcements (the server browser's LAN list).
 [server]
 port=7777
 max_players=6
+; shown in the server browser and the lobby
 name="Sunny Acres #1"
+; "" = anyone may join; otherwise players type it when they join
+password=""
 
 ; Optional match tuning: any MatchRules property (data/match_rules.gd) can be overridden here.
 [match]
