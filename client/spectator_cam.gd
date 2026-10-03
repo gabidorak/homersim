@@ -59,7 +59,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.is_pressed():
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			if CameraRig.is_click(event):
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		elif event.is_action_pressed("primary"):
 			cycle(1)
 		elif event.is_action_pressed("secondary"):

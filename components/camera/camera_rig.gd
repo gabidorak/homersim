@@ -81,7 +81,7 @@ func _look(_delta: Vector2) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.is_pressed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+	if is_click(event) and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		_capture_mouse(true)
 	elif event is InputEventMouseMotion and PlayerInput.has_control() and body.seated_console() == null:
 		# event.relative is in pixels, so the look speed doesn't depend on the frame rate.
@@ -89,6 +89,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		if Config.invert_y:
 			motion.y = -motion.y
 		_look(motion)
+
+
+## A real click: wheel ticks are button presses too, and a menu's scroll list at its end lets them
+## through unhandled, which would grab the mouse while the menu is still open.
+static func is_click(event: InputEvent) -> bool:
+	var button := event as InputEventMouseButton
+	return button != null and button.pressed and button.button_index not in [
+		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]
 
 
 ## Which mouse sensitivity setting this rig uses.
