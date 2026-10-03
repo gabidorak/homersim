@@ -17,7 +17,7 @@
 [ext_resource type="PackedScene" path="res://assets/generated/warning_sign_high_voltage.glb" id="15_warning_sign"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
-size = Vector3(7.9, 4, 0.24)
+size = Vector3(7.65, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_2"]
 size = Vector3(27.3, 4, 0.24)
@@ -29,10 +29,10 @@ size = Vector3(7.3, 4, 0.24)
 size = Vector3(33.3, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_5"]
-size = Vector3(11.9, 4, 0.24)
+size = Vector3(11.89, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_6"]
-size = Vector3(0.24, 4, 6.5)
+size = Vector3(0.24, 4, 6.24)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_7"]
 size = Vector3(1.5, 1, 1.5)
@@ -153,7 +153,7 @@ omni_attenuation = 0.8
 [node name="Occluders" type="Node3D" parent="."]
 
 [node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-34.3, 2, 26)
+position = Vector3(-34.175, 2, 26)
 occluder = SubResource("BoxOccluder3D_1")
 
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
@@ -169,7 +169,7 @@ position = Vector3(23, 2, 26)
 occluder = SubResource("BoxOccluder3D_4")
 
 [node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(46.3, 2, 26)
+position = Vector3(46.295, 2, 26)
 occluder = SubResource("BoxOccluder3D_5")
 
 [node name="VentGrille" parent="." instance=ExtResource("4_vent_grille")]
@@ -189,7 +189,7 @@ position = Vector3(-2, 2.8, 25.75)
 rotation = Vector3(0, 3.1416, 0)
 
 [node name="Occluder6" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(52, 2, 23)
+position = Vector3(52, 2, 23.12)
 occluder = SubResource("BoxOccluder3D_6")
 
 [node name="Camera8" parent="." instance=ExtResource("5_cctvcamera")]

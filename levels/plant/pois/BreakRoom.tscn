@@ -25,22 +25,22 @@
 [ext_resource type="Script" path="res://levels/ambient_sound.gd" id="23_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
-size = Vector3(10.75, 4, 0.24)
+size = Vector3(10.74, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_2"]
-size = Vector3(10.75, 4, 0.24)
+size = Vector3(10.5, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_3"]
-size = Vector3(16.75, 4, 0.24)
+size = Vector3(16.74, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
-size = Vector3(4.75, 4, 0.24)
+size = Vector3(4.74, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_5"]
-size = Vector3(0.24, 4, 6.25)
+size = Vector3(0.24, 4, 6)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_6"]
-size = Vector3(0.24, 4, 6.25)
+size = Vector3(0.24, 4, 6)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_7"]
 size = Vector3(1.75, 0.9, 4)
@@ -98,27 +98,27 @@ omni_attenuation = 0.8
 [node name="Occluders" type="Node3D" parent="."]
 
 [node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-32.875, 2, 20)
+position = Vector3(-32.87, 2, 20)
 occluder = SubResource("BoxOccluder3D_1")
 
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-19.125, 2, 20)
+position = Vector3(-19.25, 2, 20)
 occluder = SubResource("BoxOccluder3D_2")
 
 [node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-29.875, 2, 6)
+position = Vector3(-29.87, 2, 6)
 occluder = SubResource("BoxOccluder3D_3")
 
 [node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-16.125, 2, 6)
+position = Vector3(-16.13, 2, 6)
 occluder = SubResource("BoxOccluder3D_4")
 
 [node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-38, 2, 8.875)
+position = Vector3(-38, 2, 9)
 occluder = SubResource("BoxOccluder3D_5")
 
 [node name="Occluder6" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-38, 2, 17.125)
+position = Vector3(-38, 2, 17)
 occluder = SubResource("BoxOccluder3D_6")
 
 [node name="KeycardDoor" parent="." instance=ExtResource("4_keycarddoor")]

@@ -17,19 +17,19 @@
 [ext_resource type="Script" path="res://levels/ambient_sound.gd" id="15_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
-size = Vector3(18.5, 4, 0.24)
+size = Vector3(18.24, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_2"]
-size = Vector3(7.75, 4, 0.24)
+size = Vector3(7.74, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_3"]
-size = Vector3(7.75, 4, 0.24)
+size = Vector3(7.74, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
 size = Vector3(0.24, 4, 6.55)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_5"]
-size = Vector3(0.24, 4, 5.9)
+size = Vector3(0.24, 4, 5.65)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_6"]
 size = Vector3(6, 2.4, 1)
@@ -93,15 +93,15 @@ omni_attenuation = 0.8
 [node name="Occluders" type="Node3D" parent="."]
 
 [node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(43, 2, -20)
+position = Vector3(43.12, 2, -20)
 occluder = SubResource("BoxOccluder3D_1")
 
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(37.625, 2, -6)
+position = Vector3(37.63, 2, -6)
 occluder = SubResource("BoxOccluder3D_2")
 
 [node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(48.375, 2, -6)
+position = Vector3(48.37, 2, -6)
 occluder = SubResource("BoxOccluder3D_3")
 
 [node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
@@ -109,7 +109,7 @@ position = Vector3(52, 2, -15.625)
 occluder = SubResource("BoxOccluder3D_4")
 
 [node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(52, 2, -8.7)
+position = Vector3(52, 2, -8.825)
 occluder = SubResource("BoxOccluder3D_5")
 
 [node name="VentGrille" parent="." instance=ExtResource("4_vent_grille")]
@@ -190,13 +190,13 @@ position = Vector3(45.75, 0, -11)
 scale = Vector3(1.1, 1.2, 1.2)
 
 [node name="TrapRefill" type="Area3D" parent="."]
-position = Vector3(35, 0.2, -16.5)
+position = Vector3(35, 0.45, -16.5)
 rotation = Vector3(0, 1.5708, 0)
 script = ExtResource("8_pickup")
 item = "trap_refill"
 
 [node name="SpareKeycard" type="Area3D" parent="."]
-position = Vector3(35, 0.45, -13.5)
+position = Vector3(35, 0.7, -13.5)
 rotation = Vector3(0, 1.5708, 0)
 script = ExtResource("8_pickup")
 item = "spare_keycard"

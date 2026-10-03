@@ -160,8 +160,8 @@ LADDER_YARD = (23.75, -29.0)  # on the block's west face, climbing east
 # Hazards (M6, GDD §6), switched on by the server's HazardDirector when their subsystem drops below 50.
 # Steam jets: POI scene, subsystem, x, z, yaw (deg, the jet blows along +Z), length, phase (s)
 STEAM_JETS = [
-    ("PumpHouse", "pumps", -48.3, -15.2, 90, 4.0, 0.0),
-    ("PumpHouse", "pumps", -48.3, -9.8, 90, 2.5, 3.0),    # short: the repair spot stays clear
+    ("PumpHouse", "pumps", -49.1, -14.95, 90, 4.8, 0.0),  # out of the pumps' volutes (beside the front conduit)
+    ("PumpHouse", "pumps", -49.1, -9.45, 90, 3.3, 3.0),   # short: the repair spot stays clear
     ("PumpHouse", "pumps", -44.0, -19.6, 0, 4.0, 1.5),
     ("ValveCorridor", "valves", -46.1, 8.0, -90, 4.0, 0.0),
     ("ValveCorridor", "valves", -43.9, 12.0, 90, 4.0, 3.0),
@@ -432,8 +432,27 @@ def wall_runs():
     return runs
 
 
+def end_extensions(runs):
+    """How far each run of wall_runs() reaches past its two ends, so that walls from different POI
+    scenes (baked separately) never overlap with coplanar faces, which z-fight: 0 where the wall
+    goes on in another run, just short of the far face where a crossing wall covers the corner,
+    half a wall thickness at a free end."""
+    eps = 1e-6
+    out = []
+    for i, (axis, line, a, b, _, _) in enumerate(runs):
+        exts = []
+        for end in (a, b):
+            collinear = any(j != i and o[0] == axis and abs(o[1] - line) < eps and (abs(o[2] - end) < eps or abs(o[3] - end) < eps)
+                            for j, o in enumerate(runs))
+            crossing = any(o[0] != axis and abs(o[1] - end) < eps and o[2] - eps <= line <= o[3] + eps for o in runs)
+            exts.append(0.0 if collinear else WALL_T / 2 - 0.01 if crossing else WALL_T / 2)
+        out.append(tuple(exts))
+    return out
+
+
 def cut_run(a, b, height, openings, extend_ends=True):
-    """Splits a wall run around openings: [(a, b, y0, y1)] solid pieces (along-axis range, heights)."""
+    """Splits a wall run around openings: [(a, b, y0, y1)] solid pieces (along-axis range, heights).
+    `extend_ends`: True (half a wall thickness at both ends), False, or (at a, at b) in metres."""
     pieces = []
     cursor = a
     for c, w, sill, oh in sorted(openings):
@@ -447,13 +466,15 @@ def cut_run(a, b, height, openings, extend_ends=True):
         cursor = r
     if cursor < b - 1e-6:
         pieces.append((cursor, b, 0.0, height))
+    if extend_ends is True:
+        extend_ends = (WALL_T / 2, WALL_T / 2)
     if extend_ends and pieces:
         out = []
         for (pa, pb, y0, y1) in pieces:
             if abs(pa - a) < 1e-6:
-                pa -= WALL_T / 2
+                pa -= extend_ends[0]
             if abs(pb - b) < 1e-6:
-                pb += WALL_T / 2
+                pb += extend_ends[1]
             out.append((pa, pb, y0, y1))
         pieces = out
     return pieces
@@ -570,10 +591,11 @@ def build_rooms():
                 lz = z0 + (j + 0.5) * (z1 - z0) / nz
                 p.light(lx, h - 0.6, lz, rng, 1.1 if h > 4 else 0.9)
     # Walls with their openings.
-    for axis, line, a, b, h, owner in wall_runs():
+    runs = wall_runs()
+    for (axis, line, a, b, h, owner), ext in zip(runs, end_extensions(runs)):
         p = POIS[owner[1]]
         ops = openings_on(axis, line, a, b)
-        for pa, pb, y0, y1 in cut_run(a, b, h, [(o[2], o[4], o[5], o[6]) for o in ops]):
+        for pa, pb, y0, y1 in cut_run(a, b, h, [(o[2], o[4], o[5], o[6]) for o in ops], ext):
             if axis == "z":
                 p.box("Wall", pa, y0, line - WALL_T / 2, pb, y1, line + WALL_T / 2)
                 if pb - pa >= 3 and y0 == 0 and y1 >= 3:
@@ -907,8 +929,9 @@ def build_props():
         for i, sx in enumerate((40.0, 42.0, 44.0, 47.5, 49.5)):
             model(p, "Shelf", "shelf_2m_" + "ab"[(i + k) % 2], (sx, 0, sz), 0 if k == 0 else 180, fallback=(2.0, 2.4, 1.0))
         crate(p, 45.2, 0, sz - 0.6, 46.3, 1.2, sz + 0.6)
-    pickup(p, "TrapRefill", "trap_refill", 35.0, 0.2, -16.5, 90)
-    pickup(p, "SpareKeycard", "spare_keycard", 35.0, 0.45, -13.5, 90)
+    # Pickup heights: the pallet top (0.25) + half the use area (interactables/pickup/pickup.gd LOOKS).
+    pickup(p, "TrapRefill", "trap_refill", 35.0, 0.45, -16.5, 90)
+    pickup(p, "SpareKeycard", "spare_keycard", 35.0, 0.7, -13.5, 90)
     fill(p, "PickupTable", "pallet_flat", 34.25, 0, -18.0, 35.0, 0.25, -12.0)
     p.label("STORAGE", 43, 3.2, -8.5, 90)
 
@@ -1018,7 +1041,8 @@ def build_props():
     # --- Vent Roof: the block, fans, parapets (EXTRA_WALLS), the ventilation station.
     p = poi("VentRoof")
     bx0, bz0, bx1, bz1 = BLOCK
-    p.box("Block", bx0, -0.5, bz0, bx1, ROOF_Y, bz1, p.floor_mat)
+    # Its south side stops inside the Turbine Hall / Storage north wall (not on its inner face, which z-fights).
+    p.box("Block", bx0, -0.5, bz0, bx1, ROOF_Y, bz1 - WALL_T / 2, p.floor_mat)
     p.occluder(bx0 + 0.2, 0, bz0 + 0.2, bx1 - 0.2, ROOF_Y - 0.2, bz1 - 0.2)
     fill(p, "Fan", "roof_fan", 28.0, ROOF_Y, -36.0, 30.5, ROOF_Y + 1.0, -33.5, stretch=False)
     fill(p, "Fan", "roof_fan", 44.0, ROOF_Y, -25.0, 46.5, ROOF_Y + 1.0, -22.5, stretch=False)
@@ -1085,7 +1109,7 @@ DRESSING = [
     ("ReactorHall", "warning_sign_radiation", -20.42, 0.6, -11.0, 90, None),
     # Turbine Hall
     ("TurbineHall", "cable_spool", 30.5, 0, -2.0, 0, (1.1, 1.1, 1.0)), ("TurbineHall", "toolbox", 23.0, 0, -6.8, 0, None),
-    ("TurbineHall", "barrels_cluster", -8.6, 0, -2.0, 0, (1.5, 1.5, 1.0)), ("TurbineHall", "wall_pipe_bundle", 20.0, 1.0, -0.25, 180, None),
+    ("TurbineHall", "barrels_cluster", -8.6, 0, -2.0, 0, (1.5, 1.5, 1.0)), ("TurbineHall", "wall_pipe_bundle", 16.0, 1.0, -0.25, 180, None),
     ("TurbineHall", "warning_sign_high_voltage", 26.5, 1.8, -14.0, 0, None),
     # Yard
     ("Yard", "floodlight", -40.0, 0, -21.2, 180, (0.5, 0.5, 5.0)), ("Yard", "floodlight", -14.0, 0, -21.2, 180, (0.5, 0.5, 5.0)),

@@ -17,8 +17,8 @@ size = Vector3(18, 0.3, 26)
 material = ExtResource("2_wall_cageroo")
 
 [node name="Wall" type="CSGBox3D" parent="."]
-position = Vector3(37.375, 2, 20)
-size = Vector3(7.25, 4, 0.5)
+position = Vector3(37.5, 2, 20)
+size = Vector3(7, 4, 0.5)
 material = ExtResource("2_wall_cageroo")
 
 [node name="Wall2" type="CSGBox3D" parent="."]
@@ -27,13 +27,13 @@ size = Vector3(4, 1, 0.5)
 material = ExtResource("2_wall_cageroo")
 
 [node name="Wall3" type="CSGBox3D" parent="."]
-position = Vector3(48.625, 2, 20)
-size = Vector3(7.25, 4, 0.5)
+position = Vector3(48.62, 2, 20)
+size = Vector3(7.24, 4, 0.5)
 material = ExtResource("2_wall_cageroo")
 
 [node name="Wall4" type="CSGBox3D" parent="."]
-position = Vector3(34, 2, 0.375)
-size = Vector3(0.5, 4, 1.25)
+position = Vector3(34, 2, 0.5)
+size = Vector3(0.5, 4, 1)
 material = ExtResource("2_wall_cageroo")
 
 [node name="Wall5" type="CSGBox3D" parent="."]
@@ -42,13 +42,13 @@ size = Vector3(0.5, 1, 4)
 material = ExtResource("2_wall_cageroo")
 
 [node name="Wall6" type="CSGBox3D" parent="."]
-position = Vector3(34, 2, 5.625)
-size = Vector3(0.5, 4, 1.25)
+position = Vector3(34, 2, 5.5)
+size = Vector3(0.5, 4, 1)
 material = ExtResource("2_wall_cageroo")
 
 [node name="Wall7" type="CSGBox3D" parent="."]
-position = Vector3(52, 2, -4.3)
-size = Vector3(0.5, 4, 3.9)
+position = Vector3(52, 2, -4.175)
+size = Vector3(0.5, 4, 3.65)
 material = ExtResource("2_wall_cageroo")
 
 [node name="Wall8" type="CSGBox3D" parent="."]
@@ -67,8 +67,8 @@ size = Vector3(0.5, 3.4, 0.7)
 material = ExtResource("2_wall_cageroo")
 
 [node name="Wall11" type="CSGBox3D" parent="."]
-position = Vector3(52, 2, 17.3)
-size = Vector3(0.5, 4, 5.9)
+position = Vector3(52, 2, 17.175)
+size = Vector3(0.5, 4, 5.65)
 material = ExtResource("2_wall_cageroo")
 
 [node name="VentSill" type="CSGBox3D" parent="."]

@@ -37,8 +37,8 @@ size = Vector3(90, 0.3, 6)
 material = ExtResource("2_wall_corrido")
 
 [node name="Wall" type="CSGBox3D" parent="."]
-position = Vector3(-34.3, 2, 26)
-size = Vector3(7.9, 4, 0.5)
+position = Vector3(-34.175, 2, 26)
+size = Vector3(7.65, 4, 0.5)
 material = ExtResource("2_wall_corrido")
 
 [node name="Wall2" type="CSGBox3D" parent="."]
@@ -82,8 +82,8 @@ size = Vector3(0.7, 3.4, 0.5)
 material = ExtResource("2_wall_corrido")
 
 [node name="Wall10" type="CSGBox3D" parent="."]
-position = Vector3(46.3, 2, 26)
-size = Vector3(11.9, 4, 0.5)
+position = Vector3(46.295, 2, 26)
+size = Vector3(11.89, 4, 0.5)
 material = ExtResource("2_wall_corrido")
 
 [node name="VentSill" type="CSGBox3D" parent="."]
@@ -102,6 +102,6 @@ size = Vector3(0.7, 0.5, 0.25)
 material = ExtResource("1_floor_corrid")
 
 [node name="Wall11" type="CSGBox3D" parent="."]
-position = Vector3(52, 2, 23)
-size = Vector3(0.5, 4, 6.5)
+position = Vector3(52, 2, 23.12)
+size = Vector3(0.5, 4, 6.24)
 material = ExtResource("2_wall_corrido")

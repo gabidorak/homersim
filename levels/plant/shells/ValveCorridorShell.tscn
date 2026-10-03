@@ -17,8 +17,8 @@ size = Vector3(14, 0.3, 32)
 material = ExtResource("2_wall_valveco")
 
 [node name="Wall" type="CSGBox3D" parent="."]
-position = Vector3(-38, 2, 0.375)
-size = Vector3(0.5, 4, 1.25)
+position = Vector3(-38, 2, 0.5)
+size = Vector3(0.5, 4, 1)
 material = ExtResource("2_wall_valveco")
 
 [node name="Wall2" type="CSGBox3D" parent="."]
@@ -27,13 +27,13 @@ size = Vector3(0.5, 1, 4)
 material = ExtResource("2_wall_valveco")
 
 [node name="Wall3" type="CSGBox3D" parent="."]
-position = Vector3(-38, 2, 5.625)
-size = Vector3(0.5, 4, 1.25)
+position = Vector3(-38, 2, 5.5)
+size = Vector3(0.5, 4, 1)
 material = ExtResource("2_wall_valveco")
 
 [node name="Wall4" type="CSGBox3D" parent="."]
-position = Vector3(-38, 2, 20.375)
-size = Vector3(0.5, 4, 1.25)
+position = Vector3(-38, 2, 20.5)
+size = Vector3(0.5, 4, 1)
 material = ExtResource("2_wall_valveco")
 
 [node name="Wall5" type="CSGBox3D" parent="."]
@@ -42,13 +42,13 @@ size = Vector3(0.5, 1, 4)
 material = ExtResource("2_wall_valveco")
 
 [node name="Wall6" type="CSGBox3D" parent="."]
-position = Vector3(-38, 2, 25.625)
-size = Vector3(0.5, 4, 1.25)
+position = Vector3(-38, 2, 25.62)
+size = Vector3(0.5, 4, 1.24)
 material = ExtResource("2_wall_valveco")
 
 [node name="Wall7" type="CSGBox3D" parent="."]
-position = Vector3(-52, 2, -2.3)
-size = Vector3(0.5, 4, 7.9)
+position = Vector3(-52, 2, -2.175)
+size = Vector3(0.5, 4, 7.65)
 material = ExtResource("2_wall_valveco")
 
 [node name="Wall8" type="CSGBox3D" parent="."]
@@ -67,8 +67,8 @@ size = Vector3(0.5, 3.4, 0.7)
 material = ExtResource("2_wall_valveco")
 
 [node name="Wall11" type="CSGBox3D" parent="."]
-position = Vector3(-52, 2, 23.3)
-size = Vector3(0.5, 4, 5.9)
+position = Vector3(-52, 2, 23.295)
+size = Vector3(0.5, 4, 5.89)
 material = ExtResource("2_wall_valveco")
 
 [node name="VentSill" type="CSGBox3D" parent="."]
@@ -82,6 +82,6 @@ size = Vector3(0.25, 0.5, 0.7)
 material = ExtResource("1_floor_valvec")
 
 [node name="Wall12" type="CSGBox3D" parent="."]
-position = Vector3(-45, 2, 26)
-size = Vector3(14.5, 4, 0.5)
+position = Vector3(-45.12, 2, 26)
+size = Vector3(14.24, 4, 0.5)
 material = ExtResource("2_wall_valveco")

@@ -25,7 +25,7 @@
 [ext_resource type="Script" path="res://levels/ambient_sound.gd" id="23_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
-size = Vector3(4.25, 8, 0.24)
+size = Vector3(4, 8, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_2"]
 size = Vector3(4, 8, 0.24)
@@ -34,7 +34,7 @@ size = Vector3(4, 8, 0.24)
 size = Vector3(14, 8, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
-size = Vector3(10.25, 8, 0.24)
+size = Vector3(10.24, 8, 0.24)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_5"]
 size = Vector3(4, 1.6, 0.06)
@@ -54,13 +54,13 @@ material = ExtResource("4_toon_glass")
 size = Vector3(0.24, 8, 9.4)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_10"]
-size = Vector3(0.24, 8, 6.75)
+size = Vector3(0.24, 8, 6.5)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_11"]
-size = Vector3(25.25, 8, 0.24)
+size = Vector3(25, 8, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_12"]
-size = Vector3(17.25, 8, 0.24)
+size = Vector3(17, 8, 0.24)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_13"]
 size = Vector3(2, 1.6, 2)
@@ -167,7 +167,7 @@ omni_attenuation = 0.8
 [node name="Occluders" type="Node3D" parent="."]
 
 [node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-8.125, 4, 0)
+position = Vector3(-8, 4, 0)
 occluder = SubResource("BoxOccluder3D_1")
 
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
@@ -179,7 +179,7 @@ position = Vector3(13, 4, 0)
 occluder = SubResource("BoxOccluder3D_3")
 
 [node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(29.125, 4, 0)
+position = Vector3(29.12, 4, 0)
 occluder = SubResource("BoxOccluder3D_4")
 
 [node name="Window" type="StaticBody3D" parent="."]
@@ -207,7 +207,7 @@ position = Vector3(34, 4, -14.2)
 occluder = SubResource("BoxOccluder3D_9")
 
 [node name="Occluder6" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(34, 4, -3.125)
+position = Vector3(34, 4, -3.25)
 occluder = SubResource("BoxOccluder3D_10")
 
 [node name="VentGrille" parent="." instance=ExtResource("5_vent_grille")]
@@ -219,11 +219,11 @@ position = Vector3(34.25, 0, -19.25)
 rotation = Vector3(0, 1.5708, 0)
 
 [node name="Occluder7" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(2.375, 4, -20)
+position = Vector3(2.5, 4, -20)
 occluder = SubResource("BoxOccluder3D_11")
 
 [node name="Occluder8" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(25.625, 4, -20)
+position = Vector3(25.5, 4, -20)
 occluder = SubResource("BoxOccluder3D_12")
 
 [node name="Door" parent="." instance=ExtResource("6_door")]
@@ -362,7 +362,7 @@ position = Vector3(-8.6, 0.5, -2)
 shape = SubResource("BoxShape3D_21")
 
 [node name="Dressing4" parent="." instance=ExtResource("21_wall_pipe_bu")]
-position = Vector3(20, 1, -0.25)
+position = Vector3(16, 1, -0.25)
 rotation = Vector3(0, 3.1416, 0)
 
 [node name="Dressing5" parent="." instance=ExtResource("22_warning_sign")]

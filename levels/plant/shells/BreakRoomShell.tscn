@@ -17,8 +17,8 @@ size = Vector3(24, 0.3, 14)
 material = ExtResource("2_wall_breakro")
 
 [node name="Wall" type="CSGBox3D" parent="."]
-position = Vector3(-32.875, 2, 20)
-size = Vector3(10.75, 4, 0.5)
+position = Vector3(-32.87, 2, 20)
+size = Vector3(10.74, 4, 0.5)
 material = ExtResource("2_wall_breakro")
 
 [node name="Wall2" type="CSGBox3D" parent="."]
@@ -27,13 +27,13 @@ size = Vector3(3, 1, 0.5)
 material = ExtResource("2_wall_breakro")
 
 [node name="Wall3" type="CSGBox3D" parent="."]
-position = Vector3(-19.125, 2, 20)
-size = Vector3(10.75, 4, 0.5)
+position = Vector3(-19.25, 2, 20)
+size = Vector3(10.5, 4, 0.5)
 material = ExtResource("2_wall_breakro")
 
 [node name="Wall4" type="CSGBox3D" parent="."]
-position = Vector3(-29.875, 2, 6)
-size = Vector3(16.75, 4, 0.5)
+position = Vector3(-29.87, 2, 6)
+size = Vector3(16.74, 4, 0.5)
 material = ExtResource("2_wall_breakro")
 
 [node name="Wall5" type="CSGBox3D" parent="."]
@@ -42,13 +42,13 @@ size = Vector3(3, 1, 0.5)
 material = ExtResource("2_wall_breakro")
 
 [node name="Wall6" type="CSGBox3D" parent="."]
-position = Vector3(-16.125, 2, 6)
-size = Vector3(4.75, 4, 0.5)
+position = Vector3(-16.13, 2, 6)
+size = Vector3(4.74, 4, 0.5)
 material = ExtResource("2_wall_breakro")
 
 [node name="Wall7" type="CSGBox3D" parent="."]
-position = Vector3(-38, 2, 8.875)
-size = Vector3(0.5, 4, 6.25)
+position = Vector3(-38, 2, 9)
+size = Vector3(0.5, 4, 6)
 material = ExtResource("2_wall_breakro")
 
 [node name="Wall8" type="CSGBox3D" parent="."]
@@ -57,6 +57,6 @@ size = Vector3(0.5, 1.4, 2)
 material = ExtResource("2_wall_breakro")
 
 [node name="Wall9" type="CSGBox3D" parent="."]
-position = Vector3(-38, 2, 17.125)
-size = Vector3(0.5, 4, 6.25)
+position = Vector3(-38, 2, 17)
+size = Vector3(0.5, 4, 6)
 material = ExtResource("2_wall_breakro")

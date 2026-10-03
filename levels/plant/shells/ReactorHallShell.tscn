@@ -20,8 +20,8 @@ size = Vector3(28, 0.3, 20)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall" type="CSGBox3D" parent="."]
-position = Vector3(-33.125, 5, 0)
-size = Vector3(10.25, 10, 0.5)
+position = Vector3(-33.12, 5, 0)
+size = Vector3(10.24, 10, 0.5)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall2" type="CSGBox3D" parent="."]
@@ -45,13 +45,13 @@ size = Vector3(3, 7.4, 0.5)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall6" type="CSGBox3D" parent="."]
-position = Vector3(-10.125, 5, 0)
-size = Vector3(0.75, 10, 0.5)
+position = Vector3(-10.25, 5, 0)
+size = Vector3(0.5, 10, 0.5)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall7" type="CSGBox3D" parent="."]
-position = Vector3(-38, 5, -19.925)
-size = Vector3(0.5, 10, 0.65)
+position = Vector3(-38, 5, -19.92)
+size = Vector3(0.5, 10, 0.64)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall8" type="CSGBox3D" parent="."]
@@ -70,13 +70,13 @@ size = Vector3(0.5, 7, 3)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall11" type="CSGBox3D" parent="."]
-position = Vector3(-38, 5, -5.625)
-size = Vector3(0.5, 10, 11.75)
+position = Vector3(-38, 5, -5.75)
+size = Vector3(0.5, 10, 11.5)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall12" type="CSGBox3D" parent="."]
-position = Vector3(-31.625, 5, -20)
-size = Vector3(13.25, 10, 0.5)
+position = Vector3(-31.5, 5, -20)
+size = Vector3(13, 10, 0.5)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall13" type="CSGBox3D" parent="."]
@@ -85,13 +85,13 @@ size = Vector3(2, 7.4, 0.5)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall14" type="CSGBox3D" parent="."]
-position = Vector3(-16.375, 5, -20)
-size = Vector3(13.25, 10, 0.5)
+position = Vector3(-16.5, 5, -20)
+size = Vector3(13, 10, 0.5)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall15" type="CSGBox3D" parent="."]
-position = Vector3(-10, 5, -15.875)
-size = Vector3(0.5, 10, 8.75)
+position = Vector3(-10, 5, -15.87)
+size = Vector3(0.5, 10, 8.74)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall16" type="CSGBox3D" parent="."]
@@ -100,8 +100,8 @@ size = Vector3(0.5, 7, 3)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall17" type="CSGBox3D" parent="."]
-position = Vector3(-10, 5, -4.125)
-size = Vector3(0.5, 10, 8.75)
+position = Vector3(-10, 5, -4.13)
+size = Vector3(0.5, 10, 8.74)
 material = ExtResource("2_wall_reactor")
 
 [node name="PoolRim" type="CSGBox3D" parent="."]

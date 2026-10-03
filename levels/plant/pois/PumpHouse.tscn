@@ -21,19 +21,19 @@
 [ext_resource type="Script" path="res://levels/ambient_sound.gd" id="19_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
-size = Vector3(14.5, 4, 0.24)
+size = Vector3(14.24, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_2"]
-size = Vector3(5.75, 4, 0.24)
+size = Vector3(5.74, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_3"]
-size = Vector3(5.75, 4, 0.24)
+size = Vector3(5.74, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
 size = Vector3(0.24, 4, 6.55)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_5"]
-size = Vector3(0.24, 4, 5.9)
+size = Vector3(0.24, 4, 5.65)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_6"]
 size = Vector3(2, 1.6, 2)
@@ -84,15 +84,15 @@ omni_attenuation = 0.8
 [node name="Occluders" type="Node3D" parent="."]
 
 [node name="Occluder" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-45, 2, -20)
+position = Vector3(-45.12, 2, -20)
 occluder = SubResource("BoxOccluder3D_1")
 
 [node name="Occluder2" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-49.375, 2, -6)
+position = Vector3(-49.37, 2, -6)
 occluder = SubResource("BoxOccluder3D_2")
 
 [node name="Occluder3" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-40.625, 2, -6)
+position = Vector3(-40.63, 2, -6)
 occluder = SubResource("BoxOccluder3D_3")
 
 [node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
@@ -100,7 +100,7 @@ position = Vector3(-52, 2, -15.625)
 occluder = SubResource("BoxOccluder3D_4")
 
 [node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(-52, 2, -8.7)
+position = Vector3(-52, 2, -8.825)
 occluder = SubResource("BoxOccluder3D_5")
 
 [node name="VentGrille" parent="." instance=ExtResource("4_vent_grille")]
@@ -211,18 +211,18 @@ font_size = 90
 outline_size = 18
 
 [node name="SteamJet" type="Area3D" parent="."]
-position = Vector3(-48.3, 0, -15.2)
+position = Vector3(-49.1, 0, -14.95)
 script = ExtResource("14_steam_jet")
 rotation = Vector3(0, 1.5708, 0)
 subsystem_id = &"pumps"
-size = Vector3(1.8, 1.6, 4)
+size = Vector3(1.8, 1.6, 4.8)
 
 [node name="SteamJet2" type="Area3D" parent="."]
-position = Vector3(-48.3, 0, -9.8)
+position = Vector3(-49.1, 0, -9.45)
 script = ExtResource("14_steam_jet")
 rotation = Vector3(0, 1.5708, 0)
 subsystem_id = &"pumps"
-size = Vector3(1.8, 1.6, 2.5)
+size = Vector3(1.8, 1.6, 3.3)
 phase = 3
 
 [node name="SteamJet3" type="Area3D" parent="."]

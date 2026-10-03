@@ -20,7 +20,7 @@ var broken := false
 
 var lens: Marker3D  ## where the view is from (its -Z looks along the view)
 var tuning: PvpTuning = PvpTuning.load_default()
-var _head: Node3D  # the camera head (models: cctv_head, cctv_head_broken), under the lens
+var _head: Node3D  # the camera head (models: cctv_head, cctv_head_broken), on the wall at the lens
 var _head_broken: Node3D
 var _lamp: Node3D
 var _shown_broken := false
@@ -40,17 +40,19 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	super()
+	# The head's wall plate sits on the wall (the box's back) at lens height, panned by the yaw only
+	# (it would come off the wall if pitched); the view starts just in front of its glass.
+	var mount := Transform3D(Basis(Vector3.UP, deg_to_rad(lens_yaw_deg)), Vector3(0, lens_height, -0.175))
 	lens = Marker3D.new()
 	lens.name = "Lens"
-	lens.position = Vector3(0, lens_height, 0.15)
+	lens.position = mount * Vector3(0, 0.04, 0.72)
 	lens.rotation = Vector3(-deg_to_rad(lens_pitch_deg), PI + deg_to_rad(lens_yaw_deg), 0.0)
 	add_child(lens)
-	# The conduit from the box up to the head, and the head itself (models face +Z, the lens -Z).
-	Art.add(self, "cctv_conduit", Transform3D(Basis.from_scale(Vector3(1, lens_height - 0.25, 1)),
+	# The conduit from the box up to the bottom of the plate, and the head (models face +Z).
+	Art.add(self, "cctv_conduit", Transform3D(Basis.from_scale(Vector3(1, lens_height - 0.35, 1)),
 		Vector3(0, 0.25, -0.13)))
-	var turn := Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0, 0.1))
-	_head = Art.add(lens, "cctv_head", turn)
-	_head_broken = Art.add(lens, "cctv_head_broken", turn)
+	_head = Art.add(self, "cctv_head", mount)
+	_head_broken = Art.add(self, "cctv_head_broken", mount)
 	if _head_broken != null:
 		_head_broken.visible = false
 	_lamp = Art.part(_head, "Lamp")
