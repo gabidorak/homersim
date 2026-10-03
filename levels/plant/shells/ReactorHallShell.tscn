@@ -14,6 +14,12 @@ position = Vector3(-24, -0.25, -10)
 size = Vector3(28, 0.5, 20)
 material = ExtResource("1_floor_reacto")
 
+[node name="DuctTrench" type="CSGBox3D" parent="."]
+position = Vector3(-35.5, -0.075, -19.25)
+size = Vector3(5, 0.25, 1)
+material = ExtResource("1_floor_reacto")
+operation = 2
+
 [node name="CeilingRH" type="CSGBox3D" parent="."]
 position = Vector3(-24, 10.15, -10)
 size = Vector3(28, 0.3, 20)

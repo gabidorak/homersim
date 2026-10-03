@@ -606,6 +606,13 @@ def build_rooms():
     for rid, scene, name, x0, z0, x1, z1, h, color in ROOMS:
         p = POIS[scene]
         p.box("Floor" + rid, x0, -0.5, z0, x1, 0.0, z1, p.floor_mat)
+        # A duct lying on the floor has its own floor at y = 0 too: sink it into a trench in the room
+        # floor, or the two faces z-fight inside the duct.
+        for dx0, dz0, dx1, dz1 in floor_ducts():
+            tx0, tz0, tx1, tz1 = max(x0, dx0), max(z0, dz0), min(x1, dx1), min(z1, dz1)
+            if tx0 < tx1 and tz0 < tz1:
+                p.box("DuctTrench", tx0, -DUCT_SHELL - 0.05, tz0, tx1, 0.05, tz1, p.floor_mat)
+                p.subtract_last()
         if rid not in OUTDOOR:
             p.box("Ceiling" + rid, x0, h, z0, x1, h + CEIL_T, z1)
         # Lights on a grid, about one per 10 m.
@@ -1288,6 +1295,16 @@ def split_ducts():
             p1 = (x0 + (x1 - x0) * b, z0 + (z1 - z0) * b)
             out.append((name if n == 1 else "%s%d" % (name, k + 1), p0, p1, y, e0 if k == 0 else "seam",
                         e1 if k == n - 1 else "seam"))
+    return out
+
+
+def floor_ducts():
+    """(x0, z0, x1, z1) footprints of the ducts' outer boxes at ground-floor height."""
+    out = []
+    for name, (x0, z0), (x1, z1), y, e0, e1 in split_ducts():
+        if abs(y) < 1e-6:
+            bx0, _, bz0, bx1, _, bz1 = duct_boxes(x0, z0, x1, z1, y, e0, e1, name)[0]
+            out.append((bx0, bz0, bx1, bz1))
     return out
 
 

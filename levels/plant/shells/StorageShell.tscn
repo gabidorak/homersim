@@ -11,6 +11,24 @@ position = Vector3(43, -0.25, -13)
 size = Vector3(18, 0.5, 14)
 material = ExtResource("1_floor_storag")
 
+[node name="DuctTrench" type="CSGBox3D" parent="."]
+position = Vector3(48.975, -0.075, -19.25)
+size = Vector3(6.05, 0.25, 1)
+material = ExtResource("1_floor_storag")
+operation = 2
+
+[node name="DuctTrench2" type="CSGBox3D" parent="."]
+position = Vector3(42.625, -0.075, -19.25)
+size = Vector3(6.85, 0.25, 1)
+material = ExtResource("1_floor_storag")
+operation = 2
+
+[node name="DuctTrench3" type="CSGBox3D" parent="."]
+position = Vector3(36.65, -0.075, -19.25)
+size = Vector3(5.3, 0.25, 1)
+material = ExtResource("1_floor_storag")
+operation = 2
+
 [node name="CeilingST" type="CSGBox3D" parent="."]
 position = Vector3(43, 4.15, -13)
 size = Vector3(18, 0.3, 14)
