@@ -107,8 +107,9 @@ EXTRA_WALLS = [
 
 # Ducts (all in VentNetwork.tscn): horizontal runs along X or Z between two (x, z) points at floor
 # height y. Ends: "closed", "open" (inner pokes out: an opening), "flush" (inner ends there, outer
-# stops `flush_outer` earlier, for a duct passing through a wall into a room), "corner"/"joint"
-# (overlap the next piece).
+# stops `flush_outer` earlier, for a duct passing through a wall into a room), "drop" (ends at a
+# wall's room face, the room it drops into: the outer stops at the wall's other face, so the hole is
+# the wall's own), "corner"/"joint" (overlap the next piece).
 DUCTS = [
     # name, (x0, z0), (x1, z1), y, end0, end1
     ("SouthLine", (-52.75, 26.75), (52.75, 26.75), 0.0, "corner", "corner"),
@@ -162,7 +163,7 @@ LADDER_YARD = (23.75, -29.0)  # on the block's west face, climbing east
 STEAM_JETS = [
     ("PumpHouse", "pumps", -49.1, -14.95, 90, 4.8, 0.0),  # out of the pumps' volutes (beside the front conduit)
     ("PumpHouse", "pumps", -49.1, -9.45, 90, 3.3, 3.0),   # short: the repair spot stays clear
-    ("PumpHouse", "pumps", -44.0, -19.6, 0, 4.0, 1.5),
+    ("PumpHouse", "pumps", -44.0, -18.45, 0, 3.0, 1.5),   # out of the north duct's side, not inside it
     ("ValveCorridor", "valves", -46.1, 8.0, -90, 4.0, 0.0),
     ("ValveCorridor", "valves", -43.9, 12.0, 90, 4.0, 3.0),
     ("ValveCorridor", "valves", -46.1, 14.0, -90, 4.0, 1.5),
@@ -492,6 +493,33 @@ def openings_on(axis, line, a, b):
     return [o for o in OPENINGS if o[0] == axis and abs(o[1] - line) < 1e-6 and a - 1e-6 <= o[2] <= b + 1e-6]
 
 
+def duct_beside(axis, line, c, sill, side):
+    """True if a duct's outer shell carries on past the wall's face on that side of a vent hole."""
+    probe = line + side * (WALL_T / 2 + 0.05)
+    x, y, z = (c, sill + VENT_H / 2, probe) if axis == "z" else (probe, sill + VENT_H / 2, c)
+    for name, (x0, z0), (x1, z1), dy, e0, e1 in split_ducts():
+        bx0, by0, bz0, bx1, by1, bz1 = duct_boxes(x0, z0, x1, z1, dy, e0, e1, name)[0]
+        if bx0 < x < bx1 and by0 < y < by1 and bz0 < z < bz1:
+            return True
+    return False
+
+
+def duct_through(axis, line, c, sill):
+    return duct_beside(axis, line, c, sill, -1) and duct_beside(axis, line, c, sill, 1)
+
+
+def wall_hole(o):
+    """(centre, width, sill, height) cut in the wall for an opening. A duct passing through gets a hole
+    a little bigger than its inside, so the hole's sides hide in the duct's shell instead of
+    z-fighting with the duct's inner faces."""
+    axis, line, c, kind, w, sill, oh = o
+    if kind != "vent" or not duct_through(axis, line, c, sill):
+        return c, w, sill, oh
+    m = DUCT_SHELL / 2
+    lo = max(0.0, sill - m)  # a hole at floor level keeps its floor
+    return c, w + 2 * m, lo, sill + oh + m - lo
+
+
 # --- POI scene building ---------------------------------------------------------------------------
 
 class Poi:
@@ -595,7 +623,7 @@ def build_rooms():
     for (axis, line, a, b, h, owner), ext in zip(runs, end_extensions(runs)):
         p = POIS[owner[1]]
         ops = openings_on(axis, line, a, b)
-        for pa, pb, y0, y1 in cut_run(a, b, h, [(o[2], o[4], o[5], o[6]) for o in ops], ext):
+        for pa, pb, y0, y1 in cut_run(a, b, h, [wall_hole(o) for o in ops], ext):
             if axis == "z":
                 p.box("Wall", pa, y0, line - WALL_T / 2, pb, y1, line + WALL_T / 2)
                 if pb - pa >= 3 and y0 == 0 and y1 >= 3:
@@ -609,16 +637,18 @@ def build_rooms():
             x, z = (c, line) if axis == "z" else (line, c)
             yaw = 0.0 if axis == "z" else deg(90)
             if kind == "vent":
-                # A grille frame on each side that opens into a room (cosmetic, nothing in the middle).
+                # A grille frame on each side that opens into a room (cosmetic, nothing in the middle),
+                # unless a duct carries on past the wall on that side (the frame would sit inside it).
                 for side in (-1, 1):
                     probe = line + side * 0.15
                     px, pz = (c, probe) if axis == "z" else (probe, c)
-                    if floor_at(px, pz) and not (axis == "z" and line == 30):
+                    if (floor_at(px, pz) and not (axis == "z" and line == 30)
+                            and not duct_beside(axis, line, c, sill, side)):
                         face = line + side * WALL_T / 2
                         gx, gz = (c, face) if axis == "z" else (face, c)
                         yaw_g = (0 if side > 0 else 180) if axis == "z" else (90 if side > 0 else -90)
                         model(p, "VentGrille", "vent_grille", (gx, sill, gz), yaw_g, fallback=(0.8, 0.7, 0.1))
-            if kind == "vent" and sill < 0.01:
+            if kind == "vent" and sill < 0.01 and not duct_through(axis, line, c, sill):
                 # Room floors stop at the wall's centre line: give the hole a floor on a side without a room.
                 for side in (-1, 1):
                     probe = line + side * 0.15
@@ -965,7 +995,7 @@ def build_props():
             "position": V3(x, y, z), "script": p.s.ext_res("Script", "res://interactables/console_action/console_action.gd"),
             "action": action})
     beacon(p, -2, 3.7, 1.0)
-    beacon(p, -2, 3.7, 18.5)
+    beacon(p, -2, 3.7, 16.5)  # clear of the vent drop's mouth
     p.label("CONTROL ROOM", -2, 3.3, 10, 90)
 
     # --- Break Room: supervisor spawn, donut counter, tables, coffee and vending machines.
@@ -992,7 +1022,7 @@ def build_props():
     p = poi("Corridors")
     crate(p, -36.5, 0, 24.0, -35.0, 1.0, 25.5)
     crate(p, 30.0, 0, 21.0, 31.2, 1.2, 22.2)
-    pipe_run(p, "PipeHigh", -37.5, 3.0, 24.9, 51.5, 3.5, 25.4)
+    pipe_run(p, "PipeHigh", -37.5, 2.0, 24.9, 51.5, 2.5, 25.4)  # under the Control Room drop's duct (flanges too)
     beacon(p, -26, 3.7, 3)
     beacon(p, 22, 3.7, 3)
     beacon(p, 7, 3.7, 23)
@@ -1081,7 +1111,7 @@ DRESSING = [
     ("LockerRoom", "k_trashcan", 33.2, 0, 19.2, 0, None), ("LockerRoom", "k_box_open", 11.0, 0, 7.0, 15, None),
     ("LockerRoom", "papers", 16.0, 0.45, 11.4, 0, None),
     # Pump House
-    ("PumpHouse", "tank_vertical", -50.6, 0, -18.6, 0, (2.1, 2.1, 3.0)), ("PumpHouse", "toolbox", -47.0, 0, -6.9, 0, None),
+    ("PumpHouse", "tank_vertical", -50.6, 0, -17.62, 0, (2.1, 2.1, 3.0)), ("PumpHouse", "toolbox", -47.0, 0, -6.9, 0, None),
     ("PumpHouse", "warning_sign_radiation", -38.25, 2.0, -16.0, -90, None),
     ("PumpHouse", "hazard_floor_tape", -45.0, 0.01, -13.0, 90, None),
     # Valve Corridor
@@ -1090,8 +1120,9 @@ DRESSING = [
     ("ValveCorridor", "fire_extinguisher", -38.25, 1.0, 8.0, -90, None),
     # Storage
     ("Storage", "barrels_cluster", 50.8, 0, -7.4, 0, (1.5, 1.5, 1.0)), ("Storage", "k_box_large", 37.0, 0, -7.6, 10, (1.9, 1.9, 0.9)),
-    ("Storage", "cable_spool", 50.9, 0, -19.0, 0, (1.1, 1.1, 1.0)), ("Storage", "k_box_closed", 39.5, 0, -19.3, 25, None),
-    ("Storage", "k_box_closed", 40.2, 0, -19.4, -10, None), ("Storage", "radiation_vial_crate", 45.8, 1.2, -16.0, 0, None),
+    ("Storage", "cable_spool", 50.9, 0, -17.9, 0, (1.1, 1.1, 1.0)),
+    ("Storage", "k_box_closed", 39.5, VENT_H + DUCT_SHELL, -19.3, 25, None),  # on top of the north duct
+    ("Storage", "k_box_closed", 40.2, VENT_H + DUCT_SHELL, -19.4, -10, None), ("Storage", "radiation_vial_crate", 45.8, 1.2, -16.0, 0, None),
     # Cage Room
     ("CageRoom", "radiation_vial_crate", 50.8, 0, 18.8, -90, None), ("CageRoom", "toolbox", 35.0, 0, 18.9, 20, None),
     ("CageRoom", "k_cheese", 43.8, 1.2, 5.8, 0, None), ("CageRoom", "warning_sign_radiation", 51.75, 2.0, 10.0, -90, None),
@@ -1100,8 +1131,8 @@ DRESSING = [
     ("Corridors", "fire_extinguisher", 0.0, 1.0, 25.75, 180, None), ("Corridors", "k_trashcan", -37.5, 0, 0.6, 0, None),
     ("Corridors", "traffic_cone", 14.0, 0, 24.8, 0, None), ("Corridors", "traffic_cone", 15.0, 0, 25.1, 0, None),
     ("Corridors", "wet_floor_sign", -15.5, 0, 22.0, 60, None), ("Corridors", "k_warning_post", 51.4, 0, 20.6, 0, None),
-    ("Corridors", "warning_sign_radiation", -10.0, 2.2, 25.75, 180, None),
-    ("Corridors", "warning_sign_high_voltage", 40.0, 2.2, 25.75, 180, None),
+    ("Corridors", "warning_sign_radiation", -10.0, 1.3, 25.75, 180, None),  # under the high pipe
+    ("Corridors", "warning_sign_high_voltage", 40.0, 1.3, 25.75, 180, None),
     # Reactor Hall
     ("ReactorHall", "radiation_vial_crate", -13.0, 0, -2.0, 30, None), ("ReactorHall", "barrel_yellow", -37.2, 0, -12.6, 0, (0.7, 0.7, 0.9)),
     ("ReactorHall", "barrel_yellow", -36.4, 0, -13.4, 40, (0.7, 0.7, 0.9)),
@@ -1220,7 +1251,7 @@ def duct_boxes(x0, z0, x1, z1, y, end0, end1, name):
 
     def ext(end, which):
         return {"closed": (ow, iw), "corner": (ow, iw), "joint": (0.3, 0.0), "seam": (0.05, 0.05),
-                "open": (0.0, 0.3), "flush": (0.0, 0.0), "drop": (0.0, 0.25)}[end][which]
+                "open": (0.0, 0.3), "flush": (0.0, 0.0), "drop": (-WALL_T, 0.25)}[end][which]
     oa, ob = a - sign * ext(end0, 0), b + sign * ext(end1, 0)
     ia, ib = a - sign * ext(end0, 1), b + sign * ext(end1, 1)
     if name in DUCT_FLUSH_OUTER:

@@ -1,28 +1,27 @@
-[gd_scene load_steps=46 format=3]
+[gd_scene load_steps=45 format=3]
 
 [ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
 [ext_resource type="ArrayMesh" path="res://levels/plant/baked/TurbineHall_shell.res" id="2_turbinehall_"]
 [ext_resource type="ConcavePolygonShape3D" path="res://levels/plant/baked/TurbineHall_shell_col.res" id="3_turbinehall_"]
 [ext_resource type="Material" path="res://shaders/materials/toon_glass.tres" id="4_toon_glass"]
-[ext_resource type="PackedScene" path="res://assets/generated/vent_grille.glb" id="5_vent_grille"]
-[ext_resource type="PackedScene" path="res://interactables/door/Door.tscn" id="6_door"]
-[ext_resource type="PackedScene" path="res://assets/generated/machine_turbine.glb" id="7_machine_turb"]
-[ext_resource type="Script" path="res://levels/station_label.gd" id="8_station_labe"]
-[ext_resource type="PackedScene" path="res://interactables/repair_point/RepairPoint.tscn" id="9_repairpoint"]
-[ext_resource type="PackedScene" path="res://interactables/critical_lever/CriticalLever.tscn" id="10_criticalleve"]
-[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="11_cctvcamera"]
-[ext_resource type="Script" path="res://levels/plant/props/plant_prop.gd" id="12_plant_prop"]
-[ext_resource type="PackedScene" path="res://assets/generated/turbine.glb" id="13_turbine"]
-[ext_resource type="PackedScene" path="res://assets/generated/crate.glb" id="14_crate"]
-[ext_resource type="PackedScene" path="res://assets/generated/generator.glb" id="15_generator"]
-[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="16_alarmbeacon"]
-[ext_resource type="Script" path="res://hazards/debris/debris_zone.gd" id="17_debris_zone"]
-[ext_resource type="PackedScene" path="res://assets/generated/cable_spool.glb" id="18_cable_spool"]
-[ext_resource type="PackedScene" path="res://assets/generated/toolbox.glb" id="19_toolbox"]
-[ext_resource type="PackedScene" path="res://assets/generated/barrels_cluster.glb" id="20_barrels_clus"]
-[ext_resource type="PackedScene" path="res://assets/generated/wall_pipe_bundle.glb" id="21_wall_pipe_bu"]
-[ext_resource type="PackedScene" path="res://assets/generated/warning_sign_high_voltage.glb" id="22_warning_sign"]
-[ext_resource type="Script" path="res://levels/ambient_sound.gd" id="23_ambient_soun"]
+[ext_resource type="PackedScene" path="res://interactables/door/Door.tscn" id="5_door"]
+[ext_resource type="PackedScene" path="res://assets/generated/machine_turbine.glb" id="6_machine_turb"]
+[ext_resource type="Script" path="res://levels/station_label.gd" id="7_station_labe"]
+[ext_resource type="PackedScene" path="res://interactables/repair_point/RepairPoint.tscn" id="8_repairpoint"]
+[ext_resource type="PackedScene" path="res://interactables/critical_lever/CriticalLever.tscn" id="9_criticalleve"]
+[ext_resource type="PackedScene" path="res://interactables/cctv/CctvCamera.tscn" id="10_cctvcamera"]
+[ext_resource type="Script" path="res://levels/plant/props/plant_prop.gd" id="11_plant_prop"]
+[ext_resource type="PackedScene" path="res://assets/generated/turbine.glb" id="12_turbine"]
+[ext_resource type="PackedScene" path="res://assets/generated/crate.glb" id="13_crate"]
+[ext_resource type="PackedScene" path="res://assets/generated/generator.glb" id="14_generator"]
+[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="15_alarmbeacon"]
+[ext_resource type="Script" path="res://hazards/debris/debris_zone.gd" id="16_debris_zone"]
+[ext_resource type="PackedScene" path="res://assets/generated/cable_spool.glb" id="17_cable_spool"]
+[ext_resource type="PackedScene" path="res://assets/generated/toolbox.glb" id="18_toolbox"]
+[ext_resource type="PackedScene" path="res://assets/generated/barrels_cluster.glb" id="19_barrels_clus"]
+[ext_resource type="PackedScene" path="res://assets/generated/wall_pipe_bundle.glb" id="20_wall_pipe_bu"]
+[ext_resource type="PackedScene" path="res://assets/generated/warning_sign_high_voltage.glb" id="21_warning_sign"]
+[ext_resource type="Script" path="res://levels/ambient_sound.gd" id="22_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
 size = Vector3(4, 8, 0.24)
@@ -51,7 +50,7 @@ size = Vector3(4, 1.6, 0.06)
 material = ExtResource("4_toon_glass")
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_9"]
-size = Vector3(0.24, 8, 9.4)
+size = Vector3(0.24, 8, 9.325)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_10"]
 size = Vector3(0.24, 8, 6.5)
@@ -203,20 +202,12 @@ cast_shadow = 0
 mesh = SubResource("BoxMesh_8")
 
 [node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(34, 4, -14.2)
+position = Vector3(34, 4, -14.1625)
 occluder = SubResource("BoxOccluder3D_9")
 
 [node name="Occluder6" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(34, 4, -3.25)
 occluder = SubResource("BoxOccluder3D_10")
-
-[node name="VentGrille" parent="." instance=ExtResource("5_vent_grille")]
-position = Vector3(33.75, 0, -19.25)
-rotation = Vector3(0, -1.5708, 0)
-
-[node name="VentGrille2" parent="." instance=ExtResource("5_vent_grille")]
-position = Vector3(34.25, 0, -19.25)
-rotation = Vector3(0, 1.5708, 0)
 
 [node name="Occluder7" type="OccluderInstance3D" parent="Occluders"]
 position = Vector3(2.5, 4, -20)
@@ -226,7 +217,7 @@ occluder = SubResource("BoxOccluder3D_11")
 position = Vector3(25.5, 4, -20)
 occluder = SubResource("BoxOccluder3D_12")
 
-[node name="Door" parent="." instance=ExtResource("6_door")]
+[node name="Door" parent="." instance=ExtResource("5_door")]
 position = Vector3(16, 0, -20)
 rotation = Vector3(0, 0, 0)
 
@@ -240,7 +231,7 @@ rotation = Vector3(0, 3.1416, 0)
 position = Vector3(0, 0.8, 0)
 shape = SubResource("BoxShape3D_13")
 
-[node name="Machine" parent="Turbine" instance=ExtResource("7_machine_turb")]
+[node name="Machine" parent="Turbine" instance=ExtResource("6_machine_turb")]
 position = Vector3(0, 0, 0)
 
 [node name="Label" type="Label3D" parent="Turbine"]
@@ -249,23 +240,23 @@ billboard = 1
 font_size = 56
 outline_size = 12
 text = "turbine"
-script = ExtResource("8_station_labe")
+script = ExtResource("7_station_labe")
 subsystem_id = &"turbine"
 
-[node name="RepairPoint" parent="Turbine" instance=ExtResource("9_repairpoint")]
+[node name="RepairPoint" parent="Turbine" instance=ExtResource("8_repairpoint")]
 position = Vector3(0, 1, 1.3)
 subsystem_id = &"turbine"
 
-[node name="LeverA" parent="Turbine" instance=ExtResource("10_criticalleve")]
+[node name="LeverA" parent="Turbine" instance=ExtResource("9_criticalleve")]
 position = Vector3(-3, 0.3, 0.4)
 subsystem_id = &"turbine"
 partner_path = NodePath("../LeverB")
 
-[node name="LeverB" parent="Turbine" instance=ExtResource("10_criticalleve")]
+[node name="LeverB" parent="Turbine" instance=ExtResource("9_criticalleve")]
 position = Vector3(3, 0.3, 0.4)
 subsystem_id = &"turbine"
 
-[node name="Camera2" parent="." instance=ExtResource("11_cctvcamera")]
+[node name="Camera2" parent="." instance=ExtResource("10_cctvcamera")]
 position = Vector3(33.6, 0.4, -11)
 rotation = Vector3(0, -1.5708, 0)
 number = 2
@@ -285,9 +276,9 @@ position = Vector3(10, 3, -10)
 shape = SubResource("CylinderShape3D_15")
 rotation = Vector3(0, 0, 1.5708)
 
-[node name="Turbine2" parent="." instance=ExtResource("13_turbine")]
+[node name="Turbine2" parent="." instance=ExtResource("12_turbine")]
 position = Vector3(10, 0, -10)
-script = ExtResource("12_plant_prop")
+script = ExtResource("11_plant_prop")
 subsystem_id = &"turbine"
 motion = "shaft"
 axis = Vector3(1, 0, 0)
@@ -296,15 +287,15 @@ axis = Vector3(1, 0, 0)
 position = Vector3(3.75, 0.6, -15.25)
 shape = SubResource("BoxShape3D_16")
 
-[node name="Crate" parent="." instance=ExtResource("14_crate")]
+[node name="Crate" parent="." instance=ExtResource("13_crate")]
 position = Vector3(3.75, 0, -15.25)
 scale = Vector3(1.5, 1.2, 1.5)
 
-[node name="Crate2" parent="." instance=ExtResource("14_crate")]
+[node name="Crate2" parent="." instance=ExtResource("13_crate")]
 position = Vector3(3.75, 0, -17.25)
 scale = Vector3(1.5, 1.2, 1.5)
 
-[node name="Crate3" parent="." instance=ExtResource("14_crate")]
+[node name="Crate3" parent="." instance=ExtResource("13_crate")]
 position = Vector3(3.765, 1.2, -17.265)
 rotation = Vector3(0, 1.5708, 0)
 scale = Vector3(1.37, 1.2, 1.37)
@@ -317,18 +308,18 @@ shape = SubResource("BoxShape3D_17")
 position = Vector3(26.5, 1, -12.5)
 shape = SubResource("BoxShape3D_18")
 
-[node name="Generator" parent="." instance=ExtResource("15_generator")]
+[node name="Generator" parent="." instance=ExtResource("14_generator")]
 position = Vector3(26.5, 0, -12.5)
 
 [node name="Box5" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-5.25, 0.6, -5.25)
 shape = SubResource("BoxShape3D_19")
 
-[node name="Crate4" parent="." instance=ExtResource("14_crate")]
+[node name="Crate4" parent="." instance=ExtResource("13_crate")]
 position = Vector3(-5.25, 0, -5.25)
 scale = Vector3(1.5, 1.2, 1.5)
 
-[node name="AlarmBeacon" parent="." instance=ExtResource("16_alarmbeacon")]
+[node name="AlarmBeacon" parent="." instance=ExtResource("15_alarmbeacon")]
 position = Vector3(10, 7.6, -1)
 
 [node name="Sign" type="Label3D" parent="."]
@@ -340,42 +331,42 @@ outline_size = 18
 
 [node name="DebrisZone" type="Area3D" parent="."]
 position = Vector3(12, 0, -10)
-script = ExtResource("17_debris_zone")
+script = ExtResource("16_debris_zone")
 subsystem_id = &"turbine"
 size = Vector3(42, 8, 18)
 
-[node name="Dressing" parent="." instance=ExtResource("18_cable_spool")]
+[node name="Dressing" parent="." instance=ExtResource("17_cable_spool")]
 position = Vector3(30.5, 0, -2)
 
 [node name="Box6" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(30.5, 0.5, -2)
 shape = SubResource("BoxShape3D_20")
 
-[node name="Dressing2" parent="." instance=ExtResource("19_toolbox")]
+[node name="Dressing2" parent="." instance=ExtResource("18_toolbox")]
 position = Vector3(23, 0, -6.8)
 
-[node name="Dressing3" parent="." instance=ExtResource("20_barrels_clus")]
+[node name="Dressing3" parent="." instance=ExtResource("19_barrels_clus")]
 position = Vector3(-8.6, 0, -2)
 
 [node name="Box7" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-8.6, 0.5, -2)
 shape = SubResource("BoxShape3D_21")
 
-[node name="Dressing4" parent="." instance=ExtResource("21_wall_pipe_bu")]
+[node name="Dressing4" parent="." instance=ExtResource("20_wall_pipe_bu")]
 position = Vector3(16, 1, -0.25)
 rotation = Vector3(0, 3.1416, 0)
 
-[node name="Dressing5" parent="." instance=ExtResource("22_warning_sign")]
+[node name="Dressing5" parent="." instance=ExtResource("21_warning_sign")]
 position = Vector3(26.5, 1.8, -14)
 
 [node name="Ambient" type="Marker3D" parent="."]
 position = Vector3(4, 2, -10)
-script = ExtResource("23_ambient_soun")
+script = ExtResource("22_ambient_soun")
 sound = "hum_turbine"
 
 [node name="Ambient2" type="Marker3D" parent="."]
 position = Vector3(20, 2, -10)
-script = ExtResource("23_ambient_soun")
+script = ExtResource("22_ambient_soun")
 sound = "hum_turbine"
 volume_db = -3
 

@@ -63,18 +63,18 @@ size = Vector3(10.24, 8, 0.5)
 material = ExtResource("2_wall_turbine")
 
 [node name="Wall10" type="CSGBox3D" parent="."]
-position = Vector3(34, 4, -19.92)
-size = Vector3(0.5, 8, 0.64)
+position = Vector3(34, 4, -19.9575)
+size = Vector3(0.5, 8, 0.565)
 material = ExtResource("2_wall_turbine")
 
 [node name="Wall11" type="CSGBox3D" parent="."]
-position = Vector3(34, 4.3, -19.25)
-size = Vector3(0.5, 7.4, 0.7)
+position = Vector3(34, 4.3375, -19.25)
+size = Vector3(0.5, 7.325, 0.85)
 material = ExtResource("2_wall_turbine")
 
 [node name="Wall12" type="CSGBox3D" parent="."]
-position = Vector3(34, 4, -14.2)
-size = Vector3(0.5, 8, 9.4)
+position = Vector3(34, 4, -14.1625)
+size = Vector3(0.5, 8, 9.325)
 material = ExtResource("2_wall_turbine")
 
 [node name="Wall13" type="CSGBox3D" parent="."]

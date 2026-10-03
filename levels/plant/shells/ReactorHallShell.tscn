@@ -50,18 +50,18 @@ size = Vector3(0.5, 10, 0.5)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall7" type="CSGBox3D" parent="."]
-position = Vector3(-38, 5, -19.92)
-size = Vector3(0.5, 10, 0.64)
+position = Vector3(-38, 5, -19.9575)
+size = Vector3(0.5, 10, 0.565)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall8" type="CSGBox3D" parent="."]
-position = Vector3(-38, 5.3, -19.25)
-size = Vector3(0.5, 9.4, 0.7)
+position = Vector3(-38, 5.3375, -19.25)
+size = Vector3(0.5, 9.325, 0.85)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall9" type="CSGBox3D" parent="."]
-position = Vector3(-38, 5, -16.7)
-size = Vector3(0.5, 10, 4.4)
+position = Vector3(-38, 5, -16.6625)
+size = Vector3(0.5, 10, 4.325)
 material = ExtResource("2_wall_reactor")
 
 [node name="Wall10" type="CSGBox3D" parent="."]

@@ -26,7 +26,7 @@ size = Vector3(7.74, 4, 0.24)
 size = Vector3(7.74, 4, 0.24)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_4"]
-size = Vector3(0.24, 4, 6.55)
+size = Vector3(0.24, 4, 6.475)
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_5"]
 size = Vector3(0.24, 4, 5.65)
@@ -105,7 +105,7 @@ position = Vector3(48.37, 2, -6)
 occluder = SubResource("BoxOccluder3D_3")
 
 [node name="Occluder4" type="OccluderInstance3D" parent="Occluders"]
-position = Vector3(52, 2, -15.625)
+position = Vector3(52, 2, -15.5875)
 occluder = SubResource("BoxOccluder3D_4")
 
 [node name="Occluder5" type="OccluderInstance3D" parent="Occluders"]
@@ -113,10 +113,6 @@ position = Vector3(52, 2, -8.825)
 occluder = SubResource("BoxOccluder3D_5")
 
 [node name="VentGrille" parent="." instance=ExtResource("4_vent_grille")]
-position = Vector3(51.75, 0, -19.25)
-rotation = Vector3(0, -1.5708, 0)
-
-[node name="VentGrille2" parent="." instance=ExtResource("4_vent_grille")]
 position = Vector3(51.75, 0, -12)
 rotation = Vector3(0, -1.5708, 0)
 
@@ -232,18 +228,18 @@ position = Vector3(37, 0.45, -7.6)
 shape = SubResource("BoxShape3D_14")
 
 [node name="Dressing3" parent="." instance=ExtResource("12_cable_spool")]
-position = Vector3(50.9, 0, -19)
+position = Vector3(50.9, 0, -17.9)
 
 [node name="Box10" type="CollisionShape3D" parent="PropCollision"]
-position = Vector3(50.9, 0.5, -19)
+position = Vector3(50.9, 0.5, -17.9)
 shape = SubResource("BoxShape3D_15")
 
 [node name="Dressing4" parent="." instance=ExtResource("13_k_box_closed")]
-position = Vector3(39.5, 0, -19.3)
+position = Vector3(39.5, 0.75, -19.3)
 rotation = Vector3(0, 0.4363, 0)
 
 [node name="Dressing5" parent="." instance=ExtResource("13_k_box_closed")]
-position = Vector3(40.2, 0, -19.4)
+position = Vector3(40.2, 0.75, -19.4)
 rotation = Vector3(0, -0.1745, 0)
 
 [node name="Dressing6" parent="." instance=ExtResource("14_radiation_vi")]

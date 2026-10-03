@@ -211,8 +211,8 @@ size = Vector3(4.2, 0.9, 1)
 material = ExtResource("1_duct")
 
 [node name="ControlDrop" type="CSGBox3D" parent="."]
-position = Vector3(-2, 3.1, 24)
-size = Vector3(1, 0.9, 8.5)
+position = Vector3(-2, 3.1, 24.25)
+size = Vector3(1, 0.9, 8)
 material = ExtResource("1_duct")
 
 [node name="Shaft" type="CSGBox3D" parent="."]

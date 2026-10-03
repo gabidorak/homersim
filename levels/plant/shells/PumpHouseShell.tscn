@@ -37,18 +37,18 @@ size = Vector3(5.74, 4, 0.5)
 material = ExtResource("2_wall_pumphou")
 
 [node name="Wall5" type="CSGBox3D" parent="."]
-position = Vector3(-52, 2, -19.8)
-size = Vector3(0.5, 4, 0.4)
+position = Vector3(-52, 2, -19.8375)
+size = Vector3(0.5, 4, 0.325)
 material = ExtResource("2_wall_pumphou")
 
 [node name="Wall6" type="CSGBox3D" parent="."]
-position = Vector3(-52, 2.3, -19.25)
-size = Vector3(0.5, 3.4, 0.7)
+position = Vector3(-52, 2.3375, -19.25)
+size = Vector3(0.5, 3.325, 0.85)
 material = ExtResource("2_wall_pumphou")
 
 [node name="Wall7" type="CSGBox3D" parent="."]
-position = Vector3(-52, 2, -15.625)
-size = Vector3(0.5, 4, 6.55)
+position = Vector3(-52, 2, -15.5875)
+size = Vector3(0.5, 4, 6.475)
 material = ExtResource("2_wall_pumphou")
 
 [node name="Wall8" type="CSGBox3D" parent="."]
@@ -62,11 +62,6 @@ size = Vector3(0.5, 4, 5.65)
 material = ExtResource("2_wall_pumphou")
 
 [node name="VentSill" type="CSGBox3D" parent="."]
-position = Vector3(-52.125, -0.25, -19.25)
-size = Vector3(0.25, 0.5, 0.7)
-material = ExtResource("1_floor_pumpho")
-
-[node name="VentSill2" type="CSGBox3D" parent="."]
 position = Vector3(-52.125, -0.25, -12)
 size = Vector3(0.25, 0.5, 0.7)
 material = ExtResource("1_floor_pumpho")
