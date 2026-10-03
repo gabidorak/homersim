@@ -136,18 +136,25 @@ func start_emote() -> void:
 
 ## Owner: what this body is doing, packed into Player.sync_anim.
 func local_flags() -> int:
+	return flags_for(body, body.interactor.holding != null or _minigame_open(),
+		Time.get_ticks_msec() / 1000.0 < _emote_until, _in_vent)
+
+
+## The Player.sync_anim bits for `body` (it must be simulated here: the owner, or the server for an
+## AI bot, whose driver fills sync_anim with this, M10).
+static func flags_for(body: Player, interacting: bool, emoting: bool, in_vent: bool) -> int:
 	var flags := 0
 	if not body.is_on_floor() and not body.movement.climbing:
 		flags |= FLAG_AIRBORNE
 		if body.velocity.y > 0.5:
 			flags |= FLAG_RISING
-	if body.interactor.holding != null or _minigame_open():
+	if interacting:
 		flags |= FLAG_INTERACT
-	if Time.get_ticks_msec() / 1000.0 < _emote_until:
+	if emoting:
 		flags |= FLAG_EMOTE
 	if body.movement.climbing:
 		flags |= FLAG_CLIMB
-	if _in_vent:
+	if in_vent:
 		flags |= FLAG_IN_VENT
 	return flags
 

@@ -31,8 +31,10 @@ It's the night shift at the **"Sunny Acres" Nuclear Plant** (placeholder name; a
 
 When there is a single supervisor, the *match timer* drops to 8 min (otherwise 9 min) to compensate.
 
+**Bots** (M10): a server can fill its matches with AI players (`bot_fill_to` in server.cfg; 0 = off, the default). At role assignment, bots are added until the match has `bot_fill_to` players, and the table above sets the team sizes. **Humans always get their slots first**: bots take whatever is left. Bots are only in the match: they aren't in the lobby, don't vote, and leave when it ends. A player who leaves mid-match is not replaced. See [§5.5](#55-bots).
+
 ## 3. Match flow
-1. **Lobby**: players join the server, set a name, and pick a preferred role (Supervisor / Rat / Any). Text chat is available. The match starts when the host-less "ready" vote passes (more than 50% ready and at least 3 players), or immediately with the `--debug-start` flag.
+1. **Lobby**: players join the server, set a name, and pick a preferred role (Supervisor / Rat / Any). Text chat is available. The match starts when the host-less "ready" vote passes (more than 50% ready and at least 3 players), or immediately with the `--debug-start` flag. On a server with bots, the vote only counts humans, and a single player is enough.
 2. **Role assign** (instant): roles are assigned from preferences plus the balance table above.
 3. **Countdown, 10 s**: everyone is spawned and frozen. Supervisors start in the Break Room, rats in the Rat Nest.
 4. **Playing, 9:00** (8:00 with one supervisor).
@@ -148,6 +150,35 @@ Abilities:
 | Invulnerable | Freed from cage, dropped by a carrier | Ignores stun/bite/knockdown (supervisors get 3 s of knockdown immunity instead; bites during it slow but don't count) |
 | Revealed | Cheese lure, radiation | Outline visible to the enemy team through walls |
 
+### 5.5 Bots
+AI players fill empty slots (M10, [milestone](milestones/M10-ai-bots.md)). They play like humans:
+
+- **Bot rats** sabotage machines, team up on critical lever pairs (with a human rat too), use the vents and flee from supervisors. They bite, gang up on a busy supervisor, rescue a carried friend, free caged rats, break CCTV cameras, steal keycards and squeak.
+- **Bot supervisors** patrol, repair (always the hold repair, never the minigames) and reboot. They chase, bonk, grab and cage rats, set traps and refill them, and answer a SNAP. They also use their keycard, collect a spare when theirs is stolen, eat donuts, sit at the CCTV, fix cameras, and use the coolant and the SCRAM.
+
+**Fair play.** A bot only knows what a human in its seat could know:
+- what it sees: within its view range and field of view, with a clear line of sight, after a short reaction time;
+- what it hears: footsteps (rats sprinting are louder), bites, squeaks, the SNAP;
+- enemies that are Revealed;
+- what the HUD and the map show anyone: machine health, cooldowns, cage occupants;
+- what the CCTV shows, while it sits in the chair.
+
+Bot teammates share what they see, like a callout. Bots never skip a rule: same speeds, reaches, holds and cooldowns as humans.
+
+**Difficulty** (server.cfg `bot_difficulty`; starting values, tuned in `data/bot_tuning.tres`):
+
+| | Easy | Normal (default) | Hard |
+|---|---|---|---|
+| Reaction time | 0.7 s | 0.4 s | 0.2 s |
+| Aim error | 30° | 15° | 6° |
+| Turn rate | 250°/s | 400°/s | 600°/s |
+| View range | 15 m | 22 m | 30 m |
+| Decisions per second | 3 | 5 | 6 |
+| Chance to notice a trap (within 6 m, in sight) | 40% | 75% | 95% |
+| Teamwork (lever pairs, gang bites) | off | on | on |
+
+Bots are marked as such on their name tag, in the scoreboard (BOT instead of a ping), on the post-match screen and in the lobby ("Bots fill the match up to N players").
+
 ## 6. Hazards
 These activate when a subsystem's health drops **below 50**, switch off again once it is back to **60 or more** (hysteresis, so they don't flicker), and **affect both teams**. Numbers live in `data/hazard_tuning.tres`. A hazard hits each body at most once per live window; carried, caged and frozen bodies are never hit. Note that one normal sabotage leaves a subsystem at exactly 50: it takes a second sabotage (or a critical one) to start its hazards.
 
@@ -235,4 +266,4 @@ player's keyboard. Esc can't be rebound (it always opens the menu).
 - HTTP master server list plus a matchmaking/orchestration service.
 - Client-side prediction with the netfox addon.
 - More maps (oil rig, dam), new rat classes (fat rat, tech rat), cosmetics (hats!).
-- Bots to fill empty slots.
+- Bots taking over the slot of a player who leaves mid-match (bots that fill a match at the start: M10, [§5.5](#55-bots)).

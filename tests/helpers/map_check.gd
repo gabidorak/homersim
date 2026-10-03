@@ -2,7 +2,8 @@ extends Node
 ## Map check (M5): bakes a navigation mesh per role from the level's collision geometry and checks
 ## the layout against the GDD §7 design rules. Paths, not straight lines: walls, doors and floors
 ## all count. Ladders, the rats' shaft and the one-way vent drop come from the level's
-## NavigationLink3D nodes (navigation layer 1 = supervisors, 2 = rats).
+## NavigationLink3D nodes (navigation layer 1 = supervisors, 2 = rats). Since M10 the bake is AiNav's,
+## the one the AI bots walk on: supervisors cross keycard doors through its keycard links.
 ##   godot --headless tests/helpers/MapCheck.tscn [-- --level test] [--report PATH]
 ## Checks (exit code 1 if one fails):
 ##   - supervisors reach every repair point, cage, pickup, camera and the CCTV chair from the
@@ -21,30 +22,10 @@ const MAX_RAT_TO_CAGES_S := 30.0
 const MAX_VENT_EXIT_M := 25.0  ## path from a sabotage point to the nearest vent exit
 const REACHED := 0.6  ## m: a path ending closer than this to its target reached it
 
-class Agent:
-	var label: String
-	var radius: float
-	var height: float
-	var climb: float
-	var speed: float
-	var cell: float
-	var layer: int
-	var map: RID
-
-	func _init(p_label: String, p_radius: float, p_height: float, p_climb: float, p_speed: float, p_cell: float, p_layer: int) -> void:
-		label = p_label
-		radius = p_radius
-		height = p_height
-		climb = p_climb
-		speed = p_speed
-		cell = p_cell
-		layer = p_layer
-
-
 var _session: Session
 var _lines: Array[String] = []
 var _failures := 0
-var _rids: Array[RID] = []
+var _nav := AiNav.new()
 
 
 func _ready() -> void:
@@ -52,13 +33,14 @@ func _ready() -> void:
 	get_tree().root.add_child.call_deferred(_session)
 	for i in 5:
 		await get_tree().physics_frame
-	var supervisor := Agent.new("Supervisor", 0.35, 1.8, 0.3, 4.0, 0.175, 1)
-	var rat := Agent.new("Rat", 0.2, 0.5, 0.6, 5.0, 0.1, 2)
-	var rat_on_foot := Agent.new("Rat without vents", 0.2, 0.5, 0.6, 5.0, 0.1, 2)
+	var supervisor := AiNav.supervisor_agent()
+	var rat := AiNav.rat_agent()
+	var rat_on_foot := AiNav.rat_agent()
+	rat_on_foot.label = "Rat without vents"
 	var started := Time.get_ticks_msec()
-	await _bake(supervisor, true)
-	await _bake(rat, false)
-	await _bake(rat_on_foot, false, true)
+	await _nav.bake_agent(supervisor, _session.level)
+	await _nav.bake_agent(rat, _session.level)
+	await _nav.bake_agent(rat_on_foot, _session.level, _session.level.get_node_or_null("POIs/VentNetwork") as Node3D)
 	_out("Navigation meshes baked in %.1f s (level: %s)." % [(Time.get_ticks_msec() - started) / 1000.0, Session.level_id()])
 	_out("")
 	_check_supervisors(supervisor)
@@ -70,8 +52,7 @@ func _ready() -> void:
 		var file := FileAccess.open(Cli.get_str("report"), FileAccess.WRITE)
 		file.store_string("\n".join(_lines) + "\n")
 		file.close()
-	for rid in _rids:
-		NavigationServer3D.free_rid(rid)
+	_nav.release()
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
@@ -80,65 +61,9 @@ func _out(line: String) -> void:
 	print(line)
 
 
-# --- Baking ---------------------------------------------------------------------------------
-
-## Bakes `agent`'s navigation mesh with doors open (all of them for supervisors, who have keycards;
-## only the normal ones for rats) into its own navigation map, with the links it may use.
-func _bake(agent: Agent, keycards: bool, without_vents: bool = false) -> void:
-	for door in _session.level.find_children("*", "Node3D", true, false):
-		if door is Door:
-			var d := door as Door
-			d.set_physics_process(false)  # offline, the server logic would close them again
-			var open := d.auto_open or keycards
-			d.panel.position = Vector3(d.panel.position.x, 1.3, d.panel.position.z) + (d.open_offset if open else Vector3.ZERO)
-	await get_tree().physics_frame
-	var mesh := NavigationMesh.new()
-	mesh.cell_size = agent.cell
-	mesh.cell_height = 0.05
-	mesh.agent_radius = agent.radius
-	mesh.agent_height = agent.height
-	mesh.agent_max_climb = agent.climb
-	mesh.agent_max_slope = 45.0
-	mesh.edge_max_length = 4.0  # long thin vent polygons otherwise come out broken
-	mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
-	mesh.geometry_collision_mask = PhysicsLayers.WORLD
-	var source := NavigationMeshSourceGeometryData3D.new()
-	var vents := _session.level.get_node_or_null("POIs/VentNetwork") as Node3D
-	var vents_parent := vents.get_parent() if vents != null else null
-	if without_vents and vents != null:
-		vents_parent.remove_child(vents)
-	NavigationServer3D.parse_source_geometry_data(mesh, source, _session.level)
-	if without_vents and vents != null:
-		vents_parent.add_child(vents)
-	NavigationServer3D.bake_from_source_geometry_data(mesh, source)
-	agent.map = NavigationServer3D.map_create()
-	_rids.append(agent.map)
-	NavigationServer3D.map_set_cell_size(agent.map, agent.cell)
-	NavigationServer3D.map_set_cell_height(agent.map, 0.05)
-	NavigationServer3D.map_set_active(agent.map, true)
-	var region := NavigationServer3D.region_create()
-	_rids.append(region)
-	NavigationServer3D.region_set_map(region, agent.map)
-	NavigationServer3D.region_set_navigation_mesh(region, mesh)
-	for node in _session.level.find_children("*", "NavigationLink3D", true, false):
-		var link_node := node as NavigationLink3D
-		if link_node.navigation_layers & agent.layer == 0 or (without_vents and vents.is_ancestor_of(link_node)):
-			continue
-		var link := NavigationServer3D.link_create()
-		_rids.append(link)
-		NavigationServer3D.link_set_map(link, agent.map)
-		NavigationServer3D.link_set_bidirectional(link, link_node.bidirectional)
-		NavigationServer3D.link_set_start_position(link, link_node.global_transform * link_node.start_position)
-		NavigationServer3D.link_set_end_position(link, link_node.global_transform * link_node.end_position)
-	while NavigationServer3D.map_get_iteration_id(agent.map) == 0 \
-			or NavigationServer3D.map_get_closest_point(agent.map, Vector3.ZERO) == Vector3.ZERO:
-		await get_tree().physics_frame
-	await get_tree().physics_frame
-
-
-## [length, reached] of the path from `from` to `to` on `agent`'s map.
-func _path(agent: Agent, from: Vector3, to: Vector3) -> Array:
-	var points := NavigationServer3D.map_get_path(agent.map, from, to, true)
+## [length, reached] of the path from `from` to `to` on `agent`'s map (supervisors with a keycard).
+func _path(agent: AiNav.Agent, from: Vector3, to: Vector3) -> Array:
+	var points := _nav.path_for(agent, from, to, agent.role == Role.Kind.SUPERVISOR).points
 	if points.is_empty():
 		return [INF, false]
 	var length := 0.0
@@ -181,7 +106,7 @@ func _control_room() -> Vector3:
 	return _spawn(Role.Kind.SUPERVISOR)
 
 
-func _check_supervisors(agent: Agent) -> void:
+func _check_supervisors(agent: AiNav.Agent) -> void:
 	var from := _control_room()
 	_out("### Supervisors (from the Control Room, walking at %.0f m/s)" % agent.speed)
 	_out("")
@@ -204,7 +129,7 @@ func _check_supervisors(agent: Agent) -> void:
 	_out("")
 
 
-func _check_rats(agent: Agent, on_foot: Agent) -> void:
+func _check_rats(agent: AiNav.Agent, on_foot: AiNav.Agent) -> void:
 	var from := _spawn(Role.Kind.RAT)
 	_out("### Rats (from the Rat Nest, walking at %.0f m/s)" % agent.speed)
 	_out("")
@@ -236,7 +161,7 @@ func _check_rats(agent: Agent, on_foot: Agent) -> void:
 	_out("")
 
 
-func _row(target: String, result: Array, agent: Agent, rule: String, ok: bool, extra: String = "") -> void:
+func _row(target: String, result: Array, agent: AiNav.Agent, rule: String, ok: bool, extra: String = "") -> void:
 	var reached: bool = result[1]
 	var path := "%.0f m" % result[0] if reached else "**unreachable**"
 	var time := "%.1f s" % (result[0] / agent.speed) if reached else ""
@@ -261,7 +186,7 @@ func _nest_exit() -> Vector3:
 
 
 ## Path length from `target` to the closest vent exit (INF if none is reachable).
-func _nearest_vent_exit(agent: Agent, target: Vector3) -> float:
+func _nearest_vent_exit(agent: AiNav.Agent, target: Vector3) -> float:
 	var best := INF
 	for node in get_tree().get_nodes_in_group("vent_exits"):
 		var result := _path(agent, target, (node as Node3D).global_position)
@@ -271,7 +196,7 @@ func _nearest_vent_exit(agent: Agent, target: Vector3) -> float:
 
 
 ## No supervisor floor inside a vent: sample every vent volume and look for supervisor navmesh there.
-func _check_vents(agent: Agent) -> void:
+func _check_vents(agent: AiNav.Agent) -> void:
 	var bad: Array[String] = []
 	var samples := 0
 	for node in get_tree().get_nodes_in_group(VentVolume.GROUP):

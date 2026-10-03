@@ -20,6 +20,10 @@ extends Node
 ##     bad: on_join_rejected(LeaveReason.Code, detail), then the server drops the peer
 ## Whatever ends a client's session (refused, kicked, connection lost, the player leaving) goes
 ## through _leave_to_menu(code, detail): the menu reopens and explains it (MainMenu.leave_code).
+##
+## AI bots (M10, ARCHITECTURE §6): their bodies spawn like players' (spawn_body) but have negative
+## ids (is_ai_id) and are owned and moved by the server (AiDirector, under ServerOnly). They are in
+## MatchManager.roster, never in `players`, so nothing that talks to connected peers sees them.
 
 signal joined  ## client: the server accepted us
 signal roster_changed
@@ -60,6 +64,8 @@ var desired_password := ""
 var players: Dictionary[int, PlayerInfo] = {}
 ## Client: our own peer id once accepted.
 var local_peer_id := 0
+## Server: the AI's navigation meshes are baked, so bots can play (AiDirector sets it).
+var ai_ready := false
 
 ## Set in _enter_tree (not @onready) because children use them in their own _ready, which runs
 ## before ours.
@@ -149,6 +155,9 @@ func _ready() -> void:
 			var lan := LanAnnouncer.new()
 			lan.name = "LanAnnouncer"
 			server_only.add_child(lan)
+		var ai := AiDirector.new()
+		ai.name = "AiDirector"
+		server_only.add_child(ai)
 	else:
 		Net.connected.connect(_on_connected)
 		Net.connection_failed.connect(_on_connection_failed)
@@ -164,9 +173,22 @@ func roster() -> Array[Dictionary]:
 	return result
 
 
-## A joined player's name, or "peer N" (for logs).
+## A joined player's name, a bot's name (from the roster), or "peer N" (for logs).
 func name_of(peer_id: int) -> String:
-	return players[peer_id].name if players.has(peer_id) else "peer %d" % peer_id
+	if players.has(peer_id):
+		return players[peer_id].name
+	var e: Dictionary = match_manager.entry(peer_id) if match_manager != null else {}
+	return str(e.get("name", "peer %d" % peer_id))
+
+
+## True for an AI bot's id (M10): bots get negative ids, ENet peers are always positive.
+static func is_ai_id(id: int) -> bool:
+	return id < 0
+
+
+## Server: the AI (M10), or null on clients.
+func ai_director() -> AiDirector:
+	return server_only.get_node_or_null("AiDirector") as AiDirector
 
 
 func get_body(peer_id: int) -> Player:
@@ -256,11 +278,12 @@ func kick(peer_id: int, reason: String) -> void:
 
 
 ## Server: spawn `peer_id`'s body as `role` at `point`. `locked` = frozen (LOCKED status) from
-## its first frame, until the server clears it.
+## its first frame, until the server clears it. A bot (is_ai_id) must already be in the roster.
 func spawn_body(peer_id: int, role: Role.Kind, point: Node3D, locked: bool) -> Player:
 	return spawner.spawn({
 		"peer": peer_id,
-		"name": players[peer_id].name,
+		"name": name_of(peer_id),
+		"bot": is_ai_id(peer_id),
 		"role": role,
 		"pos": point.global_position,
 		"yaw": point.global_rotation.y,
@@ -273,14 +296,20 @@ func spawn_body(peer_id: int, role: Role.Kind, point: Node3D, locked: bool) -> P
 ## (Godot logs "Ignoring sync data … for missing node"), on the server and, relayed, on other
 ## clients. So first each owner is asked to stop syncing (on_retire_body), and the bodies go once
 ## every owner confirmed, or after RETIRE_TIMEOUT_S, plus RETIRE_GRACE_S. Meanwhile they are LOCKED.
+## A bot's body is the server's own: its BodySync stops at once, and it waits out the grace too (for
+## the server → client packets already on their way).
 func retire_bodies(peers: Array) -> void:
 	var waiting: Array[int] = []
+	var bots := false
 	for peer: int in peers:
 		var body := get_body(peer)
 		if body == null:
 			continue
 		body.status.apply(StatusComponent.Status.LOCKED)
-		if multiplayer.get_peers().has(peer):
+		if body.is_bot:
+			(body.get_node("BodySync") as MultiplayerSynchronizer).public_visibility = false
+			bots = true
+		elif multiplayer.get_peers().has(peer):
 			_retire_acks[peer] = false
 			waiting.append(peer)
 			on_retire_body.rpc_id(peer)
@@ -292,6 +321,7 @@ func retire_bodies(peers: Array) -> void:
 			if not _retire_acks.get(peer, true):
 				Log.warn("session", "%s didn't confirm it stopped syncing, removing its body anyway" % name_of(peer))
 			_retire_acks.erase(peer)
+	if not waiting.is_empty() or bots:
 		await get_tree().create_timer(RETIRE_GRACE_S).timeout
 	for peer: int in peers:
 		despawn_body(peer)
@@ -319,17 +349,19 @@ func despawn_body(peer_id: int) -> void:
 
 
 ## Runs on the server and on every client with the same data, so all of them build the same body.
-## Authority is set here, before the node enters the tree, so BodySync starts with the right owner.
+## Authority is set here, before the node enters the tree, so BodySync starts with the right owner:
+## the player's client, or the server (1) for a bot.
 func _spawn_player(data: Variant) -> Node:
 	var d: Dictionary = data
 	var player: Player = PLAYER_SCENE.instantiate()
 	player.peer_id = d["peer"]
+	player.is_bot = d.get("bot", false)
 	player.name = str(player.peer_id)
 	player.display_name = d["name"]
 	player.setup(d["role"])
 	player.position = d["pos"]
 	player.rotation.y = d["yaw"]
-	player.set_multiplayer_authority(player.peer_id)  # recursive: the body, its components, BodySync…
+	player.set_multiplayer_authority(1 if player.is_bot else player.peer_id)  # recursive: the body, its components, BodySync…
 	# …except the status and the inventory, which the server owns.
 	var status := player.get_node("StatusComponent") as StatusComponent
 	status.set_multiplayer_authority(1)

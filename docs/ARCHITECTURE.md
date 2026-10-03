@@ -35,7 +35,7 @@ Reference docs to keep open:
    └─────────────────────────┘               └─────────────────────────┘
 ```
 - The server has peer id **1**. Clients get random ids from ENet.
-- The server **does not play**. It has no camera and no player body.
+- The server **does not play**. It has no camera and no player body of its own. The one exception (M10) is AI bots: their bodies are owned and moved by the server (§6 AI bots).
 - Only one match per server process. To host several matches, run several processes on different ports (Docker makes this trivial).
 
 ### Entry point (`main.gd`)
@@ -56,6 +56,7 @@ Supported CLI args (user args after `--`):
 - Since M4: `--bot-scenario capture|swarm|items|hack [--bot-part P]` runs a PvP scenario instead (`tests/helpers/pvp_bot.gd`); bots of one test coordinate only through replicated state and find each other by name.
 - Since M6: client `--hold-repairs` (any build: repairs use the 6 s hold instead of the minigame, until M8's settings toggle). `--bot-scenario hazards|minigame|control` (on the plant) runs an M6 scenario (`tests/helpers/m6_bot.gd`). Test-only RPC `Session.request_debug_plant(what, id, value)` (server `--allow-debug`): set a subsystem's health or the core temperature.
 - Since M5: `--level plant|test` (debug builds; server and clients must match, the join handshake checks it) picks the level, default the plant. The M4 PvP tests use `--level test` (TestArena). `--bot-scenario plant` (CCTV, ladder, shaft, out of bounds). Server: `--no-heatmap` (no position log). Client, any build: `--debug-overlay` (F3 overlay on from the start).
+- M10, AI bots: `bot_fill_to` and `bot_difficulty` are `[match]` keys (any build). Test-only server flags (debug builds): `--ai-only` (bots-only matches, back to back; humans who join spectate), `--ai-fill N` (overrides `bot_fill_to`), `--ai-seed S`, `--ai-roles rat,rat,supervisor` (exactly these bots), `--ai-goals role:Goal,…` (only these goals; `rat:none` = a bot that stands still), `--ai-scenario NAME` (`tour`: every bot walks to its share of its role's targets; `capture`: the bots start in the Cage Room; `path:X,Y,Z:X,Y,Z[:…]`: the first bot starts at the first point and walks to the others, for debugging a spot), `--ai-log` (one log line per change of goal), `--ai-trace NAME|all` (a bot's position, intent and path 4 times a second), `--ai-labels` (phase F: goal labels for a spectating client). Client, test-only: `--spectate NAME|first` (spectating, follow that body: watch mode).
 - Since M8: server `--password X` (overrides server.cfg), `--no-lan` (no LAN announcements; every integration test but menus_smoke uses it). Client, any build: `--settings PATH` (another settings file; the UI tour uses a throwaway one). `--connect` and `--name` still work but are no longer needed. Test-only (debug builds): client `--debug-kick-me`, `--screenshot-times T1,T2,…`; in the main menu (`client/menu_test_hooks.gd`) `--lan-join NAME`, `--auto-password A,B,…`, `--dismiss-errors`.
 
 ### `server.cfg` (ConfigFile/INI)
@@ -78,6 +79,7 @@ Every key of `[match]` other than `rules` overrides the `MatchRules` property of
 | Thing | Authority | How it's replicated |
 |---|---|---|
 | Own player position, rotation, look pitch, anim state | Owning client | `BodySync` MultiplayerSynchronizer (unreliable, ~20 Hz, interpolated on others) |
+| AI bot body (M10) | Server (authority 1; the bot's id is negative and has no peer) | The same `BodySync`, sent by the server; clients treat it like any remote body |
 | Player status and items (status flags, speed factor, carry links, keycard, stolen item, trap charges) | Server | `StatusSync` MultiplayerSynchronizer, authority = 1 (reliable "on change"); it covers `StatusComponent` and `Inventory` |
 | Plant state (healths, core_temp, meltdown, alarm) | Server | `PlantSync` on PlantSim (~5 Hz, plus on change) |
 | Match state, timer, scores | Server | `MatchSync` plus `@rpc` events (`match_started`, `match_ended`) |
@@ -151,7 +153,8 @@ Godot RPCs and synchronizers only work when the node exists **at the same path, 
      │   ├─ Players (Node3D)  ← MultiplayerSpawner spawns Player.tscn, named by peer id
      │   └─ Dynamic (Node3D)  ← DynamicSpawner (MultiplayerSpawner) for traps, dropped keycards, later hazards
      ├─ ServerOnly (Node)     ← children added at runtime only when is_server():
-     │   ├─ MovementValidator, HeatmapRecorder (M5), HazardDirector (M6), LanAnnouncer (M8); later ServerConsole
+     │   ├─ MovementValidator, HeatmapRecorder (M5), HazardDirector (M6), LanAnnouncer (M8), AiDirector (M10: navmeshes,
+     │   │   one AiBot per bot, the team blackboards); later ServerConsole
      └─ ClientOnly (Node)     ← children added only on clients: OverviewCamera, SpectatorCam, CombatFeedback (sounds + VFX), HUD, Lobby, PostMatch, Chat UI, CctvView, DebugOverlay (M5), MinigameHost, AlarmEffects (M6), MusicDirector (M7), EventFeed, Hints, Scoreboard, PauseMenu (M8), MapOverlay (the minimap + the full map)
 ```
 - `server/ServerMain.tscn` = boot logic (read config, `Net.host()`) and then adds `Session` to the root.
@@ -267,6 +270,55 @@ Every 0.1 s it reads PlantSim's healths and calls `set_active` on each subsystem
 - `Hazard` (`hazards/hazard.gd`, `Area3D`): exported `subsystem_id`, `size`, `phase`; synced `active` and `start_time` (server clock, 0.5 s after switching on). `is_live(Net.server_time())` gives the same answer everywhere (`HazardRules.cycle_live`). Only the server monitors overlaps; a body is hit at most once per live window (`HazardRules.cycle_index`); carried, caged, locked and eliminated bodies are skipped (`Hazard.can_hit`). Effects go through `StatusComponent` and `Player.server_apply_impulse` (which opens the validator's grace window). Each hit is logged (`PumpHouse/SteamJet hit RatBot`), counted (`hazard_hits` stat) and sent to clients (`on_hit`, a banner for the victim). Clients only draw (`_build_look` / `_update_look`, skipped headless).
 - `SteamJet` (frustum along +Z, knockback via `HazardRules.knockback`), `ElectricPuddle`, `RadiationZone` (per-body exposure on the server, a local estimate on the client for the Geiger clicks), `DebrisZone` (the server picks a random floor spot, `on_debris_warning(pos, at)` to clients, resolves the impact by distance at `at`), `Smoke` (a `FogVolume`; the first active one turns the environment's volumetric fog on; cosmetic, no server work).
 
+### AI bots (M10, `server/ai/`)
+Planned in [milestones/M10-ai-bots.md](milestones/M10-ai-bots.md); the gameplay rules are in [GDD §5.5](GDD.md#55-bots).
+
+**Identity**
+- Bots are roster entries with `"bot": true` and **negative** ids (−1001, −1002, …). They are never in `Session.players`, so nothing that loops over the connected peers (chat, feed, pings, FULL, the LAN count, the updater) sees them.
+- `Session.is_ai_id(id)` tells a bot from a player, and `name_of` reads a bot's name from the roster.
+
+**Fill**
+- `MatchRulesModel.bots_needed(humans, rules)` gives the number of bots to add.
+- `assign_roles(prefs, rules, rng, fillers)` hands out the roles: humans are placed first, fillers last, and leftover fillers are dropped.
+- Bots are created in `_start_match` and removed in `_back_to_lobby`. When a running match has no humans left, the server goes back to the lobby.
+
+**Bodies**
+- The spawn data carries `bot`. `_spawn_player` gives the body authority 1, so on the server `is_local()` is true for it and `MovementComponent` runs there.
+- Teammate bots don't collide with each other (collision exceptions, server side): the ducts and the shaft are one rat wide, and two bots meeting there head-on would block each other for good. Humans still bump into everyone.
+- The owner-only setup (camera rig, interactor and ability input, `local_player_spawned`) is skipped on the server.
+- `Player.server_*` helpers call `MovementComponent.do_*` directly for a bot. Every `rpc_id(peer)` that could reach a bot is guarded, because a negative id means "everyone except".
+
+**Tick order (server physics)**
+1. `AiBot` (priority −10) thinks at about 5 Hz, staggered across bots, and writes the body's `MoveIntent` (`common/move_intent.gd`) every tick.
+2. `MovementComponent` (0) reads the intent instead of `Input`.
+3. `Player` (10) fills `sync_position`/`yaw`/`pitch`. The driver fills `sync_anim` with `AnimationController.flags_for()`.
+
+**Actions**
+- Bots go through the same server checks as players, without RPCs:
+  - `InteractionService.ai_start` / `ai_heartbeat` / `ai_stop`, and the `hold_ended` signal;
+  - `AbilityService.ai_use`;
+  - `ItemService.ai_place_trap`;
+  - `CctvConsole.stand_up`.
+- Bots never use minigames: the hold repair is always accepted.
+
+**Navigation**
+- `AiNav` bakes one navmesh per role from the level's static colliders when the server boots. The map check uses the same code.
+- The level's `NavigationLink3D`s are added, plus a keycard link per keycard door on navigation layer 4; supervisors use that layer only while they hold a keycard.
+- `AiPathFollower` handles ladders, drops, keycard doors, jumps and getting unstuck. Bots never teleport.
+
+**Brains**
+- Utility-scored goals (`server/ai/goals/`, `AiGoal`), each a small state machine; `AiScoring` holds the
+  scores (pure, unit tested). Rats: Flee, RescueCarried (reflexes), Sabotage, LeverPair, Harass, FreeCaged,
+  Lurk. Supervisors: Capture, Chase, Repair, GuardCages, Patrol. A goal that fails sits out 1.5 s.
+- Reflexes in `AiBot`: a rat bites the carrier of a teammate next to it; a supervisor swings the broom at
+  a rat it sees in reach and in front, and turns toward whoever bit it.
+- `AiSenses` is the only code that reads enemy positions: sight, hearing, Revealed, CCTV only while seated
+  (phase E). Sounds (bites, broom swings) reach it through `AiDirector.sound_events`.
+- `AiBlackboard` (one per team) holds claims and the lever pairing, and accounts for human teammates.
+- `AiContext` is what a goal works with (body, driver, senses, blackboard, the level's targets in
+  `AiDirector.World`, the bot's own `RandomNumberGenerator`, cached path lengths).
+- The numbers live in `data/bot_tuning.tres`.
+
 ## 7. Data-driven tuning
 All tunables are custom `Resource` classes saved as `.tres`:
 ```
@@ -280,6 +332,8 @@ data/
   plant_tuning.tres         # PlantTuning: the subsystem list, cooling rate, thresholds, meltdown rates, sabotage/repair amounts and hold times,
                             #   minigame amounts/lockout/min duration, control room actions (coolant, SCRAM)
   hazard_tuning.tres        # HazardTuning (M6): activation hysteresis, steam / puddle / radiation / debris / smoke numbers
+  bot_tuning.tres           # BotTuning (M10): AI think rate, hearing, memory, claims, the easy/normal/hard BotSkill presets, bot names
+                            #   (bot_fill_to and bot_difficulty are MatchRules keys, so server.cfg [match] can set them)
 ```
 The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_data_sanity.gd`) loads every resource and asserts value ranges.
 
@@ -306,8 +360,9 @@ The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_d
 | Menus (M8) | `test_user_settings.gd` (clean values, save/load round trip, rebinding), `test_menus_logic.gd` (key text, LAN packets and list, awards, chat filter), `test_menu_focus.gd` (arrow keys through every screen), `test_translations.gd` (every text in the CSV, both languages, same placeholders); `tests/integration/menus_smoke.sh` (the real menus, headless: LAN discovery and join, the password prompt, kicked, lost, timeout, bad address) | Run with the other tests |
 | Assets (M7) | `tests/unit/test_assets.gd` | Every sound file, music stem, model and named part the code uses exists; the characters have every clip the AnimationController plays; no CSG left in the plant |
 | Visual (M7, windowed) | `tests/helpers/MapTour.tscn` (`--players 6 --no-vsync` for the performance numbers), `CharacterTour.tscn` (every animation state), `ArtGallery.tscn` (models under the real shaders), `HazardTour.tscn`; M8: `UiTour.tscn` (every menu and in-game screen with made-up data, `--lang fr`), `HowToShots.tscn` (the How to play illustrations) | Screenshots to look at; not run in CI |
-| Map check | `tests/integration/map_check.sh` (`tests/helpers/MapCheck.tscn`) | Bakes a navigation mesh per role from the level's collision and checks the GDD §7 rules: reachability, walk times, two rat routes per sabotage point, supervisors kept out of the vents and the nest. `--update-docs` refreshes the table in docs/map/README.md. |
-| Manual | Run Instances (editor: *Debug → Customize Run Instances*) | 1 instance with `-- --server --debug-start`, 3 instances with `-- --connect 127.0.0.1:7777` |
+| Map check | `tests/integration/map_check.sh` (`tests/helpers/MapCheck.tscn`) | Bakes a navigation mesh per role from the level's collision and checks the GDD §7 rules: reachability, walk times, two rat routes per sabotage point, supervisors kept out of the vents and the nest. `--update-docs` refreshes the table in docs/map/README.md. From M10 the bake is `AiNav`'s, the same one the bots use. |
+| AI bots (M10) | GUT: `test_bot_fill.gd`, `test_ai_scoring.gd`, `test_ai_path_follower.gd`, `test_ai_blackboard.gd`, `test_ai_senses.gd`. Integration (`ai_lib.sh` helpers, `SEED=N`): `ai_fill.sh` (one client + 5 bots; also against an exported server, `SERVER_BIN=`), `ai_target.sh` (a client cages an AI rat), `ai_nav_tour.sh`, `ai_match.sh` (a bots-only match: sabotages, repairs, distance walked, nobody stuck, no strikes or errors), `ai_lever.sh`, `ai_capture.sh`; later `ai_items.sh`, `ai_control.sh` | Loop each one 5× with different seeds. Watch mode: a `--ai-only` server plus a windowed client that joins as a spectator |
+| Manual | Run Instances (editor: *Debug → Customize Run Instances*) | 1 instance with `-- --server --debug-start`, 3 instances with `-- --connect 127.0.0.1:7777`. A server started without `--headless` turns V-Sync and rendering off in its window: on Wayland a hidden window is throttled to about 1 frame/s, which slowed the whole server |
 | Network conditions | `tc netem` on Linux (`sudo tc qdisc add dev lo root netem delay 80ms 20ms loss 1%`) | Play with 80–150 ms latency before calling any PvP feature done |
 
 Commands (from M0):
@@ -341,6 +396,8 @@ homersim/
                    ability_service.gd capture_service.gd item_service.gd minigame_service.gd hit_check.gd rate_limiter.gd
                    keys.gd leave_reason.gd lan_discovery.gd awards.gd (M8)
   server/          ServerMain.tscn server_main.gd hazard_director.gd movement_validator.gd heatmap_recorder.gd lan_announcer.gd
+                   ai/ (M10: ai_director.gd ai_nav.gd ai_bot.gd ai_driver.gd ai_path_follower.gd ai_senses.gd
+                        ai_blackboard.gd ai_scoring.gd ai_context.gd goals/)
                    (later server_console.gd)
   translations/    strings.csv (keys = English, en, fr)
   client/          MainMenu.tscn menu_background.gd ServerBrowser.tscn lan_browser.gd Settings.tscn HowToPlay.tscn

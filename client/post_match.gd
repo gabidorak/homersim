@@ -1,7 +1,8 @@
 extends Control
 ## The post-match screen (M8), during POST_MATCH: the winning team's banner pops in with confetti,
 ## "You win!" or "You lose...", the reason, each team's stats (MatchManager.result), the fun awards
-## (Awards), and the countdown back to the lobby. Only reads replicated state.
+## (Awards), and the countdown back to the lobby. AI bots (M10) get a BOT badge after their name.
+## Only reads replicated state.
 
 const SUPERVISOR_COLOR := Color("ffc93c")
 const RAT_COLOR := Color("7bd389")
@@ -121,7 +122,16 @@ func _table(title: String, role: Role.Kind, color: Color, columns: Array, stats:
 		if row.get("role") != role:
 			continue
 		var me: bool = row.get("peer", 0) == Session.current.local_peer_id
-		grid.add_child(_cell(str(row["name"]), color if me else Color.WHITE))
+		var name_cell := _cell(str(row["name"]), color if me else Color.WHITE)
+		if row.get("bot", false):
+			var line := HBoxContainer.new()
+			line.add_theme_constant_override("separation", 6)
+			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			line.add_child(name_cell)
+			line.add_child(Ui.bot_badge())
+			grid.add_child(line)
+		else:
+			grid.add_child(name_cell)
 		for column: Array in columns:
 			var count := int(row.get(column[0], 0))
 			grid.add_child(_cell(str(count), Color.WHITE if count > 0 else Color(0.5, 0.52, 0.56), true))

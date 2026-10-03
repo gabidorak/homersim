@@ -11,6 +11,10 @@ extends CharacterBody3D
 ## PvP handles (built by setup): rats get a GrabHandle (supervisors grab them when stunned),
 ## supervisors get a StealHandle on their back and a HandSocket that a carried rat hangs from.
 ## A carried rat is drawn at its carrier's HandSocket on every peer.
+##
+## AI bots (M10): `is_bot` bodies are owned by the server (authority 1), so on the server is_local()
+## is true for them: their MovementComponent runs there, fed by the AI (MovementComponent.intent), and
+## the server_* helpers below act directly instead of sending an RPC. Clients show a "BOT" badge.
 
 const FIRST_PERSON_RIG: PackedScene = preload("res://components/camera/FirstPersonRig.tscn")
 const THIRD_PERSON_RIG: PackedScene = preload("res://components/camera/ThirdPersonRig.tscn")
@@ -24,9 +28,13 @@ const VALIDATOR_GRACE_S := 1.0  ## after a server-imposed move
 const HAND_SOCKET_POSITION := Vector3(0.3, 0.75, -0.55)  ## supervisor: where a carried rat hangs
 const STATUS_TAG_GAP := 0.25  ## m above the name tag
 const REVEAL_MATERIAL: ShaderMaterial = preload("res://shaders/reveal_outline.tres")
+const BOT_BADGE_GAP := 0.18  ## m above the name tag (the status tag goes one step higher for bots)
+const BADGE_FONT: Font = preload("res://assets/fonts/LuckiestGuy-Regular.ttf")
+
 
 var peer_id := 0
 var display_name := ""
+var is_bot := false  ## an AI bot's body (M10): owned and moved by the server
 var role := Role.Kind.NONE
 var role_data: RoleData
 var rig: CameraRig
@@ -59,7 +67,7 @@ var _revealed_shown := false
 
 
 static func color_for_peer(id: int) -> Color:
-	return Color.from_hsv(fmod(id * 0.618034, 1.0), 0.65, 0.95)
+	return Color.from_hsv(fposmod(id * 0.618034, 1.0), 0.65, 0.95)  # (bots' ids are negative)
 
 
 ## Called by the spawn function before the node enters the tree (on the server and every client).
@@ -128,13 +136,15 @@ func _ready() -> void:
 		status.applied.connect(_on_status_applied)
 	status_tag.visible = false
 	status.changed.connect(_update_collision)
-	if is_local():
+	if is_local() and not Net.is_server:  # (a bot body is "local" on the server)
 		name_tag.visible = false
 		# In first person our own body would only get in the way of the camera.
 		visual.visible = role_data.camera_kind == RoleData.CameraKind.THIRD_PERSON
 		Events.local_player_spawned.emit(self)
+	if is_bot and not Net.is_server:
+		_add_bot_badge()
 	Log.info("player", "spawned %s (peer %d) as %s%s" % [display_name, peer_id, Role.display_name(role),
-		" [local]" if is_local() else ""])
+		" [bot]" if is_bot else " [local]" if is_local() else ""])
 
 
 func _exit_tree() -> void:
@@ -202,25 +212,39 @@ func _process(delta: float) -> void:
 
 
 # --- Server helpers for server-imposed movement ------------------------------------
+# A player's MovementComponent runs on its client, so these send it an RPC. A bot's runs here: they
+# call it directly (an rpc_id to a bot's negative id would go to everyone else).
 
 func server_force_position(pos: Vector3) -> void:
 	_grant_validator_grace()
-	movement.force_position.rpc_id(peer_id, pos)
+	if is_bot:
+		movement.do_force_position(pos)
+	else:
+		movement.force_position.rpc_id(peer_id, pos)
 
 
 func server_apply_impulse(impulse: Vector3) -> void:
 	_grant_validator_grace()
-	movement.apply_impulse.rpc_id(peer_id, impulse)
+	if is_bot:
+		movement.do_apply_impulse(impulse)
+	else:
+		movement.apply_impulse.rpc_id(peer_id, impulse)
 
 
 func server_set_locked(value: bool) -> void:
-	movement.set_locked.rpc_id(peer_id, value)
+	if is_bot:
+		movement.do_set_locked(value)
+	else:
+		movement.set_locked.rpc_id(peer_id, value)
 
 
 ## Hang the body from `path` (a HandSocket) until called again with an empty path.
 func server_attach_to(path: NodePath) -> void:
 	_grant_validator_grace()
-	movement.attach_to.rpc_id(peer_id, path)
+	if is_bot:
+		movement.do_attach_to(path)
+	else:
+		movement.attach_to.rpc_id(peer_id, path)
 
 
 ## A carried rat hangs right in front of its carrier: without its collision layer, the carrier
@@ -236,6 +260,23 @@ func _on_status_applied(what: StatusComponent.Status) -> void:
 
 
 # --- Client feedback ------------------------------------------------------------------------
+
+## A yellow "BOT" tag above the name, in the title font with an ink outline (M10).
+func _add_bot_badge() -> void:
+	var badge := Label3D.new()
+	badge.name = "BotBadge"
+	badge.text = tr("BOT")
+	badge.font = BADGE_FONT
+	badge.font_size = 30
+	badge.outline_size = 10
+	badge.modulate = Color("ffc93c")
+	badge.outline_modulate = Color("1b1b1f")
+	badge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	badge.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	badge.position = name_tag.position + Vector3(0, BOT_BADGE_GAP, 0)
+	add_child(badge)
+	status_tag.position.y += BOT_BADGE_GAP
+
 
 func _update_feedback(delta: float) -> void:
 	var labels := StatusComponent.describe(status.flags)

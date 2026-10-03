@@ -30,7 +30,7 @@ The plan is drawn by the same script that builds the level, so the two can't dri
 `tests/integration/map_check.sh` (also in CI) bakes a navigation mesh for each role from the level's collision and measures real paths. Ladders, the shaft and the one-way drop are `NavigationLink3D`s in the level. Last run:
 
 <!-- map-check:begin -->
-Navigation meshes baked in 0.8 s (level: plant).
+Navigation meshes baked in 1.0 s (level: plant).
 
 ### Supervisors (from the Control Room, walking at 4 m/s)
 
@@ -48,10 +48,10 @@ Navigation meshes baked in 0.8 s (level: plant).
 | Camera 7 (Cage Room) | 54 m | 13.5 s |  |
 | Camera 8 (Main Hall West) | 34 m | 8.5 s |  |
 | ControlRoom CctvConsole | 2 m | 0.5 s |  |
-| KeycardDoor ReaderBack | 44 m | 10.9 s |  |
+| KeycardDoor ReaderBack | 44 m | 11.1 s |  |
 | KeycardDoor ReaderBack | 39 m | 9.7 s |  |
 | KeycardDoor ReaderFront | 41 m | 10.2 s |  |
-| KeycardDoor ReaderFront | 42 m | 10.4 s |  |
+| KeycardDoor ReaderFront | 43 m | 10.6 s |  |
 | Storage SpareKeycard | 47 m | 11.8 s |  |
 | Storage TrapRefill | 50 m | 12.5 s |  |
 | grid RepairPoint | 70 m | 17.5 s | ≤ 25 s ok |
@@ -74,18 +74,18 @@ Second route: on foot from the South Corridor with every vent sealed, and the ne
 | Camera 2 (Turbine Hall) | 88 m | 17.7 s |  |  |  |
 | Camera 3 (Pump House) | 50 m | 10.1 s |  |  |  |
 | Camera 4 (Valve Corridor) | 44 m | 8.9 s |  |  |  |
-| Camera 5 (Substation) | 78 m | 15.5 s |  |  |  |
+| Camera 5 (Substation) | 79 m | 15.8 s |  |  |  |
 | Camera 6 (Vent Roof) | 119 m | 23.8 s |  |  |  |
 | Camera 7 (Cage Room) | 100 m | 20.0 s |  |  |  |
 | Camera 8 (Main Hall West) | 41 m | 8.2 s |  |  |  |
 | grid SabotageA | 84 m | 16.9 s |  | 76 m | 8 m |
-| grid SabotageB | 79 m | 15.9 s |  | 72 m | 13 m |
+| grid SabotageB | 89 m | 17.8 s |  | 72 m | 13 m |
 | pumps SabotageA | 53 m | 10.5 s |  | 44 m | 4 m |
 | pumps SabotageB | 52 m | 10.4 s |  | 43 m | 9 m |
 | rods LeverA | 41 m | 8.2 s |  | 32 m | 17 m |
 | rods LeverB | 42 m | 8.3 s |  | 32 m | 21 m |
 | turbine LeverA | 79 m | 15.8 s |  | 70 m | 6 m |
-| turbine LeverB | 72 m | 14.5 s |  | 63 m | 11 m |
+| turbine LeverB | 73 m | 14.5 s |  | 63 m | 11 m |
 | valves SabotageA | 40 m | 8.0 s |  | 31 m | 9 m |
 | valves SabotageB | 42 m | 8.3 s |  | 33 m | 5 m |
 | ventilation SabotageA | 115 m | 23.0 s |  | 105 m | 13 m |

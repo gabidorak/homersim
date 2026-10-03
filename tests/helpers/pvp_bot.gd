@@ -22,6 +22,11 @@ extends Node
 ##            chair, the rat breaks camera 1, the supervisor stands up and repairs it, then climbs
 ##            the yard ladder to the vent roof and is teleported out of bounds (it must come back
 ##            by itself); the rat climbs the vent shaft up to the roof.
+##   ai_target (M10, TestArena, with one AI rat that stands still: server --ai-roles rat
+##            --ai-goals rat:none) supervisor: stuns, grabs and cages the AI rat. The server moves a
+##            bot's body directly (attach_to, force_position without RPCs). Every rat is caught.
+##   ai_fill  (M10, a server with bot_fill_to) any role: logs the roster and the bot bodies it sees,
+##            then quits mid-match (the server must go back to the lobby, without the bots).
 
 const VICTIM_SPOT := Vector3(0, 0, -1)
 const RESCUER_SPOT := Vector3(-3, 0, 3)
@@ -61,6 +66,10 @@ func run(p_bot: Node, scenario: String) -> void:
 			await _plant_supervisor()
 		"plant:rat":
 			await _plant_rat()
+		"ai_target:supervisor":
+			await _ai_target_supervisor()
+		"ai_fill:supervisor", "ai_fill:rat":
+			await _ai_fill()
 		_:
 			Log.error("bot", "unknown scenario %s for %s" % [scenario, Role.display_name(me().role)])
 	Log.info("bot", "scenario done")
@@ -506,3 +515,56 @@ func _plant_rat() -> void:
 	me().rig.set("_yaw", atan2(-west.x, -west.z))
 	if await _walk_until(func() -> bool: return me().global_position.y > 5.8 and me().is_on_floor(), 10.0, "the top of the shaft"):
 		Log.info("bot", "climbed the shaft to the vent roof at %s" % me().global_position)
+
+
+# --- M10: AI bots ----------------------------------------------------------------------------
+
+func _bot_bodies() -> Array[Player]:
+	var out: Array[Player] = []
+	for node in session.players_root.get_children():
+		var p := node as Player
+		if p != null and p.is_bot:
+			out.append(p)
+	return out
+
+
+func _ai_target_supervisor() -> void:
+	await wait(1.0)
+	var bots := _bot_bodies()
+	if bots.is_empty():
+		Log.warn("bot", "no AI rat to catch")
+		return
+	var rat := bots[0]
+	Log.info("bot", "AI rat: %s (peer %d, badge %s)" % [rat.display_name, rat.peer_id, rat.has_node("BotBadge")])
+	if await stun_and_grab(rat.display_name):
+		Log.info("bot", "carrying the AI rat")
+		await cage_carried(cage("CageA"))
+	await wait_until(func() -> bool: return has(rat, StatusComponent.Status.CAGED), 2.0, "the AI rat caged")
+	Log.info("bot", "AI rat caged: %s, inside the cage: %s" % [has(rat, StatusComponent.Status.CAGED),
+		rat.global_position.distance_to(cage("CageA").global_position) < 2.0])
+
+
+func _ai_fill() -> void:
+	var mm := session.match_manager
+	var bots: Array = mm.roster.keys().filter(func(p: int) -> bool: return mm.is_bot(p))
+	var roles := {Role.Kind.SUPERVISOR: 0, Role.Kind.RAT: 0}
+	for peer: int in bots:
+		roles[mm.roster[peer]["role"]] = roles.get(mm.roster[peer]["role"], 0) + 1
+	Log.info("bot", "match roster: %d entries, %d bots (%d supervisors, %d rats), I am a %s" % [mm.roster.size(),
+		bots.size(), roles[Role.Kind.SUPERVISOR], roles[Role.Kind.RAT], Role.display_name(mm.local_role())])
+	var start := {}
+	for body in _bot_bodies():
+		start[body.peer_id] = body.global_position
+	await wait(6.0)
+	var badges := 0
+	var moved := 0
+	for body in _bot_bodies():
+		if body.has_node("BotBadge"):
+			badges += 1
+		if start.has(body.peer_id) and body.global_position.distance_to(start[body.peer_id]) > 2.0:
+			moved += 1
+	Log.info("bot", "bot bodies: %d with a badge, %d moved more than 2 m" % [badges, moved])
+	Log.info("bot", "leaving mid-match")
+	Net.leave()
+	get_tree().quit(0)
+	await wait(5.0)  # (never returns: BotClient would report to a server we left)

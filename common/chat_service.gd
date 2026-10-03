@@ -80,9 +80,10 @@ func broadcast_system(text: String, args: Array = []) -> void:
 		on_message.rpc_id(peer, "", text, Channel.SYSTEM, args)
 
 
-## Server: a system message to one peer.
+## Server: a system message to one peer (nothing for an AI bot: a negative id would reach everyone else).
 func tell(peer_id: int, text: String, args: Array = []) -> void:
-	on_message.rpc_id(peer_id, "", text, Channel.SYSTEM, args)
+	if not Session.is_ai_id(peer_id):
+		on_message.rpc_id(peer_id, "", text, Channel.SYSTEM, args)
 
 
 ## A system message's text: `text` (translated when `translate`) with `args` filled in. A format

@@ -1,0 +1,85 @@
+[gd_resource type="Resource" script_class="BotTuning" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://data/bot_tuning.gd" id="1_tuning"]
+[ext_resource type="Script" path="res://data/bot_skill.gd" id="2_skill"]
+
+[sub_resource type="Resource" id="Resource_easy"]
+script = ExtResource("2_skill")
+label = "Easy"
+reaction_s = 0.7
+aim_error_deg = 30.0
+turn_rate_deg = 250.0
+view_range = 15.0
+think_hz = 3.0
+trap_notice = 0.4
+teamwork = false
+
+[sub_resource type="Resource" id="Resource_normal"]
+script = ExtResource("2_skill")
+label = "Normal"
+reaction_s = 0.4
+aim_error_deg = 15.0
+turn_rate_deg = 400.0
+view_range = 22.0
+think_hz = 5.0
+trap_notice = 0.75
+teamwork = true
+
+[sub_resource type="Resource" id="Resource_hard"]
+script = ExtResource("2_skill")
+label = "Hard"
+reaction_s = 0.2
+aim_error_deg = 6.0
+turn_rate_deg = 600.0
+view_range = 30.0
+think_hz = 6.0
+trap_notice = 0.95
+teamwork = true
+
+[resource]
+script = ExtResource("1_tuning")
+skills = Array[ExtResource("2_skill")]([SubResource("Resource_easy"), SubResource("Resource_normal"), SubResource("Resource_hard")])
+names = PackedStringArray("Gus", "Nibbles", "Cheddar", "Squeaky Pete", "Whiskers", "Sir Gnawsalot", "Mabel", "Big Earl", "Donut Dave", "Wrenchy", "Dottie", "Crumbs", "Fuzzbucket", "Norbert", "Pickles", "Gouda", "Rusty", "Bertha")
+senses_hz = 10.0
+fov_supervisor_deg = 110.0
+fov_rat_deg = 220.0
+smoke_view_range = 6.0
+hear_rat_walk = 3.0
+hear_rat_sprint = 8.0
+hear_supervisor = 10.0
+hear_bite = 10.0
+hear_squeak = 12.0
+hear_broom = 12.0
+hear_noise = 2.0
+memory_s = 8.0
+search_s = 12.0
+share_delay_s = 1.0
+commitment_bonus = 0.15
+claim_ttl_s = 3.0
+blacklist_min_s = 10.0
+blacklist_max_s = 15.0
+arrive_rat = 0.3
+arrive_supervisor = 0.4
+slow_radius = 1.5
+stuck_check_s = 0.5
+stuck_min_progress = 0.15
+stuck_fail_s = 6.0
+avoid_radius = 0.8
+avoid_shift = 0.4
+hold_still_speed = 0.2
+door_grace_s = 1.0
+flee_radius = 7.0
+flee_search_radius = 20.0
+flee_candidates = 6
+flee_min_s = 2.5
+sabotage_supervisor_radius = 8.0
+lever_wait_s = 15.0
+harass_keep_away = 3.0
+free_safe_radius = 10.0
+squeak_chance = 0.25
+chase_radius = 12.0
+chase_give_up = 6.0
+swing_margin = 0.2
+swing_cone_deg = 30.0
+carry_spare_s = 1.5
+patrol_revisit_s = 60.0

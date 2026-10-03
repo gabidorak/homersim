@@ -8,12 +8,14 @@ extends Node
 ## Traps and dropped keycards live in World/Dynamic, created through the DynamicSpawner so they
 ## appear (and disappear) on every client. The spawn function runs on every peer.
 ## It lives in Session (on the server AND the clients) like the other services.
+## AI bots (M10) place traps with ai_place_trap() and hear a SNAP through snap_heard.
 
 const PLACE_TOLERANCE := 0.5  ## m added to the trap range (lag)
 const FLOOR_PROBE := 0.35  ## m above / below the requested spot to look for the floor
 const MIN_FLOOR_NORMAL_Y := 0.7  ## about 45°: steeper isn't a floor
 
 signal trap_snapped(position: Vector3)  ## clients (supervisors only receive it)
+signal snap_heard(position: Vector3)  ## server: a snap trap went off (AI supervisors hear it)
 
 var tuning: PvpTuning = PvpTuning.load_default()
 
@@ -52,6 +54,14 @@ func request_place_trap(id: StringName, pos: Vector3) -> void:
 		Log.info("item", "%s refused to place %s at %s: %s" % [session.name_of(peer), id, pos, reason])
 
 
+## AI bots (M10): request_place_trap without the RPC. "" = placed, otherwise why not.
+func ai_place_trap(peer: int, id: StringName, pos: Vector3) -> String:
+	var reason := _place_trap(peer, id, pos)
+	if reason != "":
+		Log.info("item", "%s refused to place %s at %s: %s" % [session.name_of(peer), id, pos, reason])
+	return reason
+
+
 func _place_trap(peer: int, id: StringName, pos: Vector3) -> String:
 	if session.match_manager.state != MatchManager.State.PLAYING:
 		return "the match isn't running"
@@ -83,7 +93,8 @@ func _place_trap(peer: int, id: StringName, pos: Vector3) -> String:
 			return "too close to another trap"
 	body.inventory.trap_charges -= 1
 	body.abilities.server_start_cooldown(data)
-	session.abilities.on_ability_cooldown.rpc_id(peer, id, data.cooldown_s)
+	if not Session.is_ai_id(peer):
+		session.abilities.on_ability_cooldown.rpc_id(peer, id, data.cooldown_s)
 	_spawn({"type": "trap", "kind": data.extra.get("trap_kind", "snap"), "pos": floor_pos, "owner": peer})
 	Log.info("item", "%s placed a %s at %s (%d left)" % [body.display_name, data.display_name,
 		floor_pos.snapped(Vector3.ONE * 0.01), body.inventory.trap_charges])
@@ -130,8 +141,9 @@ func trap_sprung(trap: Trap, rat: Player) -> void:
 	if trap.trap_kind == "snap":
 		for node in session.players_root.get_children():
 			var p := node as Player
-			if p != null and p.role == Role.Kind.SUPERVISOR:
+			if p != null and p.role == Role.Kind.SUPERVISOR and not p.is_bot:
 				on_trap_snap.rpc_id(p.peer_id, trap.global_position)
+		snap_heard.emit(trap.global_position)
 
 
 func _spawn(data: Dictionary) -> void:

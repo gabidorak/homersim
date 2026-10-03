@@ -10,15 +10,15 @@ cd "$(dirname "$0")"
 JOBS=4
 if [ "${1:-}" = "-j" ]; then JOBS=$2; shift 2; fi
 # Longest first, so the slowest ones don't start last.
-ALL=(pvp_capture pvp_items hazards minigames critical_lever pvp_swarm plant_cctv run_match_loop
-	control_room pvp_hack menus_smoke lobby_smoke join_smoke map_check)
+ALL=(ai_nav_tour ai_match pvp_capture pvp_items hazards minigames critical_lever ai_lever pvp_swarm plant_cctv
+	run_match_loop ai_capture ai_target control_room pvp_hack ai_fill menus_smoke lobby_smoke join_smoke map_check)
 if [ $# -gt 0 ]; then
 	TESTS=("$@")
 else
 	TESTS=("${ALL[@]}")
 	for t in *.sh; do  # a new test that isn't in ALL yet still runs
 		t=${t%.sh}
-		if [ "$t" != run_all ] && [ "$t" != pvp_lib ] && [[ " ${ALL[*]} " != *" $t "* ]]; then TESTS+=("$t"); fi
+		if [ "$t" != run_all ] && [ "$t" != pvp_lib ] && [ "$t" != ai_lib ] && [ "$t" != ai_soak ] && [[ " ${ALL[*]} " != *" $t "* ]]; then TESTS+=("$t"); fi
 	done
 fi
 

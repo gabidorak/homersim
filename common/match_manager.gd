@@ -24,6 +24,14 @@ extends Node
 ## With --allow-debug, bots report the end of their scenario (request_debug_done): once every
 ## player in the match has, the timer runs out at once, so a test doesn't wait for its full
 ## --test-duration.
+##
+## AI bots (M10, GDD §2 Bots): when MatchRules.bot_fill_to is set, _start_match adds bot entries to
+## the roster ({…, "bot": true}, negative ids, names from AiDirector) and hands them to assign_roles
+## as fillers, so humans get their slots first. Bots are never in the lobby: the ready vote and the
+## player counts are about humans (_human_count), and one human is enough. They leave when the match
+## ends (_back_to_lobby). A match with no humans left goes back to the lobby. Test-only server flags
+## (debug builds): --ai-fill N (overrides bot_fill_to), --ai-only (bots-only matches, back to back),
+## --ai-roles rat,rat,supervisor (exactly these bots, whatever the fill).
 
 enum State { LOBBY, ROLE_ASSIGN, COUNTDOWN, PLAYING, POST_MATCH }
 
@@ -55,16 +63,18 @@ var countdown_left := 0  ## whole seconds left in COUNTDOWN or POST_MATCH
 var time_left := 0  ## whole seconds left in PLAYING
 var time_added := 0  ## seconds added to this match's timer (SCRAM penalties), for the HUD
 var min_players := 3  ## copied from the rules so the lobby UI can show it
-## peer id -> {"name": String, "pref": Role.Kind, "ready": bool, "role": Role.Kind, "eliminated": bool}
+## peer id -> {"name": String, "pref": Role.Kind, "ready": bool, "role": Role.Kind, "eliminated": bool},
+## plus "bot": true for an AI bot (M10, negative id)
 var roster: Dictionary = {}:
 	set(value):
 		roster = value
 		roster_changed.emit()
 ## The last match's outcome, set when POST_MATCH starts:
 ## {"winner": MatchRulesModel.Team, "reason": String, "stats": Array of
-##  {"peer", "name", "role", and one count per STAT_KEYS}}
+##  {"peer", "name", "role", "bot", and one count per STAT_KEYS}}
 var result: Dictionary = {}
-## {"name", "max_players", "duration_s", "duration_single_s", "min_players", "locked"}: the lobby shows it.
+## {"name", "max_players", "duration_s", "duration_single_s", "min_players", "locked", "bot_fill_to"}:
+## the lobby shows it.
 var server_info: Dictionary = {}
 var pings: Dictionary = {}  ## peer -> round trip in ms
 var live_stats: Dictionary = {}  ## peer -> {stat: count} during PLAYING (only the stats that are not 0)
@@ -89,6 +99,8 @@ var _bots_done: Dictionary[int, bool] = {}  # peers whose test scenario is over 
 var _next_ping_ms := 0
 var _next_stats_ms := 0
 var _stats_dirty := false
+var _ai_only := false  # --ai-only: matches with no humans, back to back (debug builds)
+var _ai_roles: Array[Role.Kind] = []  # --ai-roles: exactly these bots (debug builds)
 
 @onready var session: Session = get_parent()
 
@@ -98,11 +110,13 @@ func _ready() -> void:
 		set_process(false)
 		return
 	rules = session.match_rules if session.match_rules != null else load(Config.DEFAULT_MATCH_RULES)
-	min_players = rules.min_players
 	_rng.randomize()
 	if Cli.has_arg("debug-start"):
 		_debug_start_at = maxi(Cli.get_int("debug-start", 1), 1)
 		Log.info("match", "--debug-start: the match starts once %d player(s) joined" % _debug_start_at)
+	if OS.is_debug_build():
+		_read_ai_flags()
+	min_players = MatchRulesModel.effective_min_players(rules)
 	session.player_added.connect(_on_player_added)
 	session.player_removed.connect(_on_player_removed)
 	session.plant.subsystem_changed.connect(_on_subsystem_changed)
@@ -111,9 +125,32 @@ func _ready() -> void:
 		"max_players": session.max_players,
 		"duration_s": rules.duration_s,
 		"duration_single_s": rules.duration_single_supervisor_s,
-		"min_players": rules.min_players,
+		"min_players": min_players,
 		"locked": session.password != "",
+		"bot_fill_to": rules.bot_fill_to if bots_enabled() else 0,
 	}
+
+
+## Test-only (debug builds): --ai-fill N, --ai-only, --ai-roles rat,rat,supervisor.
+func _read_ai_flags() -> void:
+	if not rules.resource_path.is_empty():
+		rules = rules.duplicate()  # (never change the shared resource)
+	if Cli.has_arg("ai-fill"):
+		rules.bot_fill_to = clampi(Cli.get_int("ai-fill", 6), 0, 6)
+	for text in Cli.get_str("ai-roles").split(",", false):
+		var role := Role.from_text(text.strip_edges())
+		if role in [Role.Kind.SUPERVISOR, Role.Kind.RAT]:
+			_ai_roles.append(role)
+	_ai_only = Cli.has_arg("ai-only")
+	if (_ai_only or not _ai_roles.is_empty()) and rules.bot_fill_to < 2:
+		rules.bot_fill_to = 6
+	if _ai_only:
+		Log.info("match", "--ai-only: bots-only matches, back to back")
+
+
+## Bots fill the matches of this server (M10).
+func bots_enabled() -> bool:
+	return MatchRulesModel.bots_enabled(rules)
 
 
 func entry(peer_id: int) -> Dictionary:
@@ -148,6 +185,28 @@ func ready_count() -> int:
 	var count := 0
 	for e: Dictionary in roster.values():
 		if e["ready"]:
+			count += 1
+	return count
+
+
+## True for an AI bot's roster entry (M10).
+func is_bot(peer_id: int) -> bool:
+	return entry(peer_id).get("bot", false)
+
+
+## The roster has AI bots (a match with bots is under way).
+func _has_bots() -> bool:
+	for e: Dictionary in roster.values():
+		if e.get("bot", false):
+			return true
+	return false
+
+
+## Roster entries that are people (spectators included), not bots.
+func human_count() -> int:
+	var count := 0
+	for e: Dictionary in roster.values():
+		if not e.get("bot", false):
 			count += 1
 	return count
 
@@ -190,7 +249,8 @@ func request_debug_done() -> void:
 	_bots_done[peer] = true
 	Log.info("match", "%s finished its test scenario" % roster[peer]["name"])
 	for p: int in roster:
-		if roster[p]["role"] in [Role.Kind.SUPERVISOR, Role.Kind.RAT] and not _bots_done.has(p):
+		if roster[p]["role"] in [Role.Kind.SUPERVISOR, Role.Kind.RAT] and not _bots_done.has(p) \
+				and not roster[p].get("bot", false):  # (AI bots have no scenario to finish)
 			return
 	Log.info("match", "every bot is done: the timer runs out now")
 	_match_end_ms = mini(_match_end_ms, Time.get_ticks_msec())
@@ -220,6 +280,11 @@ func _on_player_removed(peer_id: int) -> void:
 	var copy := roster.duplicate(true)
 	copy.erase(peer_id)
 	roster = copy
+	if in_match() and _has_bots() and human_count() == 0 and not _ai_only:
+		# Only bots left (spectators count as humans): nobody plays or watches, stop.
+		Log.info("match", "no humans left in the match, back to the lobby")
+		_back_to_lobby()
+		return
 	match state:
 		State.LOBBY:
 			_check_start()
@@ -230,29 +295,70 @@ func _on_player_removed(peer_id: int) -> void:
 		# PLAYING: an emptied team loses, checked every frame in _process.
 
 
+## AiDirector calls this once the bots can play (the navigation meshes are baked).
+func recheck_start() -> void:
+	_check_start()
+
+
 func _check_start() -> void:
-	if state != State.LOBBY or roster.is_empty() or _swapping:
+	if state != State.LOBBY or _swapping:
 		return
-	if _debug_start_at > 0:
-		if roster.size() >= _debug_start_at:
+	var humans := human_count()
+	if bots_enabled() and not session.ai_ready:
+		return  # the bots can't walk yet: AiDirector calls recheck_start() after its bake
+	if _ai_only:
+		_start_match()
+	elif humans == 0:
+		return
+	elif _debug_start_at > 0:
+		if humans >= _debug_start_at:
 			_start_match()
-	elif MatchRulesModel.ready_vote_passes(roster.size(), ready_count(), rules):
+	elif MatchRulesModel.ready_vote_passes(humans, ready_count(), rules):
 		_start_match()
 
 
 func _start_match() -> void:
 	state = State.ROLE_ASSIGN
 	var prefs: Dictionary[int, Role.Kind] = {}
+	var watchers: Array[int] = []  # --ai-only: humans watch the bots
 	for peer: int in roster:
-		prefs[peer] = roster[peer]["pref"]
-	var roles := MatchRulesModel.assign_roles(prefs, rules, _rng)
+		if _ai_only:
+			watchers.append(peer)
+		else:
+			prefs[peer] = roster[peer]["pref"]
 	var copy := roster.duplicate(true)
+	# Bots (M10): new entries, given to assign_roles as fillers so the humans choose first.
+	var bot_count := _ai_roles.size() if not _ai_roles.is_empty() else MatchRulesModel.bots_needed(prefs.size(), rules)
+	var fillers: Array[int] = []
+	var taken: Array[String] = []
+	for e: Dictionary in roster.values():
+		taken.append(e["name"])
+	var ai := session.ai_director()
+	for i in bot_count:
+		var id := AiDirector.FIRST_ID - i
+		fillers.append(id)
+		var bot_name := ai.bot_name(i, taken) if ai != null else "Bot %d" % (i + 1)
+		taken.append(bot_name)
+		copy[id] = {"name": bot_name, "pref": Role.Kind.NONE, "ready": false, "role": Role.Kind.NONE,
+			"eliminated": false, "bot": true}
+	var roles: Dictionary[int, Role.Kind]
+	if _ai_roles.is_empty():
+		roles = MatchRulesModel.assign_roles(prefs, rules, _rng, fillers)
+	else:
+		roles = MatchRulesModel.assign_roles(prefs, rules, _rng)
+		for i in fillers.size():
+			roles[fillers[i]] = _ai_roles[i]
+	for peer in watchers:
+		roles[peer] = Role.Kind.SPECTATOR
 	var summary: Array[String] = []
+	for peer: int in fillers:
+		if not roles.has(peer):
+			copy.erase(peer)  # a filler the table had no slot for
 	for peer: int in roles:
 		copy[peer]["role"] = roles[peer]
 		copy[peer]["ready"] = false
 		copy[peer]["eliminated"] = false
-		summary.append("%s=%s" % [copy[peer]["name"], Role.display_name(roles[peer])])
+		summary.append("%s=%s%s" % [copy[peer]["name"], Role.display_name(roles[peer]), " (bot)" if peer in fillers else ""])
 	roster = copy
 	Log.info("match", "roles: %s" % ", ".join(summary))
 
@@ -287,7 +393,7 @@ func _begin_playing() -> void:
 	for peer: int in roster:
 		var role: Role.Kind = roster[peer]["role"]
 		if role == Role.Kind.SUPERVISOR or role == Role.Kind.RAT:
-			var row := {"peer": peer, "name": roster[peer]["name"], "role": role}
+			var row := {"peer": peer, "name": roster[peer]["name"], "role": role, "bot": roster[peer].get("bot", false)}
 			for key in STAT_KEYS:
 				row[key] = 0
 			_stats[peer] = row
@@ -384,6 +490,14 @@ func _publish(now_ms: int) -> void:
 					counts[key] = _stats[peer][key]
 			fresh[peer] = counts
 		live_stats = fresh
+
+
+## Server, tests (M10 AI scenarios): the timer runs out now, like request_debug_done.
+func end_timer_now(why: String) -> void:
+	if state != State.PLAYING:
+		return
+	Log.info("match", "%s: the timer runs out now" % why)
+	_match_end_ms = mini(_match_end_ms, Time.get_ticks_msec())
 
 
 ## Server (SCRAM): the shift gets `seconds` longer.
@@ -486,6 +600,9 @@ func _write_test_result() -> void:
 		"meltdown": snappedf(session.plant.meltdown, 0.1),
 		"stats": result["stats"],
 	}
+	var ai := session.ai_director()
+	if ai != null and bots_enabled():
+		data["ai"] = ai.report()
 	var path := Cli.get_str("result-file")
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
@@ -512,14 +629,19 @@ func _back_to_lobby() -> void:
 	await session.retire_bodies(roster.keys())
 	if swap != _swap_id:
 		return
-	# The roster as it is now: someone may have joined (as a spectator) during the await.
+	# The roster as it is now: someone may have joined (as a spectator) during the await. The bots
+	# leave with the match.
 	var copy := roster.duplicate(true)
+	for peer: int in copy.keys():
+		if copy[peer].get("bot", false):
+			copy.erase(peer)
 	for peer: int in copy:
 		copy[peer]["role"] = Role.Kind.NONE
 		copy[peer]["ready"] = false
 		copy[peer]["eliminated"] = false
 	roster = copy
 	live_stats = {}
+	Log.info("match", "back to the lobby with %d player(s)" % roster.size())
 	state = State.LOBBY
 	_spawn_counters.clear()
 	for peer: int in roster:
@@ -554,13 +676,18 @@ func _count_role(role: Role.Kind) -> int:
 	return count
 
 
+## Humans with a role in the match (bots don't count, M10).
 func _player_count_in_match() -> int:
-	return _count_role(Role.Kind.SUPERVISOR) + _count_role(Role.Kind.RAT)
+	var count := 0
+	for e: Dictionary in roster.values():
+		if e["role"] in [Role.Kind.SUPERVISOR, Role.Kind.RAT] and not e.get("bot", false):
+			count += 1
+	return count
 
 
-## A match needs 2 players to go on (1 with --debug-start, for solo testing).
+## A match needs 2 players to go on (1 with --debug-start, for solo testing, or one human with bots).
 func _min_to_continue() -> int:
-	return 1 if _debug_start_at > 0 else 2
+	return 1 if _debug_start_at > 0 or _has_bots() else 2
 
 
 func _update_entry(peer_id: int, key: String, value: Variant) -> void:

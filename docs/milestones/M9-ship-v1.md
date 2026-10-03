@@ -38,4 +38,4 @@
 - [ ] HOSTING.md has been followed successfully by someone other than you.
 
 ## 3. After v1.0
-See [GDD §10](../GDD.md#10-post-10-ideas): proximity voice, Steam (GodotSteam), master server list, netfox prediction, more maps and rat classes, bots, cosmetics.
+See [GDD §10](../GDD.md#10-post-10-ideas): proximity voice, Steam (GodotSteam), master server list, netfox prediction, more maps and rat classes, cosmetics. AI bots that fill empty slots have their own milestone, [M10](M10-ai-bots.md), which only needs M8 and can be built before M9 (bots help the balance playtests).

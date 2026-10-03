@@ -10,12 +10,14 @@ extends Node
 ## of the synced look direction. Cosmetic results go to everyone (on_broom_swing, on_bite);
 ## the attacker's cooldown goes back to it (on_ability_cooldown).
 ## It lives in Session (on the server AND the clients), which RPCs require.
+## AI bots (M10) use ai_use(), the same checks without an RPC. On the server, broom_swung and bitten
+## are emitted too: AI bots hear them (AiSenses).
 
 const HIT_TOLERANCE := 0.5  ## m added to an ability's range (lag)
 const AIM_TOLERANCE_DEG := 45.0
 
-signal broom_swung(attacker: int, victim: int, stunned: bool)  ## clients: cosmetics
-signal bitten(attacker: int, victim: int, result: int)  ## clients: cosmetics (StatusRules.Bite)
+signal broom_swung(attacker: int, victim: int, stunned: bool)  ## clients: cosmetics; server: the AI hears it
+signal bitten(attacker: int, victim: int, result: int)  ## clients: cosmetics (StatusRules.Bite); server: the AI
 
 var _rate := RateLimiter.new()
 
@@ -43,6 +45,14 @@ func request_use_ability(id: StringName, aim: Vector3) -> void:
 
 # --- Server --------------------------------------------------------------------------------
 
+## AI bots (M10): request_use_ability without the RPC. "" = used, otherwise why not.
+func ai_use(peer: int, id: StringName, aim: Vector3) -> String:
+	var reason := _use(peer, id, aim)
+	if reason != "":
+		Log.info("ability", "%s refused %s: %s" % [session.name_of(peer), id, reason])
+	return reason
+
+
 func _use(peer: int, id: StringName, aim: Vector3) -> String:
 	if session.match_manager.state != MatchManager.State.PLAYING:
 		return "the match isn't running"
@@ -59,7 +69,8 @@ func _use(peer: int, id: StringName, aim: Vector3) -> String:
 	if not body.abilities.server_ready(id):
 		return "cooling down"
 	body.abilities.server_start_cooldown(data)
-	on_ability_cooldown.rpc_id(peer, id, data.cooldown_s)
+	if not Session.is_ai_id(peer):
+		on_ability_cooldown.rpc_id(peer, id, data.cooldown_s)
 	match data.kind:
 		AbilityData.Kind.MELEE_STUN:
 			_broom(body, data, aim)
@@ -96,6 +107,7 @@ func _broom(attacker: Player, data: AbilityData, aim: Vector3) -> void:
 		session.match_manager.add_stat(attacker.peer_id, "bonks")
 		session.match_manager.feed("bonk", attacker.display_name, victim.display_name)
 	on_broom_swing.rpc(attacker.peer_id, victim_peer, stunned)
+	broom_swung.emit(attacker.peer_id, victim_peer, stunned)
 
 
 func _bite(attacker: Player, data: AbilityData, aim: Vector3) -> void:
@@ -103,6 +115,7 @@ func _bite(attacker: Player, data: AbilityData, aim: Vector3) -> void:
 	if victim == null:
 		Log.info("ability", "%s bit the air" % attacker.display_name)
 		on_bite.rpc(attacker.peer_id, 0, StatusRules.Bite.IGNORED)
+		bitten.emit(attacker.peer_id, 0, StatusRules.Bite.IGNORED)
 		return
 	# A single bite makes the supervisor drop the rat it carries (GDD §5.1).
 	session.captures.on_carrier_bitten(victim, attacker)
@@ -116,6 +129,7 @@ func _bite(attacker: Player, data: AbilityData, aim: Vector3) -> void:
 	Log.info("ability", "%s bit %s: %s" % [attacker.display_name, victim.display_name,
 		["ignored", "slowed", "KNOCKED DOWN"][result]])
 	on_bite.rpc(attacker.peer_id, victim.peer_id, result)
+	bitten.emit(attacker.peer_id, victim.peer_id, result)
 
 
 # --- Server → clients ----------------------------------------------------------------------

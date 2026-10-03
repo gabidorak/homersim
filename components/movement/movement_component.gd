@@ -4,9 +4,11 @@ extends Node
 ## jump buffer) and gravity, using the player's RoleData. Runs only on the owning client;
 ## BodySync replicates the result. WASD is relative to CameraRig.move_yaw(): where you look in
 ## first person, where the camera looks in third person (and the body turns to face its movement).
+## An AI bot's body (M10) runs on the server instead, and reads `intent` (a MoveIntent the AI writes
+## every tick) where a player's reads the keyboard: same physics, speeds and stamina.
 ##
 ## The server imposes movement through the RPCs at the bottom (freeze, teleport, knockback,
-## hanging from a carrier's hand). Speed = role speed × status (slows, donut) × inventory (a
+## hanging from a carrier's hand); for a bot it calls their do_* halves directly. Speed = role speed × status (slows, donut) × inventory (a
 ## stolen item); a supervisor carrying a rat walks at the role's carry speed and can't sprint.
 ##
 ## Ladders (Ladder volumes): pushing toward the ladder climbs, pushing away in the air climbs down,
@@ -28,6 +30,8 @@ const LADDER_REGRAB_S := 0.4  ## after jumping off, ignore ladders this long
 
 var stamina: Stamina
 var sprinting := false
+## Server, AI bots (M10): what the bot wants this tick, read instead of the keyboard. null = keyboard.
+var intent: MoveIntent
 ## Set by the server through set_locked(); the LOCKED status (countdown) freezes the body too.
 var locked := false
 
@@ -74,11 +78,13 @@ func _physics_process(delta: float) -> void:
 		_anchor = null  # the carrier vanished: fall from where we are
 	var data := body.role_data
 	var free := can_move()
-	var control := free and PlayerInput.has_control()
+	var ai := intent != null
+	var control := free and (ai or PlayerInput.has_control())
 	var on_floor := body.is_on_floor()
 
 	_since_on_floor = 0.0 if on_floor else _since_on_floor + delta
-	if control and Input.is_action_just_pressed("jump"):
+	var jump_pressed := intent.take_jump() if ai else Input.is_action_just_pressed("jump")
+	if control and jump_pressed:
 		_since_jump_pressed = 0.0
 	else:
 		_since_jump_pressed += delta
@@ -90,14 +96,22 @@ func _physics_process(delta: float) -> void:
 		_since_jump_pressed = INF  # one press, one jump
 		_since_on_floor = INF  # no second jump from the coyote window
 
-	var input := Vector2.ZERO
-	if control:
-		input = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	elif free and _debug_auto_move:
-		input = Vector2.UP
-	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, body.rig.move_yaw())
+	var dir := Vector3.ZERO
+	var wants_sprint := false
+	if ai:
+		if control:
+			dir = Vector3(intent.direction.x, 0.0, intent.direction.z).limit_length(1.0)
+		wants_sprint = intent.sprint
+	else:
+		var input := Vector2.ZERO
+		if control:
+			input = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		elif free and _debug_auto_move:
+			input = Vector2.UP
+		dir = Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, body.rig.move_yaw())
+		wants_sprint = Input.is_action_pressed("sprint")
 	var carrying := status.carrying != 0
-	sprinting = stamina.tick(delta, control and not carrying and input != Vector2.ZERO and Input.is_action_pressed("sprint"))
+	sprinting = stamina.tick(delta, control and not carrying and dir.length_squared() > 0.0001 and wants_sprint)
 	var base := data.carry_speed if carrying else (data.sprint_speed if sprinting else data.walk_speed)
 	var speed := base * status.speed_multiplier() * body.inventory.speed_multiplier() * _debug_speed
 	var target := dir * speed
@@ -120,10 +134,22 @@ func _physics_process(delta: float) -> void:
 	var horizontal := Vector3(body.velocity.x, 0.0, body.velocity.z).lerp(target, 1.0 - exp(-accel * delta))
 	body.velocity.x = horizontal.x
 	body.velocity.z = horizontal.z
-	if data.camera_kind == RoleData.CameraKind.THIRD_PERSON and dir.length_squared() > 0.01:
+	if ai:
+		_turn_toward_intent(dir, delta)
+	elif data.camera_kind == RoleData.CameraKind.THIRD_PERSON and dir.length_squared() > 0.01:
 		body.rotation.y = lerp_angle(body.rotation.y, atan2(-dir.x, -dir.z), 1.0 - exp(-TURN_RATE * delta))
 	body.move_and_slide()
 	_check_bounds(delta)
+
+
+## AI bots: turn toward intent.face_yaw, or toward where the body moves, at the bot's turn rate.
+func _turn_toward_intent(dir: Vector3, delta: float) -> void:
+	var target := intent.face_yaw
+	if is_nan(target):
+		if dir.length_squared() < 0.01 or climbing:
+			return
+		target = atan2(-dir.x, -dir.z)
+	body.rotation.y = rotate_toward(body.rotation.y, target, intent.turn_rate * delta)
 
 
 ## 1 = climb up, -1 = climb down, 2 = hang on, 0 = not climbing (walk / fall normally).
@@ -156,35 +182,52 @@ func _check_bounds(delta: float) -> void:
 
 # --- Server → owner ------------------------------------------------------------
 # "any_peer" because this node's authority is the owning client, not the server; each handler
-# checks that the call really came from the server (peer 1). Call them through the Player's
-# server_* helpers, which also give the movement validator a grace window.
+# checks that the call really came from the server (peer 1), then does the work in its do_* half.
+# Call them through the Player's server_* helpers, which also give the movement validator a grace
+# window, and which call the do_* half directly for a bot (its body runs on the server).
 
 @rpc("any_peer", "reliable")
 func set_locked(value: bool) -> void:
 	if _from_server():
-		locked = value
+		do_set_locked(value)
 
 
 @rpc("any_peer", "reliable")
 func force_position(pos: Vector3) -> void:
 	if _from_server():
-		body.position = pos
-		body.velocity = Vector3.ZERO
-		_last_safe = pos
+		do_force_position(pos)
 
 
 @rpc("any_peer", "reliable")
 func apply_impulse(impulse: Vector3) -> void:
 	if _from_server():
-		body.velocity += impulse
+		do_apply_impulse(impulse)
 
 
 ## Follow the node at `path` (a carrier's HandSocket); an empty path lets go.
 @rpc("any_peer", "reliable")
 func attach_to(path: NodePath) -> void:
 	if _from_server():
-		_anchor = get_node_or_null(path) as Node3D if not path.is_empty() else null
-		body.velocity = Vector3.ZERO
+		do_attach_to(path)
+
+
+func do_set_locked(value: bool) -> void:
+	locked = value
+
+
+func do_force_position(pos: Vector3) -> void:
+	body.position = pos
+	body.velocity = Vector3.ZERO
+	_last_safe = pos
+
+
+func do_apply_impulse(impulse: Vector3) -> void:
+	body.velocity += impulse
+
+
+func do_attach_to(path: NodePath) -> void:
+	_anchor = get_node_or_null(path) as Node3D if not path.is_empty() else null
+	body.velocity = Vector3.ZERO
 
 
 func _from_server() -> bool:

@@ -16,8 +16,9 @@ func _ready() -> void:
 	body = get_parent()
 	camera = find_child("Camera3D") as Camera3D
 	_place(body.role_data)
-	if not is_multiplayer_authority():
+	if not is_multiplayer_authority() or Net.is_server:
 		# Remote bodies must never take over the view (Godot makes the first camera it sees current).
+		# On the server, an AI bot's body is "local" (M10) but has nobody to show a view to.
 		camera.queue_free()
 		camera = null
 		set_process(false)
@@ -111,7 +112,8 @@ func _on_setting_changed(key: String) -> void:
 
 func _notification(what: int) -> void:
 	# Otherwise the mouse stays trapped after alt-tabbing out.
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and is_inside_tree() and is_multiplayer_authority():
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and is_inside_tree() and is_multiplayer_authority() \
+			and camera != null:
 		_capture_mouse(false)
 
 

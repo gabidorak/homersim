@@ -82,7 +82,11 @@ func reset_for_match() -> void:
 func request_stand_up() -> void:
 	if not multiplayer.is_server():
 		return
-	var peer := multiplayer.get_remote_sender_id()
+	stand_up(multiplayer.get_remote_sender_id())
+
+
+## Server: `peer` stands up if it is the one seated (request_stand_up, and AI bots, M10).
+func stand_up(peer: int) -> void:
 	if peer != 0 and peer == user:
 		_release("stood up")
 

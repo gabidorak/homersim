@@ -10,7 +10,8 @@ extends Node
 ## opens the minigame overlay (MinigameHost), which takes the mouse until it closes. The server decides everything
 ## else and reports the end of every hold through server_ended_hold(). After a hold ends on the
 ## server's side, E must be released before a new hold starts.
-## Runs only on the owning client. HUD reads `target`, `holding` and prompt_text().
+## Runs only on the owning client (not for an AI bot's body on the server: the AI calls
+## InteractionService.ai_start directly). HUD reads `target`, `holding` and prompt_text().
 
 signal hold_ended(reason: String)
 
@@ -31,7 +32,7 @@ var _needs_release := false
 
 
 func _ready() -> void:
-	set_physics_process(is_multiplayer_authority() and body.role != Role.Kind.NONE)
+	set_physics_process(is_multiplayer_authority() and body.role != Role.Kind.NONE and not Net.is_server)
 
 
 func _physics_process(delta: float) -> void:

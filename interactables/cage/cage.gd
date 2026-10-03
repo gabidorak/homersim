@@ -154,5 +154,4 @@ func _swing_door(caged: bool) -> void:
 
 
 func _name_of(peer_id: int) -> String:
-	var info: PlayerInfo = Session.current.players.get(peer_id)
-	return info.name if info != null else "the rat"
+	return Session.current.name_of(peer_id)  # (bots aren't in Session.players)

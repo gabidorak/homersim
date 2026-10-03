@@ -8,9 +8,10 @@ extends Node
 ##   --screenshot PATH           save the window to PATH (PNG) after --screenshot-delay S (default 8);
 ##                               with --screenshot-times T1,T2,… (s): one PNG per time, PATH_<T>.png
 ##   --debug-kick-me             ask the server to kick us (M8: the "kicked" message; server --allow-debug)
+##   --spectate NAME|first       spectating: follow that player's body (M10 watch mode: a bot)
 ## MovementComponent reads --auto-move and --debug-speed N itself.
 
-const FLAGS: Array[String] = ["pref", "auto-ready", "say", "screenshot", "debug-kick-me"]
+const FLAGS: Array[String] = ["pref", "auto-ready", "say", "screenshot", "debug-kick-me", "spectate"]
 
 
 static func wanted() -> bool:
@@ -34,6 +35,20 @@ func _ready() -> void:
 			await get_tree().create_timer(maxf(t.to_float() - elapsed, 0.0)).timeout
 			elapsed = t.to_float()
 			_save_screenshot("%s_%s.png" % [path.trim_suffix(".png"), t])
+
+
+func _process(_delta: float) -> void:
+	if not Cli.has_arg("spectate") or Session.current == null:
+		return
+	var cam := Session.current.client_only.get_node_or_null("SpectatorCam") as SpectatorCam
+	if cam == null or not cam.current or cam.following != 0:
+		return
+	var who := Cli.get_str("spectate", "first")
+	for node in Session.current.players_root.get_children():
+		var body := node as Player
+		if body != null and (who == "first" or body.display_name == who):
+			cam.following = body.peer_id
+			return
 
 
 func _save_screenshot(path: String) -> void:

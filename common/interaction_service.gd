@@ -9,6 +9,11 @@ extends Node
 ## reach / line of sight, disconnects, or the match stops. The client hears about every end of a
 ## hold (completed, cancelled, rejected) through on_hold_ended.
 ## It lives in Session (on the server AND the clients), which RPCs require.
+## AI bots (M10) go through the same checks without RPCs: ai_start / ai_heartbeat / ai_stop, and
+## hear how their holds end through the hold_ended signal.
+
+## Server: a hold ended (completed, cancelled, refused while running…), for anyone. The AI listens.
+signal hold_ended(peer: int, path: NodePath, reason: String)
 
 const HEARTBEAT_S := 0.25  ## client send interval
 const HEARTBEAT_TIMEOUT_S := 1.0  ## about four missed heartbeats
@@ -49,6 +54,28 @@ func stop_hold(peer_id: int) -> void:
 ## Server: is `peer_id` holding something right now?
 func is_holding(peer_id: int) -> bool:
 	return _holds.has(peer_id)
+
+
+# --- AI bots (server, M10) -------------------------------------------------------------------
+
+## Like request_interact_start, without the RPC: "" = started (an instant target is already done),
+## otherwise why not.
+func ai_start(peer: int, target: Interactable) -> String:
+	if not is_instance_valid(target):
+		return "no such interactable"
+	var reason := _start(peer, target.get_path())
+	if reason != "":
+		Log.info("interact", "%s refused %s: %s" % [_who(peer), short_path(target.get_path()), reason])
+	return reason
+
+
+func ai_heartbeat(peer: int) -> void:
+	if _holds.has(peer):
+		_holds[peer].last_beat_ms = Time.get_ticks_msec()
+
+
+func ai_stop(peer: int) -> void:
+	_end(peer, "released", true, false)
 
 
 # --- Client → server -----------------------------------------------------------------------
@@ -154,8 +181,9 @@ func _end(peer: int, reason: String, cancel: bool = true, notify: bool = true) -
 		if cancel:
 			hold.target.cancel(peer)
 	Log.info("interact", "%s's hold on %s ended: %s" % [_who(peer), short_path(path), reason])
-	if notify and multiplayer.get_peers().has(peer):
+	if notify and not Session.is_ai_id(peer) and multiplayer.get_peers().has(peer):
 		on_hold_ended.rpc_id(peer, path, reason)
+	hold_ended.emit(peer, path, reason)
 
 
 ## "Pumps/SabotageA" from a full node path, for logs.

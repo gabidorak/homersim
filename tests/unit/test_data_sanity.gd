@@ -159,3 +159,67 @@ func test_every_subsystem_has_a_minigame() -> void:
 	for s in tuning.subsystems:
 		assert_eq(s.minigame, expected[s.id], String(s.id))
 		assert_true(MinigameHost.SCENES.has(s.minigame), "%s: the host knows %s" % [s.id, s.minigame])
+
+
+func test_bot_tuning_matches_gdd() -> void:
+	var t := BotTuning.load_default()
+	assert_eq(t.skills.size(), 3, "easy, normal, hard")
+	# GDD §5.5 table: reaction, aim error, turn rate, view range, decisions/s, trap notice, teamwork
+	var table := [
+		[0.7, 30.0, 250.0, 15.0, 3.0, 0.4, false],
+		[0.4, 15.0, 400.0, 22.0, 5.0, 0.75, true],
+		[0.2, 6.0, 600.0, 30.0, 6.0, 0.95, true],
+	]
+	for i in t.skills.size():
+		var s := t.skills[i]
+		assert_eq([s.reaction_s, s.aim_error_deg, s.turn_rate_deg, s.view_range, s.think_hz, s.trap_notice, s.teamwork],
+			table[i], s.label)
+	assert_eq(t.skill(-3), t.skills[0], "clamped")
+	assert_eq(t.skill(9), t.skills[2], "clamped")
+
+
+func test_bot_skills_are_sane_and_harder_is_better() -> void:
+	var t := BotTuning.load_default()
+	for s in t.skills:
+		assert_between(s.reaction_s, 0.05, 2.0, s.label)
+		assert_between(s.aim_error_deg, 0.0, 45.0, s.label)
+		assert_between(s.turn_rate_deg, 90.0, 1440.0, s.label)
+		assert_between(s.view_range, 5.0, 60.0, s.label)
+		assert_between(s.think_hz, 1.0, 20.0, s.label)
+		assert_between(s.trap_notice, 0.0, 1.0, s.label)
+	for i in range(1, t.skills.size()):
+		var easier := t.skills[i - 1]
+		var harder := t.skills[i]
+		assert_true(harder.reaction_s <= easier.reaction_s, "%s reacts at least as fast" % harder.label)
+		assert_true(harder.aim_error_deg <= easier.aim_error_deg, "%s aims at least as well" % harder.label)
+		assert_true(harder.turn_rate_deg >= easier.turn_rate_deg, "%s turns at least as fast" % harder.label)
+		assert_true(harder.view_range >= easier.view_range, "%s sees at least as far" % harder.label)
+		assert_true(harder.think_hz >= easier.think_hz, "%s thinks at least as often" % harder.label)
+		assert_true(harder.trap_notice >= easier.trap_notice, "%s notices traps at least as often" % harder.label)
+		assert_true(harder.teamwork or not easier.teamwork, "%s keeps teamwork" % harder.label)
+
+
+func test_bot_names_and_numbers_are_sane() -> void:
+	var t := BotTuning.load_default()
+	assert_true(t.names.size() >= 6, "enough names for a bots-only match")
+	var seen := {}
+	for n in t.names:
+		assert_false(n.strip_edges().is_empty(), "no empty name")
+		assert_false(n.to_lower().contains("bot"), "%s: the badge already says Bot" % n)
+		assert_true(n.length() <= JoinRules.MAX_NAME_LENGTH, "%s fits a player name" % n)
+		assert_false(seen.has(n), "%s is unique" % n)
+		seen[n] = true
+	assert_between(t.fov_supervisor_deg, 60.0, 180.0)
+	assert_between(t.fov_rat_deg, 90.0, 360.0)
+	assert_true(t.hear_rat_walk < t.hear_rat_sprint, "sprinting is louder")
+	assert_true(t.memory_s > 0.0 and t.share_delay_s >= 0.0 and t.commitment_bonus >= 0.0)
+	assert_true(t.blacklist_min_s <= t.blacklist_max_s)
+	assert_true(t.stuck_check_s > 0.0 and t.stuck_fail_s > t.stuck_check_s * 3.0)
+	assert_true(t.chase_give_up < t.chase_radius)
+
+
+func test_bot_fill_is_off_or_a_real_match_size() -> void:
+	var m: MatchRules = load(Config.DEFAULT_MATCH_RULES)
+	assert_eq(m.bot_fill_to, 0, "bots are off by default")
+	assert_true(m.bot_fill_to == 0 or (m.bot_fill_to >= 2 and m.bot_fill_to <= 6))
+	assert_between(m.bot_difficulty, 0, 2)

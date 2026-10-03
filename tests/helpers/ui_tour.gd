@@ -1,7 +1,8 @@
 extends Node
 ## Visual check of the menus and the in-game UI (M8), windowed: opens every screen with made-up data
 ## and saves a screenshot of each.
-##   godot tests/helpers/UiTour.tscn -- --settings /tmp/ui_tour.cfg --out /tmp/ui [--only NAME] [--lang fr]
+##   godot tests/helpers/UiTour.tscn -- --settings /tmp/ui_tour.cfg --out /tmp/ui [--only NAME] [--lang fr] [--bots]
+## --bots (M10): the server fills its matches with AI bots, and two of the made-up rats are bots.
 ## Always pass --settings with a throwaway file: the tour changes settings (name, favourites…).
 ## Shots: menu, welcome, browser_lan, browser_fav, settings_video, settings_controls, settings_audio,
 ## settings_gameplay, howto_supervisor, howto_rat, howto_controls, credits, error, password,
@@ -133,15 +134,23 @@ func _in_game() -> void:
 	await get_tree().create_timer(1.0).timeout
 	var mm := session.match_manager
 	session.local_peer_id = 11
+	var bots := Cli.has_arg("bots")
 	var names := {11: "Gabriel", 12: "Alice", 13: "Bob the Rat", 14: "Chloé", 15: "Dmitri", 16: "Eve"}
+	if bots:  # two rats are AI bots: not in the lobby, no ping
+		names = _as_bots(names)
+		names[-1001] = "Gus"
+		names[-1002] = "Nibbles"
 	var roster := {}
 	for peer: int in names:
+		if Session.is_ai_id(peer):
+			continue
 		session.players[peer] = PlayerInfo.new(peer, names[peer])
 		roster[peer] = {"name": names[peer], "pref": [Role.Kind.SUPERVISOR, Role.Kind.NONE, Role.Kind.RAT, Role.Kind.RAT,
 			Role.Kind.NONE, Role.Kind.SUPERVISOR][peer - 11], "ready": peer % 2 == 1, "role": Role.Kind.NONE, "eliminated": false}
 	mm.server_info = {"name": "Sunny Acres #1", "max_players": 6, "duration_s": 540, "duration_single_s": 480,
-		"min_players": 3, "locked": false}
-	mm.pings = {11: 18, 12: 42, 13: 95, 14: 160, 15: 33, 16: 61}
+		"min_players": 1 if bots else 3, "locked": false, "bot_fill_to": 6 if bots else 0}
+	mm.min_players = mm.server_info["min_players"]
+	mm.pings = _as_bots({11: 18, 12: 42, 13: 95, 14: 160, 15: 33, 16: 61}) if bots else {11: 18, 12: 42, 13: 95, 14: 160, 15: 33, 16: 61}
 	mm.roster = roster
 	mm.state = MatchManager.State.LOBBY
 	if _wanted("lobby"):
@@ -153,16 +162,23 @@ func _in_game() -> void:
 	# A match under way.
 	var roles := {11: Role.Kind.SUPERVISOR, 12: Role.Kind.SUPERVISOR, 13: Role.Kind.RAT, 14: Role.Kind.RAT, 15: Role.Kind.RAT,
 		16: Role.Kind.RAT}
+	if bots:
+		roles = _as_bots(roles)
 	var playing := roster.duplicate(true)
 	for peer: int in roles:
+		if not playing.has(peer):
+			playing[peer] = {"name": names[peer], "pref": Role.Kind.NONE, "ready": false, "role": Role.Kind.NONE,
+				"eliminated": false, "bot": true}
 		playing[peer]["role"] = roles[peer]
-	playing[16]["eliminated"] = true
+	playing[-1002 if bots else 16]["eliminated"] = true
 	mm.roster = playing
 	mm.state = MatchManager.State.PLAYING
 	mm.time_left = 312
 	mm.live_stats = {11: {"repairs": 4, "bonks": 3, "catches": 2}, 12: {"repairs": 2, "donuts": 3},
 		13: {"sabotages": 5, "bites": 2}, 14: {"sabotages": 2, "frees": 1, "caught": 1}, 15: {"bites": 4, "knockdowns": 1},
 		16: {"caught": 2, "sabotages": 1}}
+	if bots:
+		mm.live_stats = _as_bots(mm.live_stats)
 	session.plant.meltdown = 46.0
 	if _wanted("feed") or _wanted("scoreboard"):
 		for line: Array in [["sabotaged", "turbine", ""], ["bonk", "Gabriel", "Bob the Rat"], ["caged", "Gabriel", "Chloé"],
@@ -201,7 +217,7 @@ func _in_game() -> void:
 	if _wanted("postmatch"):
 		var stats: Array = []
 		for peer: int in roles:
-			var row := {"peer": peer, "name": names[peer], "role": roles[peer]}
+			var row := {"peer": peer, "name": names[peer], "role": roles[peer], "bot": Session.is_ai_id(peer)}
 			for key in MatchManager.STAT_KEYS:
 				row[key] = mm.live_stats[peer].get(key, 0)
 			stats.append(row)
@@ -213,16 +229,30 @@ func _in_game() -> void:
 	await get_tree().create_timer(0.3).timeout
 
 
+## `d` with the made-up players 15 and 16 turned into bots -1001 and -1002 (--bots).
+func _as_bots(d: Dictionary) -> Dictionary:
+	var out := {}
+	for peer: int in d:
+		if peer == 15 or peer == 16:
+			out[-1001 - (peer - 15)] = d[peer]
+		else:
+			out[peer] = d[peer]
+	return out
+
+
 ## The minimap and the full map (M), seen by a supervisor and by a rat, with bodies around the plant: a
 ## revealed rat (the supervisor sees it), a caged one, one in the South Corridor, a damaged plant.
 func _map_shots(session: Session, names: Dictionary, roles: Dictionary) -> void:
 	var cage := get_tree().get_first_node_in_group(Cage.CAGE_GROUP) as Cage
 	var spots := {11: Vector3(-30, 0, 3), 12: Vector3(4, 0, -9), 13: Vector3(-46, 0, -16),
 		14: cage.global_position if cage != null else Vector3(37, 0, 2), 15: Vector3(-20, 0, 23)}
+	if Cli.has_arg("bots"):
+		spots = _as_bots(spots)
 	var bodies: Array[Player] = []
 	for peer: int in spots:
 		var body := session._spawn_player({"peer": peer, "name": names[peer], "role": roles[peer], "pos": spots[peer],
 			"yaw": 0.0, "locked": false}) as Player
+		body.is_bot = Session.is_ai_id(peer)  # (the badge; offline, a server-owned body would be "local")
 		session.players_root.add_child(body)
 		bodies.append(body)
 	await get_tree().create_timer(0.3).timeout

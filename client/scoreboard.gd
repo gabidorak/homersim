@@ -2,8 +2,9 @@ class_name Scoreboard
 extends CanvasLayer
 ## The scoreboard (M8, ClientOnly): shown while the scoreboard key (Tab) is held. During a match, one
 ## column per team: name, how they are doing (caged, out, knocked down…), their key stats so far
-## (MatchManager.live_stats) and ping (MatchManager.pings); spectators below. In the lobby: everyone
-## with their preferred role and ready state. Only reads replicated state.
+## (MatchManager.live_stats) and ping (MatchManager.pings), or a BOT badge for an AI bot (M10);
+## spectators below. In the lobby: everyone with their preferred role and ready state. Only reads
+## replicated state.
 
 const SUPERVISOR_COLOR := Color("ffc93c")
 const RAT_COLOR := Color("7bd389")
@@ -88,9 +89,12 @@ func _refresh() -> void:
 				watching.append(mm.roster[peer]["name"])
 		_footer.text = (tr("Watching: %s") % ", ".join(watching)) if not watching.is_empty() else \
 			tr("Hold %s to see this board") % Keys.label(&"scoreboard")
+		var bots := mm.roster.size() - mm.human_count()
+		if bots > 0:
+			_footer.text = tr("%d humans, %d bots") % [mm.human_count(), bots] + "  ·  " + _footer.text
 	else:
 		_columns.add_child(_lobby_list())
-		_footer.text = tr("%d / %d players") % [mm.roster.size(), int(info.get("max_players", 6))]
+		_footer.text = tr("%d / %d players") % [mm.human_count(), int(info.get("max_players", 6))]
 
 
 func _team(title: String, role: Role.Kind, color: Color, stat_keys: Array[String]) -> Control:
@@ -123,7 +127,12 @@ func _team(title: String, role: Role.Kind, color: Color, stat_keys: Array[String
 		var counts: Dictionary = mm.live_stats.get(peer, {})
 		for key in stat_keys:
 			grid.add_child(_cell(str(counts.get(key, 0)), Color.WHITE, false, true))
-		grid.add_child(_ping_cell(peer))
+		if e.get("bot", false):
+			var badge := Ui.bot_badge()
+			badge.size_flags_horizontal = Control.SIZE_SHRINK_END
+			grid.add_child(badge)
+		else:
+			grid.add_child(_ping_cell(peer))
 	return card
 
 

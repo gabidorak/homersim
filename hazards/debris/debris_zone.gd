@@ -38,6 +38,12 @@ func _ready() -> void:
 	set_process(not Net.is_server)
 
 
+## Server: the impacts on their way, [{"pos": Vector3, "at": server time}] (AI bots step away from
+## them: players see the warning circle, M10).
+func pending_impacts() -> Array[Dictionary]:
+	return _pending.duplicate()
+
+
 func _on_switched(value: bool) -> void:
 	_pending.clear()
 	if value:

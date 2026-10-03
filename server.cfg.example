@@ -14,3 +14,8 @@ password=""
 ; rules="res://data/match_rules.tres"
 ; min_players=3
 ; countdown_s=10
+; AI bots (M10): fill each match up to this many players at role assignment (2 to 6).
+; 0 = no bots. Humans always get their slots first; with bots on, one human can start a match.
+; bot_fill_to=6
+; 0 easy, 1 normal, 2 hard
+; bot_difficulty=1

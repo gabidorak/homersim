@@ -45,6 +45,11 @@ func _ready() -> void:
 		sensor.monitoring = Net.is_server and auto_open
 
 
+## The panel is all the way up (AI bots wait for it: a door still sliding blocks the way).
+func is_fully_open() -> bool:
+	return open and panel.position.distance_to(_closed_position + open_offset) < 0.05
+
+
 ## Server: open for `seconds` (keycard readers).
 func open_for(seconds: float) -> void:
 	_open_until = maxf(_open_until, _now() + seconds)

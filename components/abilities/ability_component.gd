@@ -23,7 +23,8 @@ var _preview_pos: Variant = null  # Vector3 where the trap would go, or null
 
 
 func _ready() -> void:
-	set_process(is_multiplayer_authority() and not body.role_data.abilities.is_empty())
+	# (not for an AI bot's body on the server: the AI calls AbilityService.ai_use directly)
+	set_process(is_multiplayer_authority() and not body.role_data.abilities.is_empty() and not Net.is_server)
 
 
 func primary() -> AbilityData:

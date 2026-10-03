@@ -48,6 +48,35 @@ func _exit_tree() -> void:
 	Sfx.clear_cache()  # quitting from a menu: the cached UI sounds must not outlive the engine
 
 
+## A little "BOT" tag in the theme's style (M10): yellow, ink outline with a deeper bottom edge, the
+## bold body font. The lobby, the scoreboard and the post-match screen mark AI bots with it.
+func bot_badge(font_size: int = 13) -> PanelContainer:
+	var badge := PanelContainer.new()
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color("ffc93c")
+	box.border_color = Color("1b1b1f")
+	box.set_border_width_all(2)
+	box.border_width_bottom = 3
+	box.set_corner_radius_all(6)
+	box.content_margin_left = 6
+	box.content_margin_right = 6
+	box.content_margin_top = 0
+	box.content_margin_bottom = 1
+	box.anti_aliasing = true
+	badge.add_theme_stylebox_override("panel", box)
+	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var label := Label.new()
+	label.text = tr("BOT")
+	label.add_theme_font_override("font", label.get_theme_font("font", &"Button"))
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", Color("1b1b1f"))
+	label.add_theme_constant_override("outline_size", 0)
+	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	badge.add_child(label)
+	return badge
+
+
 ## A UI sound (no position).
 func play(sound: String) -> void:
 	if is_inside_tree() and DisplayServer.get_name() != "headless":

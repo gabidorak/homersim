@@ -513,3 +513,6 @@ Lost?,Lost?,Perdu ?
 "%s opens the map of the plant, with every machine and your team. The minimap in the corner turns with you and names the room you're in.","%s opens the map of the plant, with every machine and your team. The minimap in the corner turns with you and names the room you're in.","%s ouvre la carte de la centrale, avec toutes les machines et votre équipe. La mini-carte dans le coin tourne avec vous et indique la pièce où vous êtes."
 Close,Close,Fermer
 Legend,Legend,Légende
+BOT,BOT,BOT
+Bots fill the match up to %d players,Bots fill the match up to %d players,Des bots complètent la partie jusqu'à %d joueurs
+"%d humans, %d bots","%d humans, %d bots","%d humains, %d bots"

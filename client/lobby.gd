@@ -1,6 +1,7 @@
 extends Control
 ## The lobby panel (M8): the server's name and match settings, one card per player (name, preferred
-## role, ready, ping), the role preference and the Ready button, plus the centre banner for the
+## role, ready, ping), a line when bots fill the matches (M10), the role preference and the Ready
+## button, plus the centre banner for the
 ## countdown ("You are a RAT!", the goal, the seconds left) and "GO!". Keys work without the mouse:
 ## 1 / 2 / 3 pick a preference, R toggles ready (rebindable). It only shows the replicated
 ## MatchManager state and sends requests; the server decides.
@@ -11,6 +12,8 @@ const RAT_COLOR := Color("7bd389")
 
 var _go_until_ms := 0
 var _cards_key := ""  # what the cards show, to rebuild them only when it changes
+var _bots_row: HBoxContainer  # "BOT  Bots fill the match up to 6 players"
+var _bots_label: Label
 
 @onready var panel: Control = %Panel
 @onready var status_label: Label = %StatusLabel
@@ -33,6 +36,7 @@ func _ready() -> void:
 	supervisor_button.pressed.connect(_request_pref.bind(Role.Kind.SUPERVISOR))
 	rat_button.pressed.connect(_request_pref.bind(Role.Kind.RAT))
 	ready_button.toggled.connect(_request_ready)
+	_build_bots_row()
 	_match().state_changed.connect(_on_state_changed)
 	_match().roster_changed.connect(_refresh)
 	Config.changed.connect(func(key: String) -> void:
@@ -112,6 +116,9 @@ func _refresh() -> void:
 	supervisor_button.text = "%s  [%s]" % [tr("Supervisor"), Keys.label(&"lobby_pref_supervisor")]
 	rat_button.text = "%s  [%s]" % [tr("Rat"), Keys.label(&"lobby_pref_rat")]
 	%Hint.text = tr("Esc opens the menu and frees the mouse to click here.")
+	var fill := int(info.get("bot_fill_to", 0))
+	_bots_row.visible = fill >= 2
+	_bots_label.text = tr("Bots fill the match up to %d players") % fill
 	var me := mm.entry(Session.current.local_peer_id)
 	if not me.is_empty():
 		# All three: set_pressed_no_signal() doesn't release the other buttons of the group.
@@ -123,6 +130,22 @@ func _refresh() -> void:
 		ready_button.text = "%s  [%s]" % [tr("Ready!") if me["ready"] else tr("Ready?"), Keys.label(&"lobby_ready")]
 	_update_cards()
 	_update_banner()
+
+
+## Under the summary: a BOT badge and "Bots fill the match up to N players" (server_info.bot_fill_to).
+func _build_bots_row() -> void:
+	_bots_row = HBoxContainer.new()
+	_bots_row.add_theme_constant_override("separation", 8)
+	_bots_row.add_child(Ui.bot_badge(14))
+	_bots_label = Label.new()
+	_bots_label.add_theme_font_override("font", _bots_label.get_theme_font("font", &"Button"))
+	_bots_label.add_theme_font_size_override("font_size", 16)
+	_bots_label.add_theme_color_override("font_color", Color("ffc93c"))
+	_bots_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_bots_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_bots_row.add_child(_bots_label)
+	_bots_row.visible = false
+	%Summary.add_sibling(_bots_row)
 
 
 func _update_cards() -> void:
