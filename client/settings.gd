@@ -132,6 +132,8 @@ func _build_video() -> void:
 		[Config.Shadows.HIGH, tr("High")]])
 	_toggle("video", tr("Ambient occlusion (SSAO)"), "ssao")
 	_toggle("video", tr("Glow"), "glow")
+	_option("video", tr("Outlines"), "outlines", [[Config.Outlines.FULL_SCREEN, tr("Full screen (Forward+)")],
+		[Config.Outlines.PER_OBJECT, tr("Per object (classic)")], [Config.Outlines.OFF, tr("None")]])
 	_option("video", tr("Renderer"), "renderer", [["forward_plus", tr("Forward+ (best looking)")],
 		["gl_compatibility", tr("Compatibility (older graphics cards)")]])
 	_restart_note = _note("video", "")

@@ -6,6 +6,8 @@
 // colour (rgb = n * 0.5 + 0.5, alpha = 0 as the marker); meshes without them use NORMAL.
 // The width is in metres at `reference_distance` and grows with distance up to `max_scale`, so the
 // line stays about as thick on screen near and far.
+// Drawn only while the global `outline_hull_enabled` is on (Config's "outlines" setting); the
+// full-screen lines (screen_ink.gdshader) replace it otherwise.
 shader_type spatial;
 render_mode unshaded, cull_front, skip_vertex_transform, shadows_disabled, fog_disabled;
 
@@ -14,6 +16,7 @@ uniform float outline_width : hint_range(0.0, 0.2) = 0.012;
 uniform float reference_distance = 2.0;
 uniform float min_scale = 0.6;
 uniform float max_scale = 6.0;
+global uniform bool outline_hull_enabled;
 
 void vertex() {
 	vec3 n = NORMAL;
@@ -25,6 +28,9 @@ void vertex() {
 	float scale = clamp(-VERTEX.z / reference_distance, min_scale, max_scale);
 	VERTEX += view_normal * outline_width * scale;
 	NORMAL = view_normal;
+	if (!outline_hull_enabled) {
+		VERTEX = vec3(0.0);  // every triangle shrinks to a point: nothing is drawn
+	}
 }
 
 void fragment() {

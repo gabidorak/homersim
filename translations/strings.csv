@@ -191,6 +191,10 @@ Medium,Medium,Moyennes
 High,High,Hautes
 Ambient occlusion (SSAO),Ambient occlusion (SSAO),Occlusion ambiante (SSAO)
 Glow,Glow,Halo lumineux
+Outlines,Outlines,Contours
+Full screen (Forward+),Full screen (Forward+),Plein écran (Forward+)
+Per object (classic),Per object (classic),Par objet (classique)
+None,None,Aucun
 Renderer,Renderer,Moteur de rendu
 Forward+ (best looking),Forward+ (best looking),Forward+ (le plus beau)
 Compatibility (older graphics cards),Compatibility (older graphics cards),Compatibilité (cartes graphiques anciennes)

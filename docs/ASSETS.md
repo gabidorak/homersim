@@ -7,6 +7,7 @@
   - `shaders/toon_light.gdshaderinc`: the shared `light()`: a stepped ramp (shadow, mid and lit bands, or a ramp texture) per light, and a rim light on the lit side. The ramp is exactly 0 without light (Forward+ evaluates a light only in the screen tiles it touches; leftover light shows as blocks).
   - `shaders/toon.gdshader`: models: palette texture × colour, an emissive slot, and per-instance `tint` / `glow` (instance uniforms: a lamp changes colour without a material copy).
   - `shaders/outline.gdshader`: inverted hull as `next_pass`, grown along **smoothed normals stored in the vertex colour** (alpha 0 marks them; `tools/blender/common.py` writes them), so hard-edged low-poly meshes don't tear at the corners.
+  - `shaders/screen_ink.gdshader`: **full-screen ink lines** (Forward+ only), opt-in (the default is the hull above): a screen-covering quad (`common/screen_ink.gd`, added by `Config` next to every WorldEnvironment) inks silhouettes and creases found in the depth and normal buffers, so level surfaces, contact lines (a pillar against a wall, a crate on the floor) and edges inside a model get lines too, all the same width in pixels. The **Outlines** video setting picks full screen, per object (the hull above; also the Compatibility fallback) or none; the hull is switched with the global shader uniform `outline_hull_enabled`.
   - `shaders/toon_world.gdshader`: level surfaces: patterns drawn from the world position (wainscot and panel seams on walls, tiles and checkers on floors, grating, hazard stripes, duct seams), so the baked shells need no UVs. One material per POI with its palette colours (written by `tools/map/gen_plant.py`).
   - `shaders/toon_glass.gdshader`: windows and lenses.
   - Shared materials: `shaders/materials/` (`toon_palette`, `toon_palette_flat`, `toon_emissive`, `toon_glass`, `outline`).
@@ -133,7 +134,7 @@ assets/
   audio/{sfx,music}/             (output of tools/audio)
   fonts/
   ui/
-shaders/                         toon, outline, toon_world, toon_glass (+ materials/)
+shaders/                         toon, outline, screen_ink, toon_world, toon_glass (+ materials/)
 levels/plant/shells/             CSG sources of the POI shells (not exported)
 levels/plant/baked/              the baked shell meshes and collision (tools/godot/bake_shells.gd)
 ```

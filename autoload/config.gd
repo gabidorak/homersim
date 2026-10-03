@@ -16,6 +16,9 @@ signal changed(key: String)  ## a user setting changed (and was applied)
 
 enum WindowMode { WINDOWED, FULLSCREEN, EXCLUSIVE }
 enum Shadows { LOW, MEDIUM, HIGH }
+## Ink lines: drawn over the whole screen from the depth and normal buffers (Forward+ only), as a hull
+## around each model (the original look), or not at all.
+enum Outlines { FULL_SCREEN, PER_OBJECT, OFF }
 
 const DEFAULT_MATCH_RULES := "res://data/match_rules.tres"
 const SERVER_DEFAULTS := {
@@ -42,7 +45,7 @@ const AUDIO_BUSES := {
 ## Each setting and its section in settings.cfg. A setting's default is the value its var starts with.
 const SECTIONS := {
 	"window_mode": "video", "resolution": "video", "vsync": "video", "max_fps": "video",
-	"render_scale": "video", "shadows": "video", "ssao": "video", "glow": "video",
+	"render_scale": "video", "shadows": "video", "ssao": "video", "glow": "video", "outlines": "video",
 	"sensitivity_fp": "controls", "sensitivity_tp": "controls", "invert_y": "controls", "fov": "controls",
 	"head_bob": "controls", "camera_shake": "controls", "minigame_repairs": "controls",
 	"volume_master": "audio", "volume_music": "audio", "volume_sfx": "audio", "volume_ui": "audio",
@@ -61,6 +64,7 @@ var render_scale := 1.0  ## 3D resolution; below 1 it is upscaled with AMD FSR (
 var shadows := Shadows.HIGH
 var ssao := true
 var glow := true
+var outlines := Outlines.PER_OBJECT  ## see outline_style()
 ## "forward_plus" or "gl_compatibility" (weak GPUs). Saved in override.cfg, used from the next start.
 var renderer := "forward_plus"
 # --- Controls ------------------------------------------------------------------
@@ -126,6 +130,7 @@ func _ready() -> void:
 		camera_shake = false
 	if DisplayServer.get_name() != "headless":
 		apply_all()
+		get_tree().node_added.connect(_on_node_added)
 	else:
 		# Headless processes (servers, test bots) show no text, and tests read their logs and prompts:
 		# keep them in English whatever the machine's language.
@@ -184,6 +189,8 @@ func clean_value(key: String, value: Variant) -> Variant:
 			return clampi(value, 0, WindowMode.size() - 1)
 		"shadows":
 			return clampi(value, 0, Shadows.size() - 1)
+		"outlines":
+			return clampi(value, 0, Outlines.size() - 1)
 		"resolution":
 			return Vector2i(clampi(value.x, 640, 7680), clampi(value.y, 360, 4320))
 		"max_fps":
@@ -371,7 +378,7 @@ func _exit_tree() -> void:
 # --- Applying settings ---------------------------------------------------------
 
 func apply_all() -> void:
-	for key: String in ["window_mode", "vsync", "max_fps", "render_scale", "shadows", "ssao", "language"]:
+	for key: String in ["window_mode", "vsync", "max_fps", "render_scale", "shadows", "ssao", "outlines", "language"]:
 		_apply(key)
 	for key: String in AUDIO_BUSES:
 		_apply(key)
@@ -416,6 +423,9 @@ func _apply(key: String) -> void:
 			RenderingServer.directional_soft_shadow_filter_set_quality(quality)
 			RenderingServer.positional_soft_shadow_filter_set_quality(quality)
 			root.positional_shadow_atlas_size = size
+		"outlines":
+			RenderingServer.global_shader_parameter_set(&"outline_hull_enabled",
+				outline_style() == Outlines.PER_OBJECT)  # ScreenInk nodes follow `changed` themselves
 		"ssao", "glow":
 			var world := root.find_world_3d()
 			if world != null and world.environment != null:
@@ -432,6 +442,23 @@ func apply_environment(env: Environment) -> void:
 		env.set_meta(&"level_glow", env.glow_enabled)
 	env.ssao_enabled = ssao and env.get_meta(&"level_ssao")
 	env.glow_enabled = glow and env.get_meta(&"level_glow")
+
+
+## The ink lines actually drawn: the full-screen ones need Forward+'s normal buffer, so the
+## Compatibility renderer falls back to the per-object hull.
+func outline_style() -> Outlines:
+	if outlines == Outlines.FULL_SCREEN and running_renderer() == "gl_compatibility":
+		return Outlines.PER_OBJECT
+	return outlines
+
+
+## Every 3D world (levels, the menu background, the art gallery…) gets the full-screen ink
+## lines next to its WorldEnvironment.
+func _on_node_added(node: Node) -> void:
+	if node is WorldEnvironment:
+		(func() -> void:
+			if is_instance_valid(node) and node.get_node_or_null(^"ScreenInk") == null:
+				node.add_child(ScreenInk.new())).call_deferred()
 
 
 func _apply_window() -> void:

@@ -38,6 +38,7 @@ func test_clean_value_clamps_and_converts() -> void:
 	assert_eq(Config.clean_value("volume_music", -1.0), 0.0)
 	assert_eq(Config.clean_value("render_scale", 0.1), 0.5)
 	assert_eq(Config.clean_value("window_mode", 9), Config.WindowMode.size() - 1)
+	assert_eq(Config.clean_value("outlines", -3), Config.Outlines.FULL_SCREEN)
 	assert_eq(Config.clean_value("resolution", Vector2(1920, 1080)), Vector2i(1920, 1080))
 	assert_eq(Config.clean_value("language", "klingon"), "")
 	assert_eq(Config.clean_value("renderer", "vulkan_magic"), "forward_plus")
@@ -158,6 +159,17 @@ func test_look_speed() -> void:
 	Config.sensitivity_tp = 0.5
 	assert_almost_eq(Config.look_speed(false), Config.BASE_SENSITIVITY * 2.0, 0.000001)
 	assert_almost_eq(Config.look_speed(true), Config.BASE_SENSITIVITY * 0.5, 0.000001)
+
+
+func test_outline_style_follows_the_setting() -> void:
+	Config.outlines = Config.Outlines.PER_OBJECT
+	assert_eq(Config.outline_style(), Config.Outlines.PER_OBJECT)
+	Config.outlines = Config.Outlines.OFF
+	assert_eq(Config.outline_style(), Config.Outlines.OFF)
+	Config.outlines = Config.Outlines.FULL_SCREEN
+	var expected := Config.Outlines.PER_OBJECT if Config.running_renderer() == "gl_compatibility" \
+		else Config.Outlines.FULL_SCREEN
+	assert_eq(Config.outline_style(), expected, "full screen needs Forward+")
 
 
 func test_apply_environment_never_turns_on_what_the_level_has_off() -> void:
