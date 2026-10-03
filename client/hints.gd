@@ -2,7 +2,7 @@ class_name Hints
 extends CanvasLayer
 ## First-time hints (M8, ClientOnly): a short tip the first time something happens (the lobby, each
 ## role's first match, getting caged, carrying a rat, a stolen keycard, the CCTV chair, the alarm,
-## being out…). Each one shows once, ever: Config.seen_hints remembers it (Settings → Gameplay brings
+## being out, the map…). Each one shows once, ever: Config.seen_hints remembers it (Settings → Gameplay brings
 ## them back). One at a time; the others wait their turn. Texts name the player's own keys.
 
 const CHECK_S := 0.25
@@ -113,6 +113,8 @@ func _current_situation() -> String:
 			elif role == Role.Kind.RAT:
 				if session.plant.alarm == PlantModel.Alarm.CRITICAL:
 					return "alarm_rat"
+			if MapInfo.plan_in(get_tree()) != null:
+				return "map"
 	return ""
 
 
@@ -136,6 +138,9 @@ func _still_relevant(id: String) -> bool:
 			return body != null and body.seated_console() != null
 		"eliminated", "spectator":
 			return mm.in_match()
+		"map":
+			var overlay := session.client_only.get_node_or_null("MapOverlay") as MapOverlay
+			return mm.state == MatchManager.State.PLAYING and not (overlay != null and overlay.is_open())
 	return mm.state == MatchManager.State.PLAYING
 
 
@@ -168,6 +173,9 @@ func text_of(id: String) -> Array[String]:
 			return [tr("Critical alarm!"), tr("The core is overheating. Fix the broken machines fast, or use the Control Room: emergency coolant cools it down, and SCRAM buys time.")]
 		"alarm_rat":
 			return [tr("Critical alarm!"), tr("The core is overheating: keep the machines broken and the meltdown meter climbs faster.")]
+		"map":
+			return [tr("Lost?"), tr("%s opens the map of the plant, with every machine and your team. The minimap in the corner turns with you and names the room you're in.")
+				% Keys.label(&"map")]
 		"eliminated":
 			return [tr("You're out"), tr("You were caught twice. Watch the rest of the match: %s / %s follow players, %s flies. Only other ghosts can read your messages.")
 				% [Keys.label(&"primary"), Keys.label(&"secondary"), Keys.move_label()]]

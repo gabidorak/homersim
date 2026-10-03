@@ -146,12 +146,13 @@ Godot RPCs and synchronizers only work when the node exists **at the same path, 
      │   │   │   props + PropCollision boxes, lights, Interactables, cameras, ladders, spawn points, occluders,
      │   │   │   NavigationLink3Ds, hazards (M6), ambient sounds and reverb areas (M7)
      │   │   ├─ OutOfBounds (kill volumes)
-     │   │   └─ OverviewPoint (where the camera looks from with no body)
+     │   │   ├─ OverviewPoint (where the camera looks from with no body)
+     │   │   └─ Map (MapInfo → PlantMap.tres, the plan the in-game map draws)
      │   ├─ Players (Node3D)  ← MultiplayerSpawner spawns Player.tscn, named by peer id
      │   └─ Dynamic (Node3D)  ← DynamicSpawner (MultiplayerSpawner) for traps, dropped keycards, later hazards
      ├─ ServerOnly (Node)     ← children added at runtime only when is_server():
      │   ├─ MovementValidator, HeatmapRecorder (M5), HazardDirector (M6), LanAnnouncer (M8); later ServerConsole
-     └─ ClientOnly (Node)     ← children added only on clients: OverviewCamera, SpectatorCam, CombatFeedback (sounds + VFX), HUD, Lobby, PostMatch, Chat UI, CctvView, DebugOverlay (M5), MinigameHost, AlarmEffects (M6), MusicDirector (M7), EventFeed, Hints, Scoreboard, PauseMenu (M8)
+     └─ ClientOnly (Node)     ← children added only on clients: OverviewCamera, SpectatorCam, CombatFeedback (sounds + VFX), HUD, Lobby, PostMatch, Chat UI, CctvView, DebugOverlay (M5), MinigameHost, AlarmEffects (M6), MusicDirector (M7), EventFeed, Hints, Scoreboard, PauseMenu (M8), MapOverlay (the minimap + the full map)
 ```
 - `server/ServerMain.tscn` = boot logic (read config, `Net.host()`) and then adds `Session` to the root.
 - `client/MainMenu.tscn` → `connect_to()` adds `Session` to the root, connects, and frees the menu once the server accepts the join. Any end of a session (refused, kicked, lost, left) goes through `Session._leave_to_menu(LeaveReason.Code, detail)`: if the menu is still open (a failed join) it just explains, otherwise the menu scene is loaded again and explains (see §4 Menus).
@@ -208,6 +209,7 @@ Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `Repa
 
 ### Levels
 - `levels/plant/Plant.tscn` and its POI scenes are written by `tools/map/gen_plant.py` from the layout numbers in that script, which also draws `docs/map/plant_layout_v1.png`. See [docs/map/README.md](map/README.md). Each POI root is a `Poi` (`levels/poi.gd`) with world-space bounds; `Poi.name_at(tree, pos)` names the room at a position.
+- The in-game map: the same script writes `levels/plant/PlantMap.tres`, a `LevelMap` (`levels/level_map.gd`: rooms with names, colours and label spots, walls, doors, keycard doors, windows, ducts, vent exits, ladders, the cooling tower, all as `Vector2(x, z)` metres), and puts a `MapInfo` node in Plant.tscn that points at it (`MapInfo.plan_in(tree)`; a level without one has no map). On clients `MapOverlay` (ClientOnly, layer 4) shows a minimap in the top right corner (follows the player, turns with the camera unless `Config.minimap_rotate` is off; hidden with `Config.show_minimap` off, at the CCTV chair, in the lobby and after the match), the name of the room the player is in under it, and the full map on the `map` key (M by default, a keycode rather than a physical key so it is M on AZERTY too; toggled, it doesn't free the mouse). Both are `MapView`s (`client/map_view.gd`), which draw the plan plus what they read from the level each frame: machines (`StationLabel` group, health colours), cages (occupants), pickups (supervisors) and bodies. They show the player's own team, enemies only while REVEALED, everyone to ghosts and in the lobby, and the vents to everyone but supervisors. The event feed starts under the minimap (`MapOverlay.feed_top()`).
 - Client-only props build their visuals in `_ready` and skip the headless server: `CctvScreen` and `StatusBoard` (a `SubViewport` rendered on demand, only while on screen), `AlarmBeacon`.
 - M7: each POI's static shell is one baked mesh + one concave collision shape (`levels/plant/baked/`, from the CSG sources in `levels/plant/shells/`, see `tools/godot/bake_shells.gd`); props are generated models placed on the layout boxes, which stay as the gameplay collision (`PropCollision`). `PlantProp` animates machine parts from subsystem health, `PropMultiMesh` draws long pipe runs, `AmbientSound` markers loop the hums, and `Area3D` reverb zones (layer `PhysicsLayers.AUDIO`) send the big halls' sounds to the HallReverb bus.
 - The CCTV view (`client/cctv_view.gd`) switches the main view to a temporary camera at the selected lens instead of rendering a second viewport. The level itself has no `Camera3D` nodes: Godot makes a stray camera current on its own.
@@ -343,7 +345,8 @@ homersim/
   translations/    strings.csv (keys = English, en, fr)
   client/          MainMenu.tscn menu_background.gd ServerBrowser.tscn lan_browser.gd Settings.tscn HowToPlay.tscn
                    Credits.tscn HUD.tscn Chat.tscn chat_filter.gd Lobby.tscn PostMatch.tscn pause_menu.gd scoreboard.gd
-                   event_feed.gd hints.gd SpectatorCam.tscn minigame_host.gd alarm_effects.gd menu_test_hooks.gd
+                   event_feed.gd hints.gd map_overlay.gd map_view.gd SpectatorCam.tscn minigame_host.gd alarm_effects.gd
+                   menu_test_hooks.gd
                    sfx.gd (sound bank) vfx.gd music_director.gd stun_stars.gd
                    ui/ (theme.tres, ui.gd autoload, message_dialog.gd)
   entities/player/ Player.tscn player.gd character_visual.gd  supervisor/ rat/ LobbyVisual.tscn (role visuals)
@@ -353,8 +356,9 @@ homersim/
                    cctv/ console_action/ vent/ ladder/ pickup/ trap/ body_handles/
   minigames/       minigame.gd wrench_rhythm/ breaker_sequence/ valve_rotate/
   hazards/         hazard.gd hazard_rules.gd steam_jet/ electric_puddle/ radiation_zone/ debris/ smoke/
-  levels/          poi.gd spawn_point.gd out_of_bounds.gd  test/TestArena.tscn
-                   plant/Plant.tscn + plant/pois/*.tscn + plant/materials/ + plant/shells/ (generated by tools/map/gen_plant.py)
+  levels/          poi.gd spawn_point.gd out_of_bounds.gd level_map.gd map_info.gd  test/TestArena.tscn
+                   plant/Plant.tscn + plant/PlantMap.tres + plant/pois/*.tscn + plant/materials/ + plant/shells/
+                   (generated by tools/map/gen_plant.py)
                    plant/baked/ (tools/godot/bake_shells.gd)  plant/props/ (alarm beacon, CCTV screens, status board,
                    plant_prop.gd, prop_multimesh.gd)  ambient_sound.gd
   data/            match_rules.tres plant_tuning.tres roles/ subsystems/ abilities/

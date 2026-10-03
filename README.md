@@ -96,8 +96,8 @@ still works if UDP 7777 is open). User settings are saved in `user://settings.cf
 `--settings PATH` uses another file. The language follows the system (English or French) or the Gameplay setting.
 In game (default keys, all rebindable in Settings → Controls; the game shows them as printed on your keyboard):
 WASD, mouse, Space to jump, Shift to sprint, **hold E** to sabotage (rats) or repair (supervisors), Enter to chat,
-T to chat with your team, hold Tab for the scoreboard, Esc for the menu (the game keeps running; a click in the
-view goes back to it). In the lobby, 1 / 2 / 3 pick the role you would like and R readies you up. Supervisors: LMB
+T to chat with your team, hold Tab for the scoreboard, M for the map of the plant (a minimap in the corner shows
+the rooms around you), Esc for the menu (the game keeps running; a click in the view goes back to it). In the lobby, 1 / 2 / 3 pick the role you would like and R readies you up. Supervisors: LMB
 swings the broom, E grabs a stunned rat and cages it, hold RMB then release to place a trap (Q switches snap trap /
 cheese lure). Rats: LMB bites, hold E behind a supervisor to steal its keycard, hold E at a cage to free a friend.
 Supervisors repair with a short mouse minigame (E at a repair point; Esc gives up; Settings → Controls, or

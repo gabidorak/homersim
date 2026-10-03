@@ -5,7 +5,7 @@ extends Node
 ## Always pass --settings with a throwaway file: the tour changes settings (name, favourites…).
 ## Shots: menu, welcome, browser_lan, browser_fav, settings_video, settings_controls, settings_audio,
 ## settings_gameplay, howto_supervisor, howto_rat, howto_controls, credits, error, password,
-## lobby, scoreboard, pause, feed, postmatch, hint.
+## lobby, scoreboard, pause, feed, minimap_supervisor, minimap_rat, map_supervisor, map_rat, postmatch, hint.
 
 const MENU := "res://client/MainMenu.tscn"
 
@@ -124,7 +124,7 @@ func _close_dialogs(root: Node) -> void:
 ## The in-game screens, on an offline Session filled with made-up players.
 func _in_game() -> void:
 	if not (_wanted("lobby") or _wanted("scoreboard") or _wanted("pause") or _wanted("feed")
-			or _wanted("postmatch") or _wanted("hint")):
+			or _wanted("postmatch") or _wanted("hint") or _wanted("minimap") or _wanted("map")):
 		return
 	get_tree().unload_current_scene()  # the menu goes; this runner lives on under root
 	await get_tree().create_timer(0.2).timeout
@@ -196,6 +196,8 @@ func _in_game() -> void:
 			Config.reset_hints()
 			hints.call("show_hint", "role_rat")
 			await _shot("hint", 0.8)
+	if _wanted("minimap") or _wanted("map"):
+		await _map_shots(session, names, roles)
 	if _wanted("postmatch"):
 		var stats: Array = []
 		for peer: int in roles:
@@ -209,3 +211,45 @@ func _in_game() -> void:
 		await _shot("postmatch", 2.0)
 	session.queue_free()
 	await get_tree().create_timer(0.3).timeout
+
+
+## The minimap and the full map (M), seen by a supervisor and by a rat, with bodies around the plant: a
+## revealed rat (the supervisor sees it), a caged one, one in the South Corridor, a damaged plant.
+func _map_shots(session: Session, names: Dictionary, roles: Dictionary) -> void:
+	var cage := get_tree().get_first_node_in_group(Cage.CAGE_GROUP) as Cage
+	var spots := {11: Vector3(-30, 0, 3), 12: Vector3(4, 0, -9), 13: Vector3(-46, 0, -16),
+		14: cage.global_position if cage != null else Vector3(37, 0, 2), 15: Vector3(-20, 0, 23)}
+	var bodies: Array[Player] = []
+	for peer: int in spots:
+		var body := session._spawn_player({"peer": peer, "name": names[peer], "role": roles[peer], "pos": spots[peer],
+			"yaw": 0.0, "locked": false}) as Player
+		session.players_root.add_child(body)
+		bodies.append(body)
+	await get_tree().create_timer(0.3).timeout
+	session.get_body(13).status.flags |= 1 << StatusComponent.Status.REVEALED
+	session.get_body(14).status.flags |= 1 << StatusComponent.Status.CAGED
+	if cage != null:
+		cage.occupants = PackedInt32Array([14])
+	session.plant.healths = PackedFloat32Array([0, 35, 100, 50, 80, 15])
+	session.plant.offline_mask = 1
+	var camera := Camera3D.new()
+	add_child(camera)
+	var overlay := session.client_only.get_node("MapOverlay") as MapOverlay
+	for view: Array in [[11, "supervisor", Vector3(1, -0.1, -0.5)], [13, "rat", Vector3(0.3, -0.2, 1)]]:
+		session.local_peer_id = view[0]
+		var eye := session.get_body(view[0]).global_position + Vector3.UP * 1.6
+		camera.look_at_from_position(eye, eye + (view[2] as Vector3))
+		camera.make_current()
+		Events.local_player_spawned.emit(session.get_body(view[0]))  # (the HUD shows that player's lines)
+		if _wanted("minimap"):
+			await _shot("minimap_" + view[1], 0.8)
+		if _wanted("map"):
+			overlay.set_open(true)
+			await _shot("map_" + view[1], 0.8)
+			overlay.set_open(false)
+	session.local_peer_id = 11
+	camera.queue_free()
+	for body in bodies:
+		body.queue_free()
+	if cage != null:
+		cage.occupants = PackedInt32Array()

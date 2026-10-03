@@ -514,8 +514,9 @@ func _build_client_ui() -> void:
 	var overlay := DebugOverlay.new()
 	overlay.name = "DebugOverlay"
 	client_only.add_child(overlay)
-	# M8: the event feed, first-time hints, the scoreboard (Tab) and the pause menu (Esc).
-	for node: Node in [EventFeed.new(), Hints.new(), Scoreboard.new(), PauseMenu.new()]:
+	# M8: the event feed, first-time hints, the scoreboard (Tab) and the pause menu (Esc). Then the
+	# minimap and the full map (M).
+	for node: Node in [EventFeed.new(), Hints.new(), Scoreboard.new(), PauseMenu.new(), MapOverlay.new()]:
 		node.name = (node.get_script() as Script).get_global_name()
 		client_only.add_child(node)
 	if OS.is_debug_build() and DebugHooks.wanted():

@@ -4,13 +4,16 @@ extends RefCounted
 ## "mouse:1"), and what the UI shows for it ("E", "LMB"). Keys are stored by their *physical*
 ## position (like the project's defaults), so WASD stays where it is on an AZERTY keyboard; the label
 ## is the key printed at that spot on the player's layout (Z Q S D in France).
+## One default is the other way round: the map is the letter M wherever the layout puts it (a keycode,
+## not a physical position), because there the letter is what players look for. A rebound map key is
+## physical like the rest.
 
 ## The actions players can rebind, in the order the Controls tab lists them. Esc (pause) is left out
 ## on purpose: it always opens the menu, so nobody can lock themselves out of the settings.
 const REBINDABLE: Array[StringName] = [
 	&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"sprint", &"crouch",
 	&"primary", &"secondary", &"interact", &"next_trap", &"emote",
-	&"chat", &"team_chat", &"scoreboard", &"lobby_ready", &"lobby_pref_any", &"lobby_pref_supervisor",
+	&"chat", &"team_chat", &"scoreboard", &"map", &"lobby_ready", &"lobby_pref_any", &"lobby_pref_supervisor",
 	&"lobby_pref_rat", &"spectate_up", &"spectate_down", &"debug_overlay", &"debug_stopwatch",
 ]
 
@@ -31,6 +34,7 @@ const ACTION_NAMES := {
 	&"chat": "Chat",
 	&"team_chat": "Team chat",
 	&"scoreboard": "Scoreboard (hold)",
+	&"map": "Map",
 	&"lobby_ready": "Lobby: ready",
 	&"lobby_pref_any": "Lobby: play any role",
 	&"lobby_pref_supervisor": "Lobby: play supervisor",
@@ -45,12 +49,12 @@ const ACTION_NAMES := {
 ## (Space for both "jump" and "fly up" is fine: a spectator has no body to jump with.)
 const GROUPS: Array[Array] = [
 	[&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"sprint", &"crouch", &"primary",
-		&"secondary", &"interact", &"next_trap", &"emote", &"chat", &"team_chat", &"scoreboard",
+		&"secondary", &"interact", &"next_trap", &"emote", &"chat", &"team_chat", &"scoreboard", &"map",
 		&"debug_overlay", &"debug_stopwatch"],
 	[&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"emote", &"chat", &"scoreboard",
-		&"lobby_ready", &"lobby_pref_any", &"lobby_pref_supervisor", &"lobby_pref_rat"],
+		&"map", &"lobby_ready", &"lobby_pref_any", &"lobby_pref_supervisor", &"lobby_pref_rat"],
 	[&"move_forward", &"move_back", &"move_left", &"move_right", &"sprint", &"primary", &"secondary", &"chat",
-		&"scoreboard", &"spectate_up", &"spectate_down"],
+		&"scoreboard", &"map", &"spectate_up", &"spectate_down"],
 ]
 
 const MOUSE_NAMES := {

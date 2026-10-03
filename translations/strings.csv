@@ -483,3 +483,29 @@ Vent Roof,Vent Roof,Toit des aérations
 Kicked for testing,Kicked for testing,Expulsé pour un test
 Repair minigames (Esc gives up),Repair minigames (Esc gives up),Mini-jeux de réparation (Échap abandonne)
 Hazards,Hazards,Accidents
+Map,Map,Carte
+Sunny Acres plant,Sunny Acres plant,Centrale de Sunny Acres
+Yard,Yard,Cour
+Control Room,Control Room,Salle de contrôle
+Break Room,Break Room,Salle de pause
+Locker Room,Locker Room,Vestiaires
+Storage,Storage,Réserve
+Main Hall East,Main Hall East,Grand couloir est
+South Corridor,South Corridor,Couloir sud
+Rat Nest,Rat Nest,Nid des rats
+In the vents,In the vents,Dans les conduits
+Ladder,Ladder,Échelle
+Your team,Your team,Votre équipe
+Revealed enemies,Revealed enemies,Ennemis repérés
+Players,Players,Joueurs
+Machine (colour = health),Machine (colour = health),Machine (couleur = état)
+Pickups,Pickups,Objets à ramasser
+Door,Door,Porte
+Keycard door,Keycard door,Porte à badge
+Vents (rats only),Vents (rats only),Conduits (rats seulement)
+Show the minimap,Show the minimap,Afficher la mini-carte
+Minimap turns with you,Minimap turns with you,La mini-carte tourne avec vous
+Lost?,Lost?,Perdu ?
+"%s opens the map of the plant, with every machine and your team. The minimap in the corner turns with you and names the room you're in.","%s opens the map of the plant, with every machine and your team. The minimap in the corner turns with you and names the room you're in.","%s ouvre la carte de la centrale, avec toutes les machines et votre équipe. La mini-carte dans le coin tourne avec vous et indique la pièce où vous êtes."
+Close,Close,Fermer
+Legend,Legend,Légende

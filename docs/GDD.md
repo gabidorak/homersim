@@ -215,6 +215,7 @@ player's keyboard. Esc can't be rebound (it always opens the menu).
 | Interact (hold) | E |
 | Chat / team chat | Enter / T |
 | Scoreboard (hold) | Tab |
+| Map (press again to close) | M |
 | Menu (frees the mouse; the game keeps running) | Esc |
 | Lobby: role preference any / supervisor / rat, ready | 1 / 2 / 3, R |
 | Emote | Z |
@@ -226,6 +227,7 @@ player's keyboard. Esc can't be rebound (it always opens the menu).
 - Global alarm music layers: calm, then warning, then critical (crossfade on alarm state). Room lights shift to amber (WARNING) and pulse red (CRITICAL); the HUD's edge tint flashes when the alarm gets worse.
 - Every action has an exaggerated SFX: bonk, squeak, SNAP, hiss, and a donut munch.
 - HUD: timer, meltdown meter, core temperature gauge, subsystem icons (health colour), status effect icons, and an interaction progress ring.
+- Map: a minimap in the top right corner (turns with the camera, names the room you're in) and the full plant map on M. Both show the machines in their health colour, the cages, your own team, and enemies only while they are Revealed (ghosts see everyone). Rats also see the vents, supervisors their pickups. Settings → Gameplay can hide the minimap or keep north up.
 
 ## 10. Post-1.0 ideas
 - Proximity voice chat (Opus via a Godot addon, or a GDExtension).

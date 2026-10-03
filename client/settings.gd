@@ -196,6 +196,8 @@ func _build_gameplay() -> void:
 	_header("gameplay", tr("Interface"))
 	_toggle("gameplay", tr("Hide rude words in the chat"), "chat_filter")
 	_toggle("gameplay", tr("Show FPS and ping"), "show_fps")
+	_toggle("gameplay", tr("Show the minimap"), "show_minimap")
+	_toggle("gameplay", tr("Minimap turns with you"), "minimap_rotate")
 	var hints := Button.new()
 	hints.text = tr("Show them again")
 	hints.pressed.connect(func() -> void:

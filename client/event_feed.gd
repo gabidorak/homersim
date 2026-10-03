@@ -38,12 +38,15 @@ func _ready() -> void:
 	_box.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	_box.offset_left = -434
 	_box.offset_right = -14
-	_box.offset_top = 30
+	_box.offset_top = MapOverlay.feed_top()  # (under the minimap)
 	_box.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_box.add_theme_constant_override("separation", 4)
 	_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_box)
 	Events.feed_event.connect(add_line)
+	Config.changed.connect(func(key: String) -> void:
+		if key == "show_minimap":
+			_box.offset_top = MapOverlay.feed_top())
 	Events.match_state_changed.connect(func(state: int) -> void:
 		if state == MatchManager.State.LOBBY:
 			clear())

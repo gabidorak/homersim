@@ -132,6 +132,13 @@ static func _indirect(keys: Dictionary) -> void:
 		var regex := RegEx.create_from_string("(?m)^label = \"([^\"]+)\"")
 		for m in regex.search_all(FileAccess.get_file_as_string(path)):
 			_add(keys, m.get_string(1), path)
+	# The in-game map (MapView, MapOverlay): each level plan's title and room names.
+	for path in _files("res://levels", [".tres"]):
+		if FileAccess.get_file_as_string(path).begins_with("[gd_resource type=\"Resource\" script_class=\"LevelMap\""):
+			var plan := load(path) as LevelMap
+			_add(keys, plan.title, path)
+			for room in plan.room_names:
+				_add(keys, room, path)
 
 
 static func _add(keys: Dictionary, text: String, where: String) -> void:

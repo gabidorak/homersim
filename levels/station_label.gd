@@ -1,10 +1,17 @@
 class_name StationLabel
 extends Label3D
 ## Floating name + health over a plant station, so everyone can read the plant at a glance.
+## The in-game map (MapView) finds the stations through these labels.
+
+const GROUP := "station_labels"
 
 @export var subsystem_id: StringName = &"pumps"
 
 var _index := -1
+
+
+func _enter_tree() -> void:
+	add_to_group(GROUP)
 
 
 func _ready() -> void:

@@ -5,10 +5,11 @@
 The plan is drawn by the same script that builds the level, so the two can't drift apart. North is up, the grid is 2 m (bold lines every 10 m), +X is east and +Z is south in Godot.
 
 ## How the layout is made
-- **Source of truth while it's a graybox: `tools/map/gen_plant.py`.** It holds every room, door, vent, station and camera as numbers, and writes `levels/plant/Plant.tscn`, one scene per POI in `levels/plant/pois/`, the colour-coded materials, this plan (`plant_layout_v1.png`) and `plant_layout_v1.json` (the pixel/metre mapping `tools/heatmap.py` uses).
+- **Source of truth while it's a graybox: `tools/map/gen_plant.py`.** It holds every room, door, vent, station and camera as numbers, and writes `levels/plant/Plant.tscn`, one scene per POI in `levels/plant/pois/`, the colour-coded materials, the plan the in-game map draws (`levels/plant/PlantMap.tres`), this plan (`plant_layout_v1.png`) and `plant_layout_v1.json` (the pixel/metre mapping `tools/heatmap.py` uses).
   ```bash
   python3 tools/map/gen_plant.py --force     # rebuild the level and the plan after changing a number
   python3 tools/map/gen_plant.py --png-only  # just redraw the plan
+  python3 tools/map/gen_plant.py --map-only  # just rewrite the in-game map (PlantMap.tres)
   ```
   `--force` overwrites `levels/plant/`. Once you start editing rooms by hand in the Godot editor, stop running it (or only use `--png-only`, and keep the numbers in the script in sync).
 - Rooms are rectangles between wall centre lines. Walls are 0.5 m thick and shared by neighbours (the taller room owns the wall). Openings are cut out of the walls: doors 2.0 × 2.6 m (the size of the M4 `Door` scenes, a little bigger than the 1.4 × 2.4 m in ASSETS §2), archways 3–4 m, windows, and vent holes 0.7 × 0.6 m.

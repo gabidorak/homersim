@@ -48,6 +48,7 @@ const SECTIONS := {
 	"volume_master": "audio", "volume_music": "audio", "volume_sfx": "audio", "volume_ui": "audio",
 	"volume_ambience": "audio",
 	"player_name": "gameplay", "chat_filter": "gameplay", "show_fps": "gameplay", "language": "gameplay",
+	"show_minimap": "gameplay", "minimap_rotate": "gameplay",
 	"last_address": "servers",
 }
 
@@ -83,6 +84,8 @@ var volume_ambience := 1.0
 var player_name := ""  ## "" until the player picked one (the menu asks at the first start)
 var chat_filter := true  ## mask rude words in the chat (client/chat_filter.gd)
 var show_fps := false  ## FPS and ping in the corner
+var show_minimap := true  ## the minimap in the top right corner (the full map on M is always there)
+var minimap_rotate := true  ## the minimap turns with the camera; false = north always up
 var language := ""  ## a LANGUAGES key; "" follows the system
 var last_address := ""  ## what was last typed in the server browser's address field
 

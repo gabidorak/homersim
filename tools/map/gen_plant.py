@@ -7,10 +7,11 @@ Writes:
   levels/plant/shells/*Shell.tscn      per POI, the CSG source of its static shell (floors, walls, ducts):
                                        tools/godot/bake_shells.gd bakes it into levels/plant/baked/
   levels/plant/materials/*.tres        toon_world materials (palette colours, world-space patterns)
+  levels/plant/PlantMap.tres           the plan the in-game map draws (LevelMap: rooms, walls, doors, vents)
   docs/map/plant_layout_v1.png         the top-down plan (2 m grid), also used by tools/heatmap.py
   docs/map/plant_layout_v1.json        how to map world metres onto that image
 
-Usage:  python3 tools/map/gen_plant.py [--force] [--png-only]
+Usage:  python3 tools/map/gen_plant.py [--force] [--png-only] [--map-only]
         godot --headless -s tools/godot/bake_shells.gd      (then bake the shells: always run both)
 
 This file is the source of truth for the layout while it is still a graybox: change a number here,
@@ -1378,6 +1379,9 @@ def build_plant_root():
     pitch = math.atan2(dy, math.hypot(dx, dz))
     s.node("OverviewPoint", "Marker3D", ".", {"position": V3(*eye), "rotation": V3(pitch, yaw, 0)},
            groups=["overview_point"])
+    # The in-game map's plan (write_level_map).
+    s.node("Map", "Node", ".", {"plan": s.ext_res("Resource", "res://levels/plant/PlantMap.tres")},
+           script="res://levels/map_info.gd")
     s.write(os.path.join(LEVEL_DIR, "Plant.tscn"))
 
 
@@ -1402,6 +1406,112 @@ def write_pois():
     for name, p in POIS.items():
         p.s.write(os.path.join(POI_DIR, name + ".tscn"))
         p.sh.write(os.path.join(SHELL_DIR, name + "Shell.tscn"))
+
+
+# --- The in-game map ---------------------------------------------------------------------------------
+# levels/plant/PlantMap.tres (a LevelMap, levels/level_map.gd): what the minimap and the full map (M) draw.
+# Points are (x, z) in metres; segments are pairs of points.
+
+MAP_PATH = os.path.join(LEVEL_DIR, "PlantMap.tres")
+MAP_TITLE = "Sunny Acres plant"
+MAP_AREA = (-56, -40, 56, 42)  # x0, z0, x1, z1: what the full map shows (the outer ducts, the nest)
+SUBSTATION_AREA = (-52, -38, -30, -24)  # the fenced corner of the yard
+COOLING_TOWER = (-2.0, -32.0, 6.0)  # x, z, radius
+# Bright palette colours, one per room (the map is cartoon-coloured like the UI; the plan image keeps ROOMS').
+MAP_COLORS = {
+    "YARD": "grey_light", "CR": "safety_yellow", "BR": "icing_pink", "LR": "sky", "PH": "teal_light",
+    "VC": "blue", "ST": "wood_light", "CG": "lavender", "MHW": "beige_light", "MHE": "beige_light",
+    "CS": "beige_light", "RH": "pipe_green_light", "TH": "orange", "NEST": "brown", "SUB": "pipe_green",
+    "ROOF": "steel_light",
+}
+
+
+def map_rooms():
+    """[(name, (x0, z0, x1, z1), colour, label (x, z))], in drawing order: outdoors first, then the
+    buildings, then the areas drawn over the yard (the substation, the vent roof block)."""
+    rooms = []
+    for rid, scene, name, x0, z0, x1, z1, h, color in sorted(ROOMS, key=lambda r: r[0] not in OUTDOOR):
+        corridor = rid in ("MHW", "MHE", "CS")
+        rooms.append((name, (x0, z0, x1, z1), PAL.COLORS[MAP_COLORS[rid]],
+                      ((x0 + x1) / 2, (z0 + z1) / 2 if corridor else z0 + 2.6)))
+    x0, z0, x1, z1 = SUBSTATION_AREA
+    rooms.append(("Substation", SUBSTATION_AREA, PAL.COLORS[MAP_COLORS["SUB"]], ((x0 + x1) / 2, z0 + 2.6)))
+    bx0, bz0, bx1, bz1 = BLOCK
+    rooms.append(("Vent Roof", BLOCK, PAL.COLORS[MAP_COLORS["ROOF"]], ((bx0 + bx1) / 2, bz0 + 2.6)))
+    return rooms
+
+
+def map_segment(axis, line, a, b):
+    return [(a, line), (b, line)] if axis == "z" else [(line, a), (line, b)]
+
+
+def map_vent_exits():
+    """Where a rat can get out of the ducts: holes in the walls next to a duct (not the ones a duct just
+    passes through), the open ends of ducts, the drop into the Control Room and the roof shaft."""
+    def passes_through(axis, line, c):
+        for name, (x0, z0), (x1, z1), y, e0, e1 in DUCTS:
+            if axis == "x" and abs(z0 - z1) < 1e-6 and abs(z0 - c) < 0.5 and min(x0, x1) < line < max(x0, x1):
+                return True
+            if axis == "z" and abs(x0 - x1) < 1e-6 and abs(x0 - c) < 0.5 and min(z0, z1) < line < max(z0, z1):
+                return True
+        return False
+
+    exits = [(line, c) if axis == "x" else (c, line) for axis, line, c, kind, w, sill, h in OPENINGS
+             if kind == "vent" and sill < 0.01 and not passes_through(axis, line, c)]
+    for name, p0, p1, y, e0, e1 in DUCTS:
+        exits += [p for p, end in ((p0, e0), (p1, e1)) if end in ("open", "flush", "drop")]
+    return exits + [SHAFT]
+
+
+def write_level_map():
+    walls, fences, doors, keycards, windows = [], [], [], [], []
+    for axis, line, a0, b0, hh, owner in wall_runs():
+        ops = openings_on(axis, line, a0, b0)
+        for pa, pb, y0, y1 in cut_run(a0, b0, hh, [(o[2], o[4], o[5], o[6]) for o in ops]):
+            if y0 < 0.01:
+                walls += map_segment(axis, line, pa, pb)
+        for _, _, c, kind, w, sill, oh in ops:
+            target = {"door": doors, "keycard": keycards, "window": windows}.get(kind)
+            if target is not None:
+                target += map_segment(axis, line, c - w / 2, c + w / 2)
+    bx0, bz0, bx1, bz1 = BLOCK  # the vent roof block's faces (its south face is the halls' wall)
+    walls += [(bx0, bz1), (bx0, bz0), (bx0, bz0), (bx1, bz0), (bx1, bz0), (bx1, bz1)]
+    for scene, axis, line, a0, b0, base, hh, ops in EXTRA_WALLS:
+        if base < 1:
+            for pa, pb, y0, y1 in cut_run(a0, b0, hh, [(c, ww, s, oh) for _, c, ww, s, oh in ops]):
+                if y0 < 0.01:
+                    fences += map_segment(axis, line, pa, pb)
+    ducts, raised = [], []
+    for name, p0, p1, y, e0, e1 in DUCTS:
+        (ducts if y < 0.5 else raised).extend([p0, p1])
+    for name, (xl, yl), (xh, yh), z in RAMPS:
+        raised += [(xl, z), (xh, z)]
+    rooms = map_rooms()
+
+    def points(pts):
+        return Raw("PackedVector2Array(%s)" % ", ".join("%s, %s" % (fmt(x), fmt(z)) for x, z in pts))
+
+    def rect(x0, z0, x1, z1):
+        return "Rect2(%s, %s, %s, %s)" % (fmt(x0), fmt(z0), fmt(x1 - x0), fmt(z1 - z0))
+
+    props = {
+        "title": MAP_TITLE,
+        "area": Raw(rect(*MAP_AREA)),
+        "room_names": Raw("PackedStringArray(%s)" % ", ".join(fmt(r[0]) for r in rooms)),
+        "room_rects": Raw("Array[Rect2]([%s])" % ", ".join(rect(*r[1]) for r in rooms)),
+        "room_colors": Raw("PackedColorArray(%s)" % ", ".join("%s, %s, %s, 1" % tuple(fmt(c) for c in r[2]) for r in rooms)),
+        "room_label_at": points([r[3] for r in rooms]),
+        "walls": points(walls), "fences": points(fences), "doors": points(doors), "keycard_doors": points(keycards),
+        "windows": points(windows), "vent_ducts": points(ducts), "raised_ducts": points(raised),
+        "vent_openings": points(map_vent_exits()), "ladders": points([LADDER_YARD]),
+        "circles": Raw("PackedVector3Array(%s)" % ", ".join(fmt(v) for v in COOLING_TOWER)),
+    }
+    out = ['[gd_resource type="Resource" script_class="LevelMap" load_steps=2 format=3]', "",
+           '[ext_resource type="Script" path="res://levels/level_map.gd" id="1_map"]', "", "[resource]",
+           'script = ExtResource("1_map")']
+    out += ["%s = %s" % (k, fmt(v)) for k, v in props.items()]
+    with open(MAP_PATH, "w") as f:
+        f.write("\n".join(out) + "\n")
 
 
 # --- The plan image ----------------------------------------------------------------------------------
@@ -1615,6 +1725,10 @@ def draw_plan():
 def main():
     force = "--force" in sys.argv
     png_only = "--png-only" in sys.argv
+    if "--map-only" in sys.argv:
+        write_level_map()
+        print("wrote levels/plant/PlantMap.tres")
+        return
     if not png_only:
         if os.path.exists(os.path.join(LEVEL_DIR, "Plant.tscn")) and not force:
             sys.exit("levels/plant/Plant.tscn exists: pass --force to overwrite the generated scenes "
@@ -1630,7 +1744,8 @@ def main():
         write_materials()
         write_pois()
         build_plant_root()
-        print("wrote %d POI scenes, %d materials and Plant.tscn" % (len(POIS), len(MATERIALS)))
+        write_level_map()
+        print("wrote %d POI scenes, %d materials, Plant.tscn and PlantMap.tres" % (len(POIS), len(MATERIALS)))
         if MISSING:
             print("models not generated yet (plain boxes instead): " + ", ".join(sorted(MISSING)))
         print("next: bake the shells with `godot --headless -s tools/godot/bake_shells.gd`")

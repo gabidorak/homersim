@@ -1,4 +1,4 @@
-[gd_scene load_steps=36 format=3]
+[gd_scene load_steps=38 format=3]
 
 [ext_resource type="PackedScene" path="res://levels/plant/pois/Yard.tscn" id="1_yard"]
 [ext_resource type="PackedScene" path="res://levels/plant/pois/Substation.tscn" id="2_substation"]
@@ -16,6 +16,8 @@
 [ext_resource type="PackedScene" path="res://levels/plant/pois/RatNest.tscn" id="14_ratnest"]
 [ext_resource type="PackedScene" path="res://levels/plant/pois/VentNetwork.tscn" id="15_ventnetwork"]
 [ext_resource type="Script" path="res://levels/out_of_bounds.gd" id="16_out_of_bound"]
+[ext_resource type="Resource" path="res://levels/plant/PlantMap.tres" id="17_plantmap"]
+[ext_resource type="Script" path="res://levels/map_info.gd" id="18_map_info"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.02, 0.03, 0.08, 1)
@@ -260,3 +262,7 @@ shape = SubResource("BoxShape3D_19")
 [node name="OverviewPoint" type="Marker3D" parent="." groups=["overview_point"]]
 position = Vector3(6, 48, 62)
 rotation = Vector3(-0.6414, 0.0935, 0)
+
+[node name="Map" type="Node" parent="."]
+script = ExtResource("18_map_info")
+plan = ExtResource("17_plantmap")
