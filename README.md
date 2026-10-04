@@ -76,9 +76,17 @@ any text missing from the CSV), and `godot --headless --import` to rebuild the `
 language is one more column plus an entry in `Config.LANGUAGES`.
 
 ## Running
-Start the game with no arguments: the menu asks for a name the first time, then **Play** opens the server
+Start the game with no arguments: the menu asks for a name the first time, then **Join a game** opens the server
 browser. Servers on your network show up by themselves (with their ping); others are joined by typing their
 address, and can be saved as favourites. Settings and How to play are in the menu, and in game behind Esc.
+
+**Play solo** and **Host a game** need no separate server: the game starts a hidden second copy of itself as a
+dedicated server and joins it. Play solo asks for the role you'd like, the bots' difficulty and the match size,
+then the match starts at once (nobody else can join, and the game doesn't pause). Host a game asks for a name, a
+password, the most players, the bots and the UDP port (7777). Friends on your network see the game in their
+server browser. To play over the internet, they type your public address, and UDP 7777 must be forwarded to your
+computer on your router. When the host leaves, the game ends for everyone. That server's log is
+`user://logs/local_server.log` (same folder as the settings, below).
 ```bash
 # dedicated server (from the editor build or an exported server binary)
 godot --headless -- --server --port 7777          # also: --max-players N, --config path, --password X, --no-lan, --debug-start [N]
@@ -127,9 +135,11 @@ tests/integration/hazards.sh          # on the plant: steam jets (both teams, on
 tests/integration/minigames.sh        # on the plant: the 3 repair minigames through the real overlay, a loss, a hacked instant win
 tests/integration/control_room.sh     # on the plant: emergency coolant (power, cooldown), SCRAM (cover, timer +30 s)
 tests/integration/menus_smoke.sh      # M8, the real menus: LAN discovery + join, password prompt, kicked, lost, timeout, bad address
+tests/integration/local_games.sh      # Play solo and Host a game: the client's own server, a LAN friend, the host leaving, busy port, crash
 # test-only client flags (debug builds): --pref rat|supervisor|any, --auto-ready, --say TEXT,
 #   --auto-move, --debug-speed N (fake speed hack), --screenshot PATH [--screenshot-delay S | --screenshot-times T1,T2,…],
-#   --debug-kick-me; in the menu (M8): --lan-join NAME, --auto-password A,B,…, --dismiss-errors
+#   --debug-kick-me, --leave-after S; in the menu (M8): --lan-join NAME, --auto-password A,B,…, --dismiss-errors,
+#   --solo [any|supervisor|rat], --host-game NAME [--host-port N] [--host-bots N], --local-server-args "…"
 # test-only server flags (debug builds): --allow-debug (debug RPCs such as teleport), --test-duration S,
 #   --exit-after-match, --result-file PATH
 # scripted bot client (debug builds): --bot rat|supervisor [--bot-target ID] [--bot-lever A|B] [--bot-delay S]

@@ -65,15 +65,21 @@ func _notification(what: int) -> void:
 		leave()
 
 
-func host(listen_port: int, max_clients: int) -> Error:
+## Listens on UDP `listen_port` (0 = any free port: `port` then tells which). `bind_ip` limits it to
+## one address of this machine, e.g. 127.0.0.1 for a solo game nobody else can reach.
+func host(listen_port: int, max_clients: int, bind_ip: String = "*") -> Error:
 	leave()
 	var peer := ENetMultiplayerPeer.new()
+	if bind_ip != "*":
+		if not bind_ip.is_valid_ip_address():
+			return ERR_INVALID_PARAMETER
+		peer.set_bind_ip(bind_ip)
 	var err := peer.create_server(listen_port, max_clients)
 	if err != OK:
 		return err
 	multiplayer.multiplayer_peer = peer
 	is_server = true
-	port = listen_port
+	port = peer.host.get_local_port()
 	return OK
 
 

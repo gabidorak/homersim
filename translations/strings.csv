@@ -516,3 +516,52 @@ Legend,Legend,Légende
 BOT,BOT,BOT
 Bots fill the match up to %d players,Bots fill the match up to %d players,Des bots complètent la partie jusqu'à %d joueurs
 "%d humans, %d bots","%d humans, %d bots","%d humains, %d bots"
+Join a game,Join a game,Rejoindre une partie
+Play solo,Play solo,Jouer en solo
+Host a game,Host a game,Héberger une partie
+A match against bots on this computer. Nobody else can join.,A match against bots on this computer. Nobody else can join.,Une partie contre des bots sur cet ordinateur. Personne d'autre ne peut la rejoindre.
+Start,Start,Lancer
+Bots,Bots,Bots
+%d players,%d players,%d joueurs
+Match size,Match size,Taille de la partie
+The match doesn't pause: Esc only opens the menu.,The match doesn't pause: Esc only opens the menu.,La partie ne se met pas en pause : Échap ouvre seulement le menu.
+"Your computer runs the game and you play in it. When you leave, the game ends for everyone.","Your computer runs the game and you play in it. When you leave, the game ends for everyone.","Votre ordinateur fait tourner la partie et vous y jouez. Quand vous partez, la partie s'arrête pour tout le monde."
+Host,Host,Héberger
+None: anyone can join,None: anyone can join,Aucun : tout le monde peut entrer
+Most players,Most players,Joueurs au maximum
+No bots,No bots,Pas de bots
+Fill up to %d players,Fill up to %d players,Jusqu'à %d joueurs
+Bot difficulty,Bot difficulty,Difficulté des bots
+UDP port,UDP port,Port UDP
+Show it on the local network,Show it on the local network,La montrer sur le réseau local
+Bots take the empty seats: %s and %s in all.,Bots take the empty seats: %s and %s in all.,Les bots prennent les places libres : %s et %s en tout.
+"Friends on your network find it in their server browser. Over the internet, they need your public address, and UDP port %s must be forwarded to this computer on your router.","Friends on your network find it in their server browser. Over the internet, they need your public address, and UDP port %s must be forwarded to this computer on your router.","Vos amis sur votre réseau la trouvent dans leur liste de serveurs. Par Internet, il leur faut votre adresse publique, et le port UDP %s doit être redirigé vers cet ordinateur sur votre box."
+You and %d bots: %s and %s.,You and %d bots: %s and %s.,Vous et %d bots : %s et %s.
+1 supervisor,1 supervisor,1 superviseur
+%d supervisors,%d supervisors,%d superviseurs
+1 rat,1 rat,1 rat
+%d rats,%d rats,%d rats
+Easy,Easy,Facile
+Normal,Normal,Normal
+Hard,Hard,Difficile
+Matches of %s (%s with one supervisor),Matches of %s (%s with one supervisor),Parties de %s (%s avec un seul superviseur)
+Press Ready to start a match against the bots.,Press Ready to start a match against the bots.,Appuyez sur Prêt pour lancer une partie contre les bots.
+You are the host. Friends on your network can also type %s,You are the host. Friends on your network can also type %s,Vous êtes l'hôte. Vos amis sur votre réseau peuvent aussi taper %s
+You are the host (UDP port %d).,You are the host (UDP port %d).,Vous êtes l'hôte (port UDP %d).
+Solo game,Solo game,Partie solo
+%s's plant,%s's plant,La centrale de %s
+Starting...,Starting...,Démarrage...
+Getting the plant ready...,Getting the plant ready...,On prépare la centrale...
+Quit the solo game,Quit the solo game,Quitter la partie solo
+Close the game,Close the game,Fermer la partie
+Quit the solo game?,Quit the solo game?,Quitter la partie solo ?
+The match ends and you go back to the main menu.,The match ends and you go back to the main menu.,La partie s'arrête et vous revenez au menu principal.
+Close the game?,Close the game?,Fermer la partie ?
+You are the host: the game ends for everyone.,You are the host: the game ends for everyone.,Vous êtes l'hôte : la partie s'arrête pour tout le monde.
+Game closed,Game closed,Partie fermée
+Can't start the game,Can't start the game,Impossible de lancer la partie
+"The player who hosted this game left, so the game is over.","The player who hosted this game left, so the game is over.",Le joueur qui hébergeait cette partie est parti : la partie est finie.
+"UDP port %s is already used on this computer, maybe by another server. Pick another port.","UDP port %s is already used on this computer, maybe by another server. Pick another port.","Le port UDP %s est déjà utilisé sur cet ordinateur, peut-être par un autre serveur. Choisissez un autre port."
+The game's server stopped while starting. Its log is in %s,The game's server stopped while starting. Its log is in %s,Le serveur de la partie s'est arrêté pendant son démarrage. Son journal est dans %s
+The game's server took too long to start. Its log is in %s,The game's server took too long to start. Its log is in %s,Le serveur de la partie a mis trop de temps à démarrer. Son journal est dans %s
+The game could not start its server.,The game could not start its server.,Le jeu n'a pas pu lancer son serveur.

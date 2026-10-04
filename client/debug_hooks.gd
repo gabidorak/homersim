@@ -9,9 +9,10 @@ extends Node
 ##                               with --screenshot-times T1,T2,… (s): one PNG per time, PATH_<T>.png
 ##   --debug-kick-me             ask the server to kick us (M8: the "kicked" message; server --allow-debug)
 ##   --spectate NAME|first       spectating: follow that player's body (M10 watch mode: a bot)
+##   --leave-after S             leave the game S seconds after joining (the pause menu's Leave)
 ## MovementComponent reads --auto-move and --debug-speed N itself.
 
-const FLAGS: Array[String] = ["pref", "auto-ready", "say", "screenshot", "debug-kick-me", "spectate"]
+const FLAGS: Array[String] = ["pref", "auto-ready", "say", "screenshot", "debug-kick-me", "spectate", "leave-after"]
 
 
 static func wanted() -> bool:
@@ -69,3 +70,8 @@ func _on_joined() -> void:
 	if Cli.has_arg("debug-kick-me"):
 		await get_tree().create_timer(0.5).timeout
 		session.request_debug_kick_me.rpc_id(1)
+	if Cli.has_arg("leave-after"):
+		await get_tree().create_timer(Cli.get_float("leave-after", 5.0)).timeout
+		if is_instance_valid(session) and session.is_inside_tree():
+			Log.info("debug", "--leave-after: leaving")
+			session.leave()

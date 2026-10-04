@@ -4,6 +4,9 @@ extends RefCounted
 ## connection failed or dropped, or the player left on purpose. Codes travel in on_join_rejected, so
 ## the server's rejections are shown in the player's language; log_text() is the English line for
 ## logs (the integration tests grep it).
+## A game hosted from a player's game (client/local_server.gd) adds two: the host left (the server
+## closes for everyone), and the server this game started for "Play solo" / "Host a game" didn't
+## start (detail: "port|<port>", "exit|<log file>", "timeout|<log file>" or "spawn").
 
 enum Code {
 	NONE,  ## left on purpose: no message
@@ -17,6 +20,8 @@ enum Code {
 	LEVEL,  ## detail: "<server level>|<our level>" (debug builds: --level)
 	KICKED,  ## detail: the server's reason
 	BAD_ADDRESS,  ## the client couldn't parse what was typed
+	HOST_LEFT,  ## the player hosting the game left, so the server closed
+	SERVER_START,  ## our own server (solo, hosting) didn't start; detail: see above
 }
 
 
@@ -44,6 +49,17 @@ static func log_text(code: Code, detail: String = "") -> String:
 			return "Kicked by the server" + (": " + detail if detail != "" else "")
 		Code.BAD_ADDRESS:
 			return "Invalid address: %s" % detail
+		Code.HOST_LEFT:
+			return "The host left"
+		Code.SERVER_START:
+			match parts[0]:
+				"port":
+					return "Could not start the server: UDP port %s is in use" % (parts[1] if parts.size() > 1 else "?")
+				"exit":
+					return "Could not start the server: it stopped (log: %s)" % (parts[1] if parts.size() > 1 else "?")
+				"timeout":
+					return "Could not start the server: it took too long (log: %s)" % (parts[1] if parts.size() > 1 else "?")
+			return "Could not start the server"
 	return "Left the server"
 
 
@@ -68,6 +84,10 @@ static func title(code: Code) -> String:
 			return TranslationServer.translate("Kicked")
 		Code.BAD_ADDRESS:
 			return TranslationServer.translate("Invalid address")
+		Code.HOST_LEFT:
+			return TranslationServer.translate("Game closed")
+		Code.SERVER_START:
+			return TranslationServer.translate("Can't start the game")
 	return ""
 
 
@@ -95,4 +115,16 @@ static func message(code: Code, detail: String = "") -> String:
 				("\n" + TranslationServer.translate(detail) if detail != "" else "")
 		Code.BAD_ADDRESS:
 			return TranslationServer.translate("'%s' is not a server address. Type it like 192.168.1.20:7777 or myserver.net (the port defaults to 7777).") % detail
+		Code.HOST_LEFT:
+			return TranslationServer.translate("The player who hosted this game left, so the game is over.")
+		Code.SERVER_START:
+			var more := parts[1] if parts.size() > 1 else "?"
+			match parts[0]:
+				"port":
+					return TranslationServer.translate("UDP port %s is already used on this computer, maybe by another server. Pick another port.") % more
+				"exit":
+					return TranslationServer.translate("The game's server stopped while starting. Its log is in %s") % more
+				"timeout":
+					return TranslationServer.translate("The game's server took too long to start. Its log is in %s") % more
+			return TranslationServer.translate("The game could not start its server.")
 	return ""

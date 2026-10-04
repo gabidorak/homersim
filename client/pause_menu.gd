@@ -2,7 +2,8 @@ class_name PauseMenu
 extends CanvasLayer
 ## The in-game menu (M8, ClientOnly): Esc opens it, Esc or Resume closes it. It doesn't pause anything
 ## (the match goes on for everyone, so it is really a "free the mouse" menu): Resume, How to play,
-## Settings, Leave. While it is open the mouse is free, so the lobby panel can be clicked too;
+## Settings, Leave. In a game this game started (LocalServer), Leave ends it: "Quit the solo game", or
+## "Close the game" for the host (everyone goes back to their menu). While it is open the mouse is free, so the lobby panel can be clicked too;
 ## clicking the 3D view captures the mouse again, which closes the menu.
 ## The chat and the repair minigames take Esc first while they are open (they handle it in _input).
 
@@ -86,7 +87,9 @@ func _build() -> void:
 	_resume = _button(col, tr("Resume"), &"AccentButton", close)
 	_button(col, tr("How to play"), &"", _open_sub.bind(HOW_TO_SCENE))
 	_button(col, tr("Settings"), &"", _open_sub.bind(SETTINGS_SCENE))
-	_button(col, tr("Leave the server"), &"DangerButton", _ask_leave)
+	var local := LocalServer.for_session()
+	_button(col, tr("Leave the server") if local == null else tr("Quit the solo game") if local.mode == LocalServer.Mode.SOLO
+		else tr("Close the game"), &"DangerButton", _ask_leave)
 	var note := Label.new()
 	note.theme_type_variation = &"MutedLabel"
 	note.text = tr("The game goes on while this menu is open.")
@@ -174,9 +177,18 @@ func _close_sub() -> void:
 
 func _ask_leave() -> void:
 	var in_match := Session.current.match_manager.in_match()
-	var box := MessageDialog.confirm(_root, tr("Leave the server?"),
-		tr("The match goes on without you.") if in_match else tr("You can come back from the server browser."),
-		tr("Leave"), tr("Stay"), true)
+	var local := LocalServer.for_session()
+	var box: MessageDialog
+	if local != null and local.mode == LocalServer.Mode.SOLO:
+		box = MessageDialog.confirm(_root, tr("Quit the solo game?"), tr("The match ends and you go back to the main menu."),
+			tr("Quit"), tr("Stay"), true)
+	elif local != null:
+		box = MessageDialog.confirm(_root, tr("Close the game?"), tr("You are the host: the game ends for everyone."),
+			tr("Close"), tr("Stay"), true)
+	else:
+		box = MessageDialog.confirm(_root, tr("Leave the server?"),
+			tr("The match goes on without you.") if in_match else tr("You can come back from the server browser."),
+			tr("Leave"), tr("Stay"), true)
 	box.closed.connect(func(ok: bool, _t: String) -> void:
 		if ok:
 			Session.current.leave()

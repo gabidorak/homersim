@@ -24,6 +24,12 @@ extends Node
 ## AI bots (M10, ARCHITECTURE §6): their bodies spawn like players' (spawn_body) but have negative
 ## ids (is_ai_id) and are owned and moved by the server (AiDirector, under ServerOnly). They are in
 ## MatchManager.roster, never in `players`, so nothing that talks to connected peers sees them.
+##
+## Hosted games ("Play solo", "Host a game": a server that a player's game started, see
+## client/local_server.gd): that player's client proves it is the host with `host_token`
+## (request_claim_host, right after joining). When the host leaves, the server sends everyone back to
+## their menu (on_host_left) and quits. For solo, the client also asks for its role and readies up at
+## once (`ready_as`), so the match starts without a stop in the lobby.
 
 signal joined  ## client: the server accepted us
 signal roster_changed
@@ -59,6 +65,11 @@ var password := ""  ## "" = anyone may join
 ## Client settings, set by the menu before the node enters the tree.
 var desired_name := JoinRules.DEFAULT_NAME
 var desired_password := ""
+## A game started by a player's game (LocalServer). Server: the token its host proves itself with
+## ("" = a normal dedicated server). Host's client: the token to send.
+var host_token := ""
+## Client, solo: the role preference to ask for once accepted, readying up at once (-1 = don't).
+var ready_as := -1
 
 ## Joined players by peer id (on the server and, via RPCs, on clients).
 var players: Dictionary[int, PlayerInfo] = {}
@@ -80,6 +91,8 @@ var level: Node3D  ## the loaded level scene (Plant or TestArena)
 var _pending: Dictionary[int, bool] = {}  # server: connected peers that haven't joined yet
 var _kicked: Dictionary[int, bool] = {}  # server: peers told to go, about to be dropped
 var _retire_acks: Dictionary[int, bool] = {}  # server: peers asked to stop syncing -> confirmed
+var _host_peer := 0  # server: the peer that proved it is the host (host_token), 0 = none
+var _closing := false  # server: the host left, the server is about to quit
 var _leaving := false
 
 @onready var match_manager: MatchManager = $MatchManager
@@ -229,6 +242,20 @@ func _on_peer_left(peer_id: int) -> void:
 		on_player_left.rpc_id(other, peer_id)
 	chat.broadcast_system("%s left", [info.name])
 	player_removed.emit(peer_id)
+	if peer_id == _host_peer:
+		_close_hosted_game()
+
+
+## Server: the host left a game its own game started. Everyone else goes back to their menu with a
+## message, then the server quits (the host's game would stop it anyway).
+func _close_hosted_game() -> void:
+	if _closing:
+		return
+	_closing = true
+	Log.info("session", "the host left, closing the server (%d player(s) sent back to their menu)" % players.size())
+	for peer: int in players:
+		on_host_left.rpc_id(peer)
+	get_tree().create_timer(REJECT_DISCONNECT_DELAY_S).timeout.connect(get_tree().quit)
 
 
 @rpc("any_peer", "reliable")
@@ -263,6 +290,20 @@ func request_join(player_name: String, version: String, level_name: String, join
 			on_player_joined.rpc_id(other, info.to_dict())
 	chat.broadcast_system("%s joined", [info.name])
 	player_added.emit(peer_id)
+
+
+## Client → server, right after joining: "my game started this server" (`token` is the one it gave
+## the server on its command line). Only one player can be the host.
+@rpc("any_peer", "reliable")
+func request_claim_host(token: String) -> void:
+	if not multiplayer.is_server():
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	if host_token == "" or token != host_token or _host_peer != 0 or not players.has(peer):
+		Log.warn("session", "refused a host claim from peer %d" % peer)
+		return
+	_host_peer = peer
+	Log.info("session", "%s is the host: the server closes when the host leaves" % players[peer].name)
 
 
 ## Server: remove a joined player, telling it why first (`reason`, English; the client translates
@@ -439,6 +480,11 @@ func on_join_accepted(peer_id: int, roster_data: Array) -> void:
 		players[info.peer_id] = info
 	var me: PlayerInfo = players.get(peer_id)
 	Log.info("session", "joined as %s, %d player(s) online" % [me.name if me else "?", players.size()])
+	if host_token != "":
+		request_claim_host.rpc_id(1, host_token)
+	if ready_as >= 0:
+		match_manager.request_set_pref.rpc_id(1, ready_as)
+		match_manager.request_set_ready.rpc_id(1, true)
 	roster_changed.emit()
 	joined.emit()
 
@@ -461,6 +507,12 @@ func on_join_rejected(code: int, detail: String) -> void:
 @rpc("authority", "reliable")
 func on_kicked(reason: String) -> void:
 	_leave_to_menu(LeaveReason.Code.KICKED, reason)
+
+
+## Server → everyone left: the host left, the server is closing.
+@rpc("authority", "reliable")
+func on_host_left() -> void:
+	_leave_to_menu(LeaveReason.Code.HOST_LEFT, "")
 
 
 @rpc("authority", "reliable")

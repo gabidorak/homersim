@@ -1,11 +1,14 @@
 class_name MainMenu
 extends Control
-## The main menu (M8): Play (the server browser), How to play, Settings, Credits, Quit, over a little
-## 3D diorama (MenuBackground). It also runs the joining itself: connect_to() creates the Session,
-## connects, and shows "Connecting…" with a Cancel button; the menu frees itself once the server
-## accepts us. When a session ends (refused, kicked, connection lost, the player left), Session
-## sets leave_code and comes back here, and the menu explains what happened in a box, or asks for the
-## password and tries again.
+## The main menu (M8): Join a game (the server browser), Play solo, Host a game, How to play, Settings,
+## Credits, Quit, over a little 3D diorama (MenuBackground). It also runs the joining itself:
+## connect_to() creates the Session, connects, and shows "Connecting…" with a Cancel button; the menu
+## frees itself once the server accepts us.
+## Play solo and Host a game open a card of choices (GameSetup), then start_local() starts a server on
+## this computer (LocalServer), waits for it ("Starting…" with Cancel), and joins it.
+## When a session ends (refused, kicked, connection lost, the player left), Session sets leave_code and
+## comes back here, and the menu explains what happened in a box, or asks for the password and tries
+## again.
 ## The first start asks for a name (Config.player_name). `--name X` plays as X without saving it;
 ## `--connect host:port` joins straight away (once: not again after a disconnect).
 
@@ -14,6 +17,7 @@ const BROWSER_SCENE: PackedScene = preload("res://client/ServerBrowser.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://client/Settings.tscn")
 const HOW_TO_SCENE: PackedScene = preload("res://client/HowToPlay.tscn")
 const CREDITS_SCENE: PackedScene = preload("res://client/Credits.tscn")
+const SETUP_SCENE: PackedScene = preload("res://client/GameSetup.tscn")
 
 ## Why the last session ended (Session sets it before coming back); shown once.
 static var leave_code := LeaveReason.Code.NONE
@@ -39,6 +43,8 @@ func _ready() -> void:
 	PlayerInput.blocked = false
 	%Version.text = "v" + Session.game_version()
 	play_button.pressed.connect(func() -> void: _open(BROWSER_SCENE, play_button))
+	%SoloButton.pressed.connect(func() -> void: _open(SETUP_SCENE, %SoloButton, {"hosting": false}))
+	%HostButton.pressed.connect(func() -> void: _open(SETUP_SCENE, %HostButton, {"hosting": true}))
 	%HowToButton.pressed.connect(func() -> void: _open(HOW_TO_SCENE, %HowToButton))
 	%SettingsButton.pressed.connect(func() -> void: _open(SETTINGS_SCENE, %SettingsButton))
 	%CreditsButton.pressed.connect(func() -> void: _open(CREDITS_SCENE, %CreditsButton))
@@ -99,16 +105,21 @@ func ask_name(first: bool = false) -> void:
 
 # --- Screens -------------------------------------------------------------------
 
-func _open(scene: PackedScene, opener: Button) -> void:
+## Opens a sub-screen; `props` are set on it before it enters the tree.
+func _open(scene: PackedScene, opener: Button, props: Dictionary = {}) -> void:
 	_close_screen()
 	_opener = opener
 	_screen = scene.instantiate()
+	for key: String in props:
+		_screen.set(key, props[key])
 	screens.add_child(_screen)
 	home.visible = false
 	%Shade.visible = scene != BROWSER_SCENE and scene != SETTINGS_SCENE  # those have their own panel
 	_screen.connect("closed", _close_screen)
 	if _screen.has_signal("join_requested"):
 		_screen.connect("join_requested", _on_join_requested)
+	if _screen.has_signal("start_requested"):
+		_screen.connect("start_requested", start_local)
 	reopen_browser = scene == BROWSER_SCENE
 
 
@@ -132,9 +143,42 @@ func _on_join_requested(address: String, server_name: String, locked: bool) -> v
 		connect_to(address, "", server_name)
 
 
+## Starts a server on this computer (Play solo, Host a game; `options` from LocalServer), then joins it.
+func start_local(mode: LocalServer.Mode, options: Dictionary) -> void:
+	if Session.current != null or is_instance_valid(_connecting):
+		return  # already joining
+	if player_name() == "":
+		Config.set_value("player_name", JoinRules.DEFAULT_NAME)
+	var server := LocalServer.new()
+	server.name = "LocalServer"
+	get_tree().root.add_child(server)
+	server.started.connect(func(port: int) -> void:
+		_close_connecting()
+		connect_to("127.0.0.1:%d" % port, str(options["password"]), str(options["name"]), server))
+	server.failed.connect(func(code: LeaveReason.Code, detail: String) -> void:
+		_close_connecting()
+		_show_error(code, detail))
+	server.start(mode, options)
+	if server.state != LocalServer.State.STARTING:
+		return  # (failed already: the error box is up)
+	_connecting = MessageDialog.inform(self, tr("Starting..."), tr("Getting the plant ready..."), tr("Cancel"))
+	_connecting.ok_button.theme_type_variation = &""
+	_connecting.closed.connect(func(_ok: bool, _t: String) -> void:
+		_connecting = null
+		Log.info("menu", "start cancelled")
+		server.stop())
+
+
+func _close_connecting() -> void:
+	if is_instance_valid(_connecting):
+		_connecting.queue_free()
+	_connecting = null
+
+
 ## Joins `address` ("host" or "host:port"). Creates the Session first: the server starts replicating
-## (spawning the other players) as soon as the connection is up.
-func connect_to(address: String, password: String = "", server_name: String = "") -> void:
+## (spawning the other players) as soon as the connection is up. `local`: the server this game started
+## (start_local), which then serves this session.
+func connect_to(address: String, password: String = "", server_name: String = "", local: LocalServer = null) -> void:
 	if Session.current != null:
 		return  # already connecting
 	var addr := Net.parse_address(address)
@@ -149,6 +193,8 @@ func connect_to(address: String, password: String = "", server_name: String = ""
 	session.desired_name = player_name()
 	session.desired_password = password
 	session.joined.connect(queue_free)
+	if local != null:
+		local.serve(session)  # (before the session's UI is built: it adapts to a game we host)
 	get_tree().root.add_child(session)
 	var err := Net.join(addr["host"], addr["port"])
 	if err != OK:
@@ -170,9 +216,7 @@ func connect_to(address: String, password: String = "", server_name: String = ""
 ## Called by Session when it ended while this menu was still open (a failed or cancelled join), and
 ## by _ready after a session ended in game. Returns true if it showed something.
 func show_leave_reason() -> bool:
-	if is_instance_valid(_connecting):
-		_connecting.queue_free()
-		_connecting = null
+	_close_connecting()
 	var code := leave_code
 	var detail := leave_detail
 	leave_code = LeaveReason.Code.NONE

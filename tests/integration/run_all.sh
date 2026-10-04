@@ -14,8 +14,8 @@ if [ "${1:-}" = "--list" ]; then LIST=1; shift; fi
 if [ "${1:-}" = "-j" ]; then JOBS=$2; shift 2; fi
 # Longest first, so the slowest ones don't start last (here and in CI).
 ALL=(ai_match ai_steal ai_items ai_nav_tour ai_cctv ai_control ai_lever pvp_items hazards critical_lever minigames
-	pvp_swarm run_match_loop pvp_capture lobby_smoke plant_cctv menus_smoke ai_fill pvp_hack control_room join_smoke
-	ai_target ai_capture map_check)
+	pvp_swarm run_match_loop pvp_capture local_games lobby_smoke plant_cctv menus_smoke ai_fill pvp_hack control_room
+	join_smoke ai_target ai_capture map_check)
 if [ $# -gt 0 ]; then
 	TESTS=("$@")
 else

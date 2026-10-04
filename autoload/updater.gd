@@ -35,8 +35,7 @@ var _cancelled := false
 var _busy := false
 var _restart_pending := false  # server child: new binary installed, restart once the server is empty
 var _worker_pid := -1  # supervisor: the server child
-var _supervisor_alive := true
-var _watch_task := -1  # Windows: background `tasklist` call
+var _supervisor: ProcessWatch  # server child: the supervisor process
 
 
 func _ready() -> void:
@@ -46,6 +45,7 @@ func _ready() -> void:
 		return
 	_remove_old_binaries()
 	if is_supervised():
+		_supervisor = ProcessWatch.new(Cli.get_int(SUPERVISOR_ARG))
 		_add_timer(2.0, _watch)
 		_add_timer(Cli.get_float("update-interval", UPDATE_INTERVAL_S), _check_while_idle)
 
@@ -274,27 +274,18 @@ func _check_worker() -> void:
 ## Server child: stop when the supervisor is gone (Ctrl+C, closed terminal, kill), and restart once
 ## the server is empty after an update was installed.
 func _watch() -> void:
-	if not _supervisor_alive:
+	if not _supervisor.alive():
 		Log.info("update", "supervisor process is gone, stopping the server")
 		get_tree().quit()
 		return
-	if OS.get_name() == "Windows":
-		# A Windows process can only query its own children, so ask tasklist (in the background: it is slow).
-		if _watch_task == -1 or WorkerThreadPool.is_task_completed(_watch_task):
-			if _watch_task != -1:
-				WorkerThreadPool.wait_for_task_completion(_watch_task)
-			_watch_task = WorkerThreadPool.add_task(_poll_tasklist.bind(Cli.get_int(SUPERVISOR_ARG)))
-	else:
-		_supervisor_alive = DirAccess.dir_exists_absolute("/proc/%d" % Cli.get_int(SUPERVISOR_ARG))
 	if _restart_pending and _server_empty():
 		Log.info("update", "server is empty, restarting on the new build")
 		get_tree().quit(EXIT_RESTART)
 
 
-func _poll_tasklist(pid: int) -> void:
-	var out: Array = []
-	if OS.execute("tasklist", ["/FI", "PID eq %d" % pid, "/NH", "/FO", "CSV"], out) == 0:
-		_supervisor_alive = not out.is_empty() and str(out[0]).contains("\"%d\"" % pid)
+func _exit_tree() -> void:
+	if _supervisor != null:
+		_supervisor.finish()
 
 
 func _check_while_idle() -> void:

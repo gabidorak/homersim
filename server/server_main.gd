@@ -3,6 +3,11 @@ extends Node
 ## Session at /root/Session. The server has no camera and no player body.
 ## Started without --headless (the editor's Run Instances, a terminal) it still gets a window, which
 ## it doesn't render (_windowed).
+## A player's game can start this server itself, for "Play solo" and "Host a game"
+## (client/local_server.gd). It then passes, besides --config: --bind 127.0.0.1 (solo: nobody else can
+## reach it), --port 0 (any free port), --ready-file PATH (written once the server listens:
+## {"port": N}, or {"error": "port", "port": N} if it can't), --owner-pid PID (stop when that game is
+## gone) and --host-token T (Session.host_token: the server closes when the host leaves).
 
 const SESSION_SCENE: PackedScene = preload("res://common/Session.tscn")
 ## Extra ENet slots beyond max_players. Without them ENet itself refuses surplus clients, who then
@@ -10,6 +15,9 @@ const SESSION_SCENE: PackedScene = preload("res://common/Session.tscn")
 const EXTRA_SLOTS := 2
 const SERVER_NAME_DEFAULT := "HomerSim server"
 const WINDOWED_MAX_FPS := 120  ## a windowed server draws nothing, so nothing else paces its main loop
+const OWNER_CHECK_S := 2.0  ## --owner-pid: how often to check that the game that started us still runs
+
+var _owner: ProcessWatch
 
 
 func _ready() -> void:
@@ -44,9 +52,12 @@ func _boot() -> void:
 	var port := Cli.get_int("port", int(cfg["port"]))
 	var max_players := clampi(Cli.get_int("max-players", int(cfg["max_players"])), 1, 16)
 
-	var err := Net.host(port, max_players + EXTRA_SLOTS)
+	var bind_ip := Cli.get_str("bind", "*")
+	var err := Net.host(port, max_players + EXTRA_SLOTS, bind_ip)
 	if err != OK:
-		Log.error("server", "cannot listen on UDP port %d: %s" % [port, error_string(err)])
+		Log.error("server", "cannot listen on UDP port %d%s: %s" % [port, "" if bind_ip == "*" else " of " + bind_ip,
+			error_string(err)])
+		_write_ready_file({"error": "port", "port": port})
 		get_tree().quit(1)
 		return
 
@@ -56,9 +67,48 @@ func _boot() -> void:
 	var server_name := ChatService.clean(str(cfg["name"])).substr(0, LanDiscovery.MAX_NAME)
 	session.server_name = server_name if server_name != "" else SERVER_NAME_DEFAULT
 	session.password = Cli.get_str("password", str(cfg["password"]))
+	session.host_token = Cli.get_str("host-token")
 	get_tree().root.add_child(session)
-	Log.info("server", "'%s' listening on UDP %d, max %d players, version %s%s"
-		% [session.server_name, port, max_players, Session.game_version(), ", password protected" if session.password != "" else ""])
+	Log.info("server", "'%s' listening on UDP %d%s, max %d players, version %s%s"
+		% [session.server_name, Net.port, "" if bind_ip == "*" else " of " + bind_ip, max_players,
+		Session.game_version(), ", password protected" if session.password != "" else ""])
+	if Cli.has_arg("owner-pid"):
+		_watch_owner(Cli.get_int("owner-pid"))
+	_write_ready_file({"port": Net.port})
+
+
+## --ready-file: tells the game that started this server that it listens (or why it can't). Written
+## under another name, then renamed, so the game never reads half a file.
+func _write_ready_file(data: Dictionary) -> void:
+	var path := Cli.get_str("ready-file")
+	if path == "":
+		return
+	var file := FileAccess.open(path + ".part", FileAccess.WRITE)
+	if file == null:
+		Log.warn("server", "cannot write the ready file %s: %s" % [path, error_string(FileAccess.get_open_error())])
+		return
+	file.store_string(JSON.stringify(data))
+	file.close()
+	DirAccess.rename_absolute(path + ".part", path)
+
+
+## --owner-pid: a server started by a player's game stops once that game is gone, even if it crashed
+## or was killed (when it quits normally, it stops the server itself).
+func _watch_owner(pid: int) -> void:
+	_owner = ProcessWatch.new(pid)
+	var timer := Timer.new()
+	timer.wait_time = OWNER_CHECK_S
+	timer.autostart = true
+	timer.timeout.connect(func() -> void:
+		if not _owner.alive():
+			Log.info("server", "the game that started this server (pid %d) is gone, stopping" % pid)
+			get_tree().quit())
+	add_child(timer)
+
+
+func _exit_tree() -> void:
+	if _owner != null:
+		_owner.finish()
 
 
 ## From source: the project folder. Exported: next to the server binary.

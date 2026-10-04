@@ -55,10 +55,28 @@ func _open(path: String) -> Control:
 
 func test_main_menu_buttons() -> void:
 	var menu := await _open("res://client/MainMenu.tscn")
-	assert_eq(get_viewport().gui_get_focus_owner(), menu.get_node("%PlayButton"), "Play is focused first")
-	var seen := await _walk(menu, &"ui_down", 4)
-	assert_eq(seen.size(), 4, "down goes through How to play, Settings, Credits, Quit")
+	assert_eq(get_viewport().gui_get_focus_owner(), menu.get_node("%PlayButton"), "Join a game is focused first")
+	var seen := await _walk(menu, &"ui_down", 6)
+	assert_eq(seen.size(), 6, "down goes through Play solo, Host a game, How to play, Settings, Credits, Quit")
+	assert_eq(seen[0], menu.get_node("%SoloButton"))
 	assert_eq(seen[-1], menu.get_node("%QuitButton"))
+
+
+## The Play solo and Host a game cards (GameSetup): built in code, so check they're walkable too.
+func test_game_setup_cards_walk() -> void:
+	for hosting in [false, true]:
+		var card := (load("res://client/GameSetup.tscn") as PackedScene).instantiate() as Control
+		card.set("hosting", hosting)
+		add_child_autofree(card)
+		for i in 4:
+			await get_tree().process_frame
+		var label := "host card" if hosting else "solo card"
+		assert_not_null(get_viewport().gui_get_focus_owner(), "%s: something is focused when it opens" % label)
+		var seen := await _walk(card, &"ui_down", 10)
+		assert_gt(seen.size(), 4 if hosting else 2, "%s: down reaches every row" % label)
+		assert_true(seen.has(card.get_node("%StartButton")), "%s: and the start button" % label)
+		card.queue_free()
+		await get_tree().process_frame
 
 
 func test_each_screen_walks() -> void:

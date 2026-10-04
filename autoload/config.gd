@@ -2,8 +2,8 @@ extends Node
 ## User settings and server config loading.
 ##
 ## User settings (M8) live in `user://settings.cfg` (`--settings PATH` picks another file): video,
-## controls and key bindings, audio, gameplay, the server favourites and the first-time hints already
-## shown. The settings screen calls set_value(), which applies the change at once, saves the file
+## controls and key bindings, audio, gameplay, the server favourites, the first-time hints already
+## shown, and the last choices made for "Play solo" and "Host a game". The settings screen calls set_value(), which applies the change at once, saves the file
 ## (a moment later, so dragging a slider doesn't write it 60 times a second) and emits `changed`.
 ## Headless processes (the dedicated server, test bots) never read or write the file: they run on
 ## the defaults, so a player's settings can't change what a test does.
@@ -53,7 +53,14 @@ const SECTIONS := {
 	"player_name": "gameplay", "chat_filter": "gameplay", "show_fps": "gameplay", "language": "gameplay",
 	"show_minimap": "gameplay", "minimap_rotate": "gameplay",
 	"last_address": "servers",
+	"solo_role": "solo", "solo_difficulty": "solo", "solo_players": "solo",
+	"host_name": "host", "host_password": "host", "host_port": "host", "host_max_players": "host",
+	"host_bots": "host", "host_difficulty": "host", "host_lan": "host",
 }
+## Host a game: the choices for the most players and the match size with bots (client/game_setup.gd).
+const HOST_MAX_PLAYERS := 16
+const BOT_FILL_MAX := 6
+const SOLO_PLAYERS_MIN := 4
 
 # --- Video ---------------------------------------------------------------------
 var window_mode := WindowMode.WINDOWED
@@ -92,6 +99,17 @@ var show_minimap := true  ## the minimap in the top right corner (the full map o
 var minimap_rotate := true  ## the minimap turns with the camera; false = north always up
 var language := ""  ## a LANGUAGES key; "" follows the system
 var last_address := ""  ## what was last typed in the server browser's address field
+# --- Play solo and Host a game (the last choices, client/game_setup.gd) -----------
+var solo_role := 0  ## the Role.Kind asked for: 0 any, 1 supervisor, 2 rat
+var solo_difficulty := 1  ## bots: 0 easy, 1 normal, 2 hard
+var solo_players := 6  ## the match: you and the bots (SOLO_PLAYERS_MIN to BOT_FILL_MAX)
+var host_name := ""  ## the server's name; "" = "<player name>'s plant"
+var host_password := ""  ## "" = anyone may join
+var host_port: int = SERVER_DEFAULTS["port"]
+var host_max_players := 6
+var host_bots := 6  ## bots fill each match up to this many players; 0 = no bots
+var host_difficulty := 1
+var host_lan := true  ## announce the game on the local network (the server browser's LAN list)
 
 ## Server favourites: [{"name": String, "address": "host:port"}].
 var favourites: Array[Dictionary] = []
@@ -208,6 +226,22 @@ func clean_value(key: String, value: Variant) -> Variant:
 			return value if LANGUAGES.has(value) else ""
 		"last_address":
 			return str(value).strip_edges().substr(0, 120)
+		"solo_role":
+			return clampi(value, Role.Kind.NONE, Role.Kind.RAT)
+		"solo_difficulty", "host_difficulty":
+			return clampi(value, 0, 2)
+		"solo_players":
+			return clampi(value, SOLO_PLAYERS_MIN, BOT_FILL_MAX)
+		"host_name":
+			return str(value).strip_edges().substr(0, LanDiscovery.MAX_NAME)
+		"host_password":
+			return str(value).strip_edges().substr(0, 40)
+		"host_port":
+			return clampi(value, 1024, 65535)
+		"host_max_players":
+			return clampi(value, 2, HOST_MAX_PLAYERS)
+		"host_bots":
+			return 0 if value < 2 else mini(value, BOT_FILL_MAX)
 	if key.begins_with("volume_"):
 		return clampf(value, 0.0, 1.0)
 	return value

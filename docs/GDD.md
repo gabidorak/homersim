@@ -7,7 +7,7 @@ It's the night shift at the **"Sunny Acres" Nuclear Plant** (placeholder name; a
 
 - Genre: asymmetric team PvP, 2–6 players, rounds of 8–10 minutes.
 - Feel: slapstick, readable, chaotic. Think Hello Neighbor's look, Chained Together's goofiness, and Dead by Daylight's asymmetry, without the horror.
-- Platforms: Windows and Linux. Each match runs on a dedicated server.
+- Platforms: Windows and Linux. Each match runs on a dedicated server. The game can start one on the player's own computer: **Play solo** (a match against bots that nobody else can join) and **Host a game** (friends join it; the game ends when the host leaves).
 
 ## 2. Teams and win conditions
 | | Supervisors | Rats |
@@ -32,6 +32,7 @@ It's the night shift at the **"Sunny Acres" Nuclear Plant** (placeholder name; a
 When there is a single supervisor, the *match timer* drops to 8 min (otherwise 9 min) to compensate.
 
 **Bots** (M10): a server can fill its matches with AI players (`bot_fill_to` in server.cfg; 0 = off, the default). At role assignment, bots are added until the match has `bot_fill_to` players, and the table above sets the team sizes. **Humans always get their slots first**: bots take whatever is left. Bots are only in the match: they aren't in the lobby, don't vote, and leave when it ends. A player who leaves mid-match is not replaced. See [§5.5](#55-bots).
+**Play solo** (main menu) is a game with bots on the player's own computer: they pick the role they'd like, the bots' difficulty and the match size (4, 5 or 6 players), and the match starts at once. The game doesn't pause.
 
 ## 3. Match flow
 1. **Lobby**: players join the server, set a name, and pick a preferred role (Supervisor / Rat / Any). Text chat is available. The match starts when the host-less "ready" vote passes (more than 50% ready and at least 3 players), or immediately with the `--debug-start` flag. On a server with bots, the vote only counts humans, and a single player is enough.

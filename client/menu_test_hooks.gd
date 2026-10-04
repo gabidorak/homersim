@@ -6,8 +6,13 @@ extends Node
 ##                            as soon as it shows up
 ##   --auto-password A,B,...  answer each password prompt with the next password of the list
 ##   --dismiss-errors         press the error box's button (logs what it said)
+##   --solo [any|supervisor|rat]  open the Play solo card (with that role) and press Start
+##   --host-game NAME [--host-port N] [--host-bots N]  open the Host a game card with these choices
+##                            and press Host
+## (Headless clients don't save their settings, so the choices made here don't stick.)
 
 static var _lan_join_used := false  # once per run: not again when the menu comes back after a session
+static var _local_used := false  # --solo / --host-game: once per run too
 
 var _menu: MainMenu
 var _passwords: PackedStringArray = []
@@ -15,7 +20,8 @@ var _lan_target := ""
 
 
 static func wanted() -> bool:
-	return OS.is_debug_build() and (Cli.has_arg("lan-join") or Cli.has_arg("auto-password") or Cli.has_arg("dismiss-errors"))
+	return OS.is_debug_build() and (Cli.has_arg("lan-join") or Cli.has_arg("auto-password") or Cli.has_arg("dismiss-errors")
+		or Cli.has_arg("solo") or Cli.has_arg("host-game"))
 
 
 func _ready() -> void:
@@ -27,6 +33,26 @@ func _ready() -> void:
 	_menu.child_entered_tree.connect(_on_menu_child)
 	if _lan_target != "":
 		_open_browser.call_deferred()
+	if not _local_used and (Cli.has_arg("solo") or Cli.has_arg("host-game")):
+		_local_used = true
+		_start_local.call_deferred()
+
+
+func _start_local() -> void:
+	var hosting := Cli.has_arg("host-game")
+	if hosting:
+		Config.set_value("host_name", Cli.get_str("host-game"))
+		Config.set_value("host_port", Cli.get_int("host-port", Net.DEFAULT_PORT))
+		if Cli.has_arg("host-bots"):
+			Config.set_value("host_bots", Cli.get_int("host-bots"))
+	else:
+		Config.set_value("solo_role", Role.from_text(Cli.get_str("solo", "any")))
+	var opener: Button = _menu.get_node("%HostButton" if hosting else "%SoloButton")
+	_menu._open(MainMenu.SETUP_SCENE, opener, {"hosting": hosting})
+	await get_tree().process_frame
+	Log.info("test", "pressing %s on the %s card" % [(_menu._screen.get_node("%StartButton") as Button).text,
+		"host" if hosting else "solo"])
+	(_menu._screen.get_node("%StartButton") as Button).pressed.emit()
 
 
 func _open_browser() -> void:

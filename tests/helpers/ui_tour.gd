@@ -2,11 +2,14 @@ extends Node
 ## Visual check of the menus and the in-game UI (M8), windowed: opens every screen with made-up data
 ## and saves a screenshot of each.
 ##   godot tests/helpers/UiTour.tscn -- --settings /tmp/ui_tour.cfg --out /tmp/ui [--only NAME] [--lang fr] [--bots]
+##     [--local solo|host]
 ## --bots (M10): the server fills its matches with AI bots, and two of the made-up rats are bots.
+## --local: the made-up game is one this game started (LocalServer): the solo or the host's lobby and menu.
 ## Always pass --settings with a throwaway file: the tour changes settings (name, favourites…).
-## Shots: menu, welcome, browser_lan, browser_fav, settings_video, settings_controls, settings_audio,
-## settings_gameplay, howto_supervisor, howto_rat, howto_controls, credits, error, password,
-## lobby, scoreboard, pause, feed, minimap_supervisor, minimap_rat, map_supervisor, map_rat, postmatch, hint.
+## Shots: menu, welcome, browser_lan, browser_fav, setup_solo, setup_host, starting, settings_video,
+## settings_controls, settings_audio, settings_gameplay, howto_supervisor, howto_rat, howto_controls,
+## credits, error, error_host_left, password, lobby, scoreboard, pause, feed, minimap_supervisor,
+## minimap_rat, map_supervisor, map_rat, postmatch, hint.
 
 const MENU := "res://client/MainMenu.tscn"
 
@@ -80,6 +83,15 @@ func _menus() -> void:
 		(browser.get_node("%Tabs") as TabContainer).current_tab = 1
 		await _shot("browser_fav")
 		menu._close_screen()
+	if _wanted("setup"):
+		for hosting in [false, true]:
+			menu._open(MainMenu.SETUP_SCENE, menu.play_button, {"hosting": hosting})
+			await _shot("setup_host" if hosting else "setup_solo")
+			menu._close_screen()
+	if _wanted("starting"):
+		MessageDialog.inform(menu, tr("Starting..."), tr("Getting the plant ready..."), tr("Cancel"))
+		await _shot("starting")
+		_close_dialogs(menu)
 	if _wanted("settings"):
 		menu._open(MainMenu.SETTINGS_SCENE, menu.play_button)
 		var tabs := menu._screen.get_node("%Tabs") as TabContainer
@@ -108,6 +120,9 @@ func _menus() -> void:
 		menu._show_error(LeaveReason.Code.VERSION, "0.2.0+master.41|0.1.0+master.40")
 		await _shot("error")
 		_close_dialogs(menu)
+		menu._show_error(LeaveReason.Code.HOST_LEFT, "")
+		await _shot("error_host_left")
+		_close_dialogs(menu)
 	if _wanted("password"):
 		MainMenu.last_address = "192.168.1.31:7777"
 		MainMenu.last_server_name = "Night shift"
@@ -130,6 +145,14 @@ func _in_game() -> void:
 	get_tree().unload_current_scene()  # the menu goes; this runner lives on under root
 	await get_tree().create_timer(0.2).timeout
 	var session: Session = (load("res://common/Session.tscn") as PackedScene).instantiate()
+	if Cli.has_arg("local"):  # a game this game started: a pretend LocalServer serves it (no process)
+		var local := LocalServer.new()
+		local.mode = LocalServer.Mode.SOLO if Cli.get_str("local") == "solo" else LocalServer.Mode.HOST
+		local.state = LocalServer.State.RUNNING
+		local.port = Net.DEFAULT_PORT
+		LocalServer.current = local
+		get_tree().root.add_child(local)
+		local.serve(session)
 	get_tree().root.add_child(session)
 	await get_tree().create_timer(1.0).timeout
 	var mm := session.match_manager

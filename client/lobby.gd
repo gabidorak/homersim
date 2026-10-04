@@ -14,6 +14,8 @@ var _go_until_ms := 0
 var _cards_key := ""  # what the cards show, to rebuild them only when it changes
 var _bots_row: HBoxContainer  # "BOT  Bots fill the match up to 6 players"
 var _bots_label: Label
+var _host_label: Label  # a game we host: where friends join
+var _addresses := PackedStringArray()  # this computer's LAN addresses (read once)
 
 @onready var panel: Control = %Panel
 @onready var status_label: Label = %StatusLabel
@@ -37,6 +39,7 @@ func _ready() -> void:
 	rat_button.pressed.connect(_request_pref.bind(Role.Kind.RAT))
 	ready_button.toggled.connect(_request_ready)
 	_build_bots_row()
+	_build_host_label()
 	_match().state_changed.connect(_on_state_changed)
 	_match().roster_changed.connect(_refresh)
 	Config.changed.connect(func(key: String) -> void:
@@ -102,16 +105,31 @@ func _refresh() -> void:
 	var mm := _match()
 	panel.visible = mm.state == MatchManager.State.LOBBY
 	var info := mm.server_info
+	var local := LocalServer.for_session()
+	var solo := local != null and local.mode == LocalServer.Mode.SOLO
 	%ServerName.text = str(info.get("name", tr("Lobby")))
 	var minutes := func(s: int) -> String: return "%d:%02d" % [s / 60, s % 60]
-	%Summary.text = tr("Matches of %s (%s with one supervisor) · %d+ players to start · %d / %d here") % [
-		minutes.call(int(info.get("duration_s", 540))), minutes.call(int(info.get("duration_single_s", 480))),
-		mm.min_players, mm.roster.size(), int(info.get("max_players", 6))]
+	var duration := minutes.call(int(info.get("duration_s", 540))) as String
+	var duration_single := minutes.call(int(info.get("duration_single_s", 480))) as String
+	if solo:
+		%Summary.text = tr("Matches of %s (%s with one supervisor)") % [duration, duration_single]
+	else:
+		%Summary.text = tr("Matches of %s (%s with one supervisor) · %d+ players to start · %d / %d here") % [
+			duration, duration_single, mm.min_players, mm.roster.size(), int(info.get("max_players", 6))]
 	var count := mm.roster.size()
-	if count < mm.min_players:
+	if solo:
+		status_label.text = tr("Press Ready to start a match against the bots.")
+	elif count < mm.min_players:
 		status_label.text = tr("Waiting for players: %d / %d") % [count, mm.min_players]
 	else:
 		status_label.text = tr("%d / %d ready. The match starts when more than half are ready.") % [mm.ready_count(), count]
+	_host_label.visible = local != null and local.mode == LocalServer.Mode.HOST
+	if _host_label.visible:
+		if _addresses.is_empty():
+			_addresses = LocalServer.lan_addresses(IP.get_local_interfaces())
+		_host_label.text = tr("You are the host. Friends on your network can also type %s") \
+			% ("%s:%d" % [_addresses[0], local.port]) if not _addresses.is_empty() \
+			else tr("You are the host (UDP port %d).") % local.port
 	any_button.text = "%s  [%s]" % [tr("Any"), Keys.label(&"lobby_pref_any")]
 	supervisor_button.text = "%s  [%s]" % [tr("Supervisor"), Keys.label(&"lobby_pref_supervisor")]
 	rat_button.text = "%s  [%s]" % [tr("Rat"), Keys.label(&"lobby_pref_rat")]
@@ -146,6 +164,18 @@ func _build_bots_row() -> void:
 	_bots_row.add_child(_bots_label)
 	_bots_row.visible = false
 	%Summary.add_sibling(_bots_row)
+
+
+## Under the bots line, in a game this game hosts: the address friends on the LAN can type.
+func _build_host_label() -> void:
+	_host_label = Label.new()
+	_host_label.add_theme_font_override("font", _host_label.get_theme_font("font", &"Button"))
+	_host_label.add_theme_font_size_override("font_size", 16)
+	_host_label.add_theme_color_override("font_color", Color("7fb7e6"))
+	_host_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_host_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_host_label.visible = false
+	_bots_row.add_sibling(_host_label)
 
 
 func _update_cards() -> void:
