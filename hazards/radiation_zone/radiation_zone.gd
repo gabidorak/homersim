@@ -7,6 +7,7 @@ extends Hazard
 ## don't check overlaps, so it tests the zone's box against our position).
 
 const MAX_CLICKS_PER_S := 18.0
+const FLOOR_GAP := 0.03
 
 var _exposure: Dictionary[int, float] = {}  # server: peer → seconds
 var _local_exposure := 0.0  # client estimate, for the clicks
@@ -63,9 +64,9 @@ func hit_text() -> String:
 func _build_look() -> void:
 	_glow = MeshInstance3D.new()
 	var box := BoxMesh.new()
-	box.size = size
+	box.size = size - Vector3.UP * FLOOR_GAP  # the bottom face just off the floor, or they z-fight
 	_glow.mesh = box
-	_glow.position.y = size.y * 0.5
+	_glow.position.y = (size.y + FLOOR_GAP) * 0.5
 	_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat.cull_mode = BaseMaterial3D.CULL_DISABLED

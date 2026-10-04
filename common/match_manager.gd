@@ -634,6 +634,7 @@ func _quit_after_match() -> void:
 
 func _back_to_lobby() -> void:
 	session.plant.running = false
+	session.plant.reset()  # a cool core, so the alarm beacons go quiet in the lobby
 	session.items.clear()
 	var swap := _begin_swap()
 	await session.retire_bodies(roster.keys())
