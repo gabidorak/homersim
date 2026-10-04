@@ -5,7 +5,8 @@ extends Interactable
 ## bookkeeping; the cage keeps the occupant list, replicated so every peer can show it.
 ##
 ## Layout (local space, origin at the door, 0.5 m above the floor, +Z out of the door): the
-## interior is the box behind the origin; Slot1..4 markers are where caged rats stand.
+## interior is the box behind the origin; Slot1..4 markers are where caged rats stand, on the
+## model's tray 0.1 m above the floor (Bars/Floor, so a caged rat's gravity doesn't sink it into it).
 
 const CAGE_GROUP := "cages"
 

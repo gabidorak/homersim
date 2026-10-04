@@ -322,8 +322,8 @@ Planned in [milestones/M10-ai-bots.md](milestones/M10-ai-bots.md); the gameplay 
     targets are less appealing the closer a known supervisor is (`AiContext.danger_at`).
   - Supervisors: Capture, Chase (a known keycard thief counts more), Console (coolant, SCRAM), Repair,
     Investigate (a SNAP, a rat heard or called out or seen on the CCTV, an old trace), Keycard (a dropped
-    one, the spare), Donut, FixCamera, PlaceTrap, Refill, Cctv (sit while the plant is calm), GuardCages,
-    Patrol.
+    one, the spare), Donut, FixCamera, PlaceTrap, Refill, Cctv (sit while the plant is calm), GuardCages
+    (in shifts, with a team-wide rest after each), Patrol.
 - Reflexes in `AiBot`: a rat bites the carrier of a teammate next to it; a supervisor swings the broom at
   a rat it sees in reach and in front, and turns toward whoever bit it.
 - `AiSenses` is the only code that reads enemy positions: sight, hearing, Revealed, and the CCTV while
@@ -332,6 +332,8 @@ Planned in [milestones/M10-ai-bots.md](milestones/M10-ai-bots.md); the gameplay 
   (seen by a supervisor that sees the thief) through `ItemService.keycard_stolen`. It also notices things:
   traps (rats: within 6 m, in sight, the skill's `trap_notice` chance, one roll each), which cameras are
   broken (supervisors: close up, on the Control Room's screens, from the chair) and dropped keycards.
+  Carried, caged and eliminated enemies are out of play: forgotten at once, teammates' callouts included
+  (no broom swings at a rat in a supervisor's hands, no searching next to a cage).
 - `AiBlackboard` (one per team) holds claims, the lever pairing, the gang (which rat bots are close to
   which supervisor), shared traps and thieves (callouts), and accounts for human teammates.
 - `AiContext` is what a goal works with (body, driver, senses, blackboard, the level's targets in

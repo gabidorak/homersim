@@ -133,7 +133,7 @@ These were agreed when the milestone was planned (2026-10-03).
   | Repair | `(100 − health) × heat_weight`, ×2 when offline, scaled by the alarm level and the distance. Skipped when claimed or when a human is fixing it | Go to `stand_position(SUPERVISOR)`, reboot (3 s), then hold-repair (6 s) again while it needs it. Waits out a lockout. Bots never play the minigames: the server accepts the hold repair whatever the setting |
   | Chase | A known rat within 12 m. Very high when the rat is busy sabotaging (it stands still); low when it is fleeing more than 6 m away (rats are faster) | Steer toward where the rat is heading; the broom comes from the reflex |
   | Capture | A known STUNNED rat within reach, and a non-full cage reachable before the 8 s carry runs out at 3.2 m/s (with 1.5 s spare) | Press the rat's `GrabHandle`, walk to the cage, press it |
-  | GuardCages | A cage has someone in it | Patrol the Cage Room's approaches |
+  | GuardCages | A cage has someone in it | Patrol the Cage Room's approaches. One shift of 25 s on watch at most, then no supervisor bot guards for 40 s (the rats' chance to free their friends) |
   | Patrol | The default | Tour the machine rooms, weighted by `heat_weight × time since the last visit` |
 
 - [x] Combat reflex: a supervisor that isn't carrying swings the broom when a known rat is within range + 0.2 m, inside 30° of its facing, and the broom is ready. Bitten, it turns toward the biter. Aim error and turn rate come from the skill. The server clamps the aim to 45° of the facing direction, so the bot must **face** first.

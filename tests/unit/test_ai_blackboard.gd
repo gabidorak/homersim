@@ -81,8 +81,10 @@ func test_sightings_and_events() -> void:
 	board.add_event("snap", Vector3.ZERO, 0.0)
 	board.add_event("snap", Vector3.ONE, 20.0)
 	assert_eq(board.events.size(), 1, "old events are dropped")
+	board.guard_rest_until = 50.0
 	board.clear()
 	assert_true(board.claims.is_empty() and board.sightings.is_empty() and board.events.is_empty())
+	assert_eq(board.guard_rest_until, 0.0, "a new match: the cages may be guarded at once")
 
 
 func test_gang_needs_two_fresh_rats() -> void:

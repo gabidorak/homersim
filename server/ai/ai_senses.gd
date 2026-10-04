@@ -16,6 +16,7 @@ extends RefCounted
 ##            inside its view (cctv_fov_deg), with a clear line from the lens
 ##   memory   a last known position is kept memory_s, then becomes a search area for search_s.
 ##            Teammate bots share sightings through the blackboard, after share_delay_s.
+##   out of play  carried, caged and eliminated enemies are forgotten at once, with their callouts
 ## Things, checked twice a second:
 ##   traps    rats notice a trap within trap_notice_radius, in sight, with the skill's trap_notice
 ##            chance (one roll per trap); teammate bots hear about it like a sighting
@@ -115,6 +116,14 @@ static func seen_long_enough(since: float, now: float, reaction_s: float) -> boo
 	return since >= 0.0 and now - since >= reaction_s
 
 
+## An enemy nobody can act on: eliminated, caged, or carried (it hangs from a supervisor's hand,
+## the carrier's business; no broom reaches it and nothing is left to chase until it is dropped).
+static func _out_of_play(enemy: Player) -> bool:
+	var st := enemy.status
+	return st.has(StatusComponent.Status.ELIMINATED) or st.has(StatusComponent.Status.CAGED) \
+		or st.has(StatusComponent.Status.CARRIED)
+
+
 # --- Every tick ----------------------------------------------------------------------------------
 
 func update(now: float) -> void:
@@ -130,8 +139,7 @@ func update(now: float) -> void:
 	var present := {}
 	for node in ctx.session.players_root.get_children():
 		var enemy := node as Player
-		if enemy == null or enemy.role != enemy_role or enemy.is_queued_for_deletion() \
-				or enemy.status.has(StatusComponent.Status.ELIMINATED) or enemy.status.has(StatusComponent.Status.CAGED):
+		if enemy == null or enemy.role != enemy_role or enemy.is_queued_for_deletion() or _out_of_play(enemy):
 			continue
 		present[enemy.peer_id] = true
 		var pos := enemy.global_position
@@ -193,13 +201,13 @@ func update(now: float) -> void:
 			_emoting[enemy.peer_id] = emoting
 	for peer: int in known.keys():
 		if not present.has(peer):
-			known.erase(peer)  # caged, eliminated or gone
+			known.erase(peer)  # carried, caged, eliminated or gone
 			_sight_since.erase(peer)
 	for peer: int in thieves.keys():
 		if not present.has(peer):
 			_not_a_thief(peer)  # caught (a cage takes the keycard off it) or gone
 	_read_events(now)
-	_read_callouts(now)
+	_read_callouts(now, present)
 	_forget(now)
 	if now >= _next_things:
 		_next_things = now + THINGS_EVERY_S
@@ -225,7 +233,9 @@ func _read_events(now: float) -> void:
 
 
 ## Teammate bots' sightings, traps and thieves, once share_delay_s old: like hearing a callout.
-func _read_callouts(now: float) -> void:
+## A sighting of an enemy out of play (not in `present`) is dropped: an old callout of a rat that got
+## carried to a cage would otherwise bring it back as a trace to search, next to the cage, forever.
+func _read_callouts(now: float, present: Dictionary) -> void:
 	for id: int in ctx.board.traps:
 		var t: Dictionary = ctx.board.traps[id]
 		if not traps_noticed.has(id) and now - float(t["at"]) >= ctx.tuning.share_delay_s and is_instance_valid(t["trap"]):
@@ -233,7 +243,10 @@ func _read_callouts(now: float) -> void:
 	for rat: int in ctx.board.thieves:
 		if not thieves.has(rat) and now - float(ctx.board.thieves[rat]) >= ctx.tuning.share_delay_s:
 			thieves[rat] = ctx.board.thieves[rat]
-	for enemy: int in ctx.board.sightings:
+	for enemy: int in ctx.board.sightings.keys():
+		if not present.has(enemy):
+			ctx.board.sightings.erase(enemy)
+			continue
 		var s: Dictionary = ctx.board.sightings[enemy]
 		if s["by"] == ctx.peer or now - float(s["at"]) < ctx.tuning.share_delay_s:
 			continue

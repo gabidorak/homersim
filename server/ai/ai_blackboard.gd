@@ -16,6 +16,7 @@ extends RefCounted
 ##   traps       rats: traps a teammate bot noticed (trap instance id → {"trap", "at"})
 ##   thieves     supervisors: rats a teammate bot saw stealing a keycard (peer → when)
 ##   events      sounds the team heard: {"kind", "pos", "at", "peer"} (SNAPs, bites…)
+##   guard rest  supervisors: after a guard's shift at the cages, no bot guards them until then
 
 const EVENT_KEEP_S := 15.0
 
@@ -29,6 +30,7 @@ var visited: Dictionary = {}  ## supervisors' patrol: subsystem -> when a bot la
 var traps: Dictionary = {}  ## rats: trap instance id -> {"trap": Trap, "at": float}
 var thieves: Dictionary = {}  ## supervisors: rat peer -> when it was seen stealing
 var near: Dictionary = {}  ## rats: supervisor peer -> {rat bot peer: when it was last close to it}
+var guard_rest_until := 0.0  ## supervisors: no bot guards the cages before this (AiGoalGuardCages)
 
 
 func clear() -> void:
@@ -41,6 +43,7 @@ func clear() -> void:
 	thieves.clear()
 	near.clear()
 	gang_target = 0
+	guard_rest_until = 0.0
 
 
 # --- Claims ----------------------------------------------------------------------------------

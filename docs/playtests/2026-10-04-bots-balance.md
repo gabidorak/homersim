@@ -32,6 +32,7 @@ counts as a supervisor win ("the shift is over") although a full shift is 540 s.
 | 13 | 540 s ×16 | rats bolt into the ducts (`World.hideouts`): fleeing to a vent exit left them on the room's floor | 13 | 3 | Rats won by meltdown at 200–250 s: two supervisor bots can't out-repair four free rats (bots use the hold repair) |
 | 14 | 540 s ×16 | `sabotage_rest_s` 0 → 8 (a rat lurks 8 s after each sabotage) | 9 | 7 | Matches end between 96 s (every rat caught) and 422 s |
 | 15 | 540 s ×16 | the AI's cost brought under budget (cached scores, throttled checks); **fresh seeds 400–407, 500–507** | 6 | 10 | The final build. Over runs 14 and 15: 15 rat wins, 17 supervisor wins |
+| 16 | 540 s ×16 | the user's report: no swings at carried rats, carried/caged rats' callouts dropped, cage guard in 25 s shifts with a 40 s team rest; seeds 600–615, against the build before it on the same seeds | 7 | 9 | The build before it also went 7–9. Rats freed 18 friends (11 before). On seeds 500–507 with `--ai-log`: 0 of 43 swings at a carried rat (10 of 43 before), no supervisor guarding through two summary windows in a row (12 before, one of them over 3 minutes) |
 
 ## What was fun
 - Watching a gang of two rats knock down a supervisor at its repair point, and a SNAP pull a supervisor
@@ -49,6 +50,12 @@ counts as a supervisor win ("the shift is over") although a full shift is 540 s.
   standing on another player may also move as fast as it (humans could hit this too).
 - Bots kept pressing a rat's GrabHandle every tick while knocked down; caged rat bots kept planning paths.
   Fixed.
+- Reported by the user after the commit: supervisor bots swung the broom at a rat a teammate carried (a
+  broom stun lasts 3 s, a carry 12 s: after 3 s the senses saw an ordinary rat), and camped in front of the
+  cages for the rest of the match (GuardCages never ended). Fixed: AiSenses forgets carried rats like
+  caged ones, along with teammates' old callouts of them; GuardCages works in shifts (`guard_cages_max_s`,
+  `guard_cages_rest_s`). Caged rats also stood 10 cm inside the cage's tray (the slots were at floor
+  level, and nothing held them up): the cage got a floor collider at the tray's height.
 
 ## Balance changes made
 Note every number changed in `data/*.tres`, and update the GDD to match.
@@ -62,6 +69,7 @@ Note every number changed in `data/*.tres`, and update the GDD to match.
 | bot_tuning.tres | opening_danger_s, opening_danger_radius (new) | – | 30 s, 30 m | Rats met both supervisors at the control rods 8 s into every match |
 | bot_tuning.tres | gang_cage_radius (new) | – | 12 m | Gangs next to a cage ended in captures |
 | bot_tuning.tres | sabotage_rest_s | 0 | 8 | Once the rats could escape, they melted the plant in 200–250 s |
+| bot_tuning.tres | guard_cages_max_s, guard_cages_rest_s (new) | – | 25 s, 40 s | A supervisor bot guarded occupied cages for the rest of the match, so caged rats were never freed |
 
 ## Ideas for next time
 - The human solo playtests (M10 "done when"): one human with `bot_fill_to=6`, as a rat and as a
