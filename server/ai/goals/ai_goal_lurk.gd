@@ -1,9 +1,11 @@
 class_name AiGoalLurk
 extends AiGoal
-## Rat, the default: wait in a vent (or at a vent exit) near the machine whose sabotage cooldown ends
-## first, ready to pounce; squeak now and then (squeak_chance every SQUEAK_EVERY_S).
+## Rat, the default: wait in a vent near the machine whose sabotage cooldown ends first, ready to
+## pounce (a vent exit, out on the room's floor, only when no duct is near); squeak now and then
+## (squeak_chance every SQUEAK_EVERY_S).
 
 const SQUEAK_EVERY_S := 9.0
+const IN_VENT_NEAR_M := 25.0  ## a duct this close to the next target beats a vent exit on the floor
 
 var _spot := Vector3.INF
 var _next_squeak := 0.0
@@ -13,6 +15,7 @@ var _failures := 0
 func _init(p_ctx: AiContext) -> void:
 	super(p_ctx)
 	id = "Lurk"
+	rescore_s = AiGoal.STRATEGIC_RESCORE_S
 
 
 func score() -> float:
@@ -53,8 +56,12 @@ func _pick_spot() -> Vector3:
 			next = p
 	var near := next.global_position if next != null else ctx.body.global_position
 	var spots: Array[Vector3] = []
-	spots.append_array(ctx.world.vent_spots)
-	spots.append_array(ctx.world.vent_exits)
+	for p in ctx.world.vent_spots:
+		if p.distance_to(near) < IN_VENT_NEAR_M:
+			spots.append(p)
+	if spots.is_empty():
+		spots.append_array(ctx.world.vent_spots)
+		spots.append_array(ctx.world.vent_exits)
 	if spots.is_empty():
 		return Vector3.INF
 	spots.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_to(near) < b.distance_to(near))

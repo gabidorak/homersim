@@ -130,7 +130,7 @@ func test_role_combat_stats_match_gdd() -> void:
 
 func test_pvp_tuning_matches_gdd() -> void:
 	var t := PvpTuning.load_default()
-	assert_eq([t.carry_max_s, t.drop_invulnerable_s, t.free_hold_s, t.freed_invulnerable_s], [8.0, 1.5, 4.0, 3.0])
+	assert_eq([t.carry_max_s, t.drop_invulnerable_s, t.free_hold_s, t.freed_invulnerable_s], [12.0, 1.5, 4.0, 3.0])
 	assert_eq(t.captures_to_eliminate, 2)
 	assert_eq([t.steal_hold_s, t.stolen_item_speed, t.spare_keycard_delay_s], [1.0, 0.9, 30.0])
 	assert_eq([t.donut_speed, t.donut_duration_s, t.donut_cooldown_s, t.keycard_door_open_s], [1.2, 20.0, 60.0, 3.0])

@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_pvp")
-carry_max_s = 8.0
+carry_max_s = 12.0
 drop_invulnerable_s = 1.5
 free_hold_s = 4.0
 freed_invulnerable_s = 3.0

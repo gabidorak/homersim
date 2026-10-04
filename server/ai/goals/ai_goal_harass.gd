@@ -46,13 +46,13 @@ func tick(_delta: float) -> Result:
 	var back := Vector3(sin(k.facing), 0.0, cos(k.facing))  # behind its facing (-Z is forward)
 	var here := ctx.body.global_position
 	if ctx.body.abilities.server_ready(&"bite"):
-		ctx.driver.go_to(k.pos + back * BEHIND, true, 0.35)
+		ctx.driver.go_to(ctx.nav.snap(Role.Kind.RAT, k.pos + back * BEHIND), true, 0.35)
 		if here.distance_to(k.pos) <= BITE_REACH:
 			ctx.driver.face(k.pos)
 			if ctx.driver.use(&"bite", k.pos - here) == "":
 				_bites += 1
 	else:
-		ctx.driver.go_to(k.pos + back * ctx.tuning.harass_keep_away, false, 0.6)
+		ctx.driver.go_to(ctx.nav.snap(Role.Kind.RAT, k.pos + back * ctx.tuning.harass_keep_away), false, 0.6)
 	if ctx.driver.failed():
 		return Result.FAILED
 	return Result.RUNNING

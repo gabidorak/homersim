@@ -470,6 +470,16 @@ func on_feed(kind: String, a: String, b: String) -> void:
 	Events.feed_event.emit(kind, a, b)
 
 
+## Test-only (server --ai-labels, M10): each bot's current goal, twice a second ({peer: label}), shown
+## under its name tag on clients (a spectating debug client: watch mode).
+@rpc("authority", "unreliable")
+func on_ai_labels(labels: Dictionary) -> void:
+	for peer: int in labels:
+		var body := session.get_body(peer)
+		if body != null:
+			body.show_ai_label(str(labels[peer]))
+
+
 ## Server: refresh the pings and the live stats now and then (they replicate on change).
 func _publish(now_ms: int) -> void:
 	if now_ms >= _next_ping_ms:

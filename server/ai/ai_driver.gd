@@ -17,11 +17,17 @@ extends RefCounted
 ## Bots never teleport: when stuck they jump, sidestep, repath, and after stuck_fail_s give up
 ## (move_state FAILED, logged by AiDirector.log_stuck). A bot on a scrap of mesh that leads nowhere
 ## (the top of a duct or a crate it jumped onto) walks off it before planning again.
+## Hazards (AiHazards, phase E), whatever the goal: a bot waits at the edge of a steam jet or a
+## puddle that is live (or about to be), never starts a hold inside one, steps away from a debris
+## warning circle (a hold in progress ends with hold_reason "dodged"), and leaves the radiation zone
+## once its exposure passes radiation_limit_s unless it is just walking through. Rats walk around the
+## traps they noticed (a waypoint beside the trap).
 
 enum Move { IDLE, MOVING, ARRIVED, FAILED }
 enum Hold { NONE, SETTLING, HOLDING, ENDED }
 
-const REPATH_MOVED := 0.75  ## m: a destination that moved this much gets a new path…
+const REPATH_MOVED := 0.75  ## m: a destination that moved this much gets a new path at once…
+const REPATH_NUDGED := 0.5  ## …and one that moved this much at the next chance
 const REPATH_MIN_S := 0.3  ## …at most this often
 const ARRIVE_DY := 1.2  ## m of height difference still counted as arrived
 const SETTLE_MAX_S := 1.5  ## a hold starts after this even if the body still drifts a little
@@ -33,6 +39,12 @@ const MAX_END_GAP := 1.0  ## m: a path ending this far from the destination stil
 const MAX_END_RISE := 0.6  ## m: …and this close in height (not on a prop above or below it)
 const ESCAPE_S := 1.0  ## walking off a scrap of mesh: this long in one direction, then plan again
 const MAX_ESCAPES := 4
+const HAZARD_LOOKAHEAD := 0.9  ## m ahead of a moving bot checked for a live jet or puddle
+const DODGE_EARLY_S := 1.3  ## step away from debris landing sooner than this…
+const DODGE_AFTER_S := 0.25  ## …and keep away this long after the impact
+const RADIATION_PASSING_S := 2.0  ## walking through may take this much longer than the limit
+const TRAP_DETOURS := 4  ## at most this many waypoints around traps per path
+const HAZARD_CHECK_S := 0.1  ## hazards, the jets ahead and the doors are looked at this often
 
 var ctx: AiContext
 var intent := MoveIntent.new()
@@ -68,6 +80,18 @@ var _end_retries := 0
 var _escape_until := 0.0
 var _escape_dir := Vector3.ZERO
 var _escapes := 0
+var _dodge_until := 0.0  # debris coming down, or leaving the radiation zone: walk _dodge_dir until then
+var _dodge_dir := Vector3.ZERO
+var _dodge_from := Vector3.INF  # the debris impact we step away from (INF: just walk _dodge_dir)
+var _dodge_clear := 0.0
+var _exposure := 0.0  ## seconds of radiation exposure (the server's model, estimated the same way)
+var hazard_waits := 0  ## times this bot waited for a jet or a puddle (report)
+var _traps_planned := 0  # rats: how many noticed traps the current path went around
+var _waiting_hazard := false
+var _hazard_check := 0.0  # until the next look at hazards and doors (HAZARD_CHECK_S)
+var _hazard_dt := 0.0  # time since the last look (radiation exposure)
+var _blocked_ahead := false
+var _looking := false  # this tick looks at hazards and doors
 
 
 func setup(p_ctx: AiContext) -> void:
@@ -91,6 +115,9 @@ func go_to(pos: Vector3, sprint: bool = false, radius: float = 0.5) -> void:
 		return  # finish (or stop) the hold first
 	var moved := destination == Vector3.INF or destination.distance_to(pos) > REPATH_MOVED
 	if not moved and move_state != Move.IDLE:
+		if destination.distance_to(pos) > REPATH_NUDGED and move_state == Move.MOVING:
+			destination = pos  # (a stand spot moved beside a trap, a target edging away)
+			_dirty = true
 		return  # the same place: walking there, there already, or given up on it (the goal decides)
 	var was_moving := move_state == Move.MOVING
 	destination = pos
@@ -206,7 +233,20 @@ func tick(_delta: float) -> void:
 		distance += minf(pos.distance_to(_last_pos), 1.0)  # (a server-imposed move isn't walking)
 	_last_pos = pos
 	intent.jump = false
-	if hold_state in [Hold.SETTLING, Hold.HOLDING]:
+	_hazard_check -= _delta
+	_hazard_dt += _delta
+	_looking = _hazard_check <= 0.0
+	if _looking:
+		_hazard_check = HAZARD_CHECK_S
+		_watch_hazards(pos, _hazard_dt)
+		_hazard_dt = 0.0
+	if ctx.now < _dodge_until and ctx.can_act():
+		# Out of the warning circle: wait there until the debris has landed.
+		var out := _dodge_from != Vector3.INF and _flat(pos - _dodge_from).length() > _dodge_clear
+		intent.direction = Vector3.ZERO if out else _dodge_dir
+		intent.sprint = not out
+		stuck.reset(ctx.now)
+	elif hold_state in [Hold.SETTLING, Hold.HOLDING]:
 		intent.stop()
 		_tick_hold()
 	elif move_state == Move.MOVING and ctx.can_act():
@@ -243,6 +283,9 @@ func _tick_hold() -> void:
 		var speed := Vector2(body.velocity.x, body.velocity.z).length()
 		if (speed > ctx.tuning.hold_still_speed or not body.is_on_floor()) and ctx.now - _settle_since < SETTLE_MAX_S:
 			return
+		if ctx.world.hazards.blocking(body.global_position, ctx.tuning.hazard_cross_s) != null:
+			_settle_since = ctx.now  # never start a hold in a live jet or puddle: wait for its off phase
+			return
 		var reason := ctx.session.interactions.ai_start(ctx.peer, hold_target)
 		if reason != "":
 			hold_state = Hold.ENDED
@@ -273,6 +316,8 @@ func _tick_move(pos: Vector3) -> void:
 		if ctx.now + ctx.body.get_physics_process_delta_time() >= _escape_until:
 			_dirty = true
 		return
+	if ctx.role == Role.Kind.RAT and ctx.senses.traps_noticed.size() != _traps_planned:
+		_dirty = true  # a trap we just noticed may be on the way
 	if _dirty and ctx.now >= _repath_at:
 		_repath()
 	if move_state != Move.MOVING:
@@ -312,6 +357,12 @@ func _tick_move(pos: Vector3) -> void:
 	dir = _avoid_teammates(pos, dir)
 	if ctx.now < _sidestep_until:
 		dir = _sidestep_dir
+	if _looking:
+		_blocked_ahead = _hazard_ahead(pos, dir)
+	if _blocked_ahead:
+		intent.stop()
+		stuck.reset(ctx.now)
+		return
 	_grace_near_doors(pos)
 	match stuck.sample(pos, ctx.now):
 		AiPathFollower.Unstick.JUMP:
@@ -373,6 +424,9 @@ func _repath(from_mesh: bool = false) -> void:
 			return
 		_fail("no path")
 		return
+	if ctx.role == Role.Kind.RAT:
+		_traps_planned = ctx.senses.traps_noticed.size()
+		_around_traps(path)
 	var kinds := PackedInt32Array()
 	var ups := PackedVector3Array()
 	var feet := PackedVector3Array()
@@ -423,12 +477,119 @@ func _avoid_teammates(pos: Vector3, dir: Vector3) -> Vector3:
 	return dir
 
 
-## A door sliding open in front of us isn't being stuck.
+## A door sliding open in front of us isn't being stuck (checked with the hazards, 10 times a second).
 func _grace_near_doors(pos: Vector3) -> void:
+	if not _looking:
+		return
 	for door in ctx.world.doors:
 		if not door.is_fully_open() and _flat(door.global_position - pos).length() < DOOR_NEAR:
 			stuck.grace(ctx.now + ctx.tuning.door_grace_s)
 			return
+
+
+# --- Hazards and traps (phase E) ---------------------------------------------------------------
+
+## Debris warning circles and the radiation zone, every tick: they can interrupt any goal.
+func _watch_hazards(pos: Vector3, delta: float) -> void:
+	var hazards := ctx.world.hazards
+	var zone := hazards.radiation_at(pos)
+	_exposure = HazardRules.exposure_step(_exposure, zone != null, delta, hazards.tuning.radiation_exposure_s)
+	if ctx.now < _dodge_until or not ctx.can_act():
+		return
+	var tuning := hazards.tuning
+	var clear := tuning.debris_radius + ctx.tuning.debris_margin
+	var impact := hazards.impact_near(pos, clear)
+	if not impact.is_empty():
+		var left := float(impact["at"]) - Net.server_time()
+		if left < DODGE_EARLY_S:
+			var away := _flat(pos - (impact["pos"] as Vector3))
+			if away.length() < 0.1:
+				away = Vector3(-sin(ctx.body.rotation.y), 0.0, -cos(ctx.body.rotation.y))
+			_dodge(away.normalized(), maxf(left, 0.0) + DODGE_AFTER_S, "debris coming down")
+			_dodge_from = impact["pos"]
+			_dodge_clear = clear
+			return
+	if zone != null and _exposure >= ctx.tuning.radiation_limit_s:
+		var passing := move_state == Move.MOVING and hold_state == Hold.NONE \
+			and _exposure < ctx.tuning.radiation_limit_s + RADIATION_PASSING_S
+		if not passing:
+			var out := _flat(AiHazards.way_out(zone, pos) - pos)
+			_dodge(out.normalized() if out.length() > 0.1 else Vector3.FORWARD, 0.5, "out of the radiation")
+
+
+## Walk `dir` for `seconds`, whatever the goal wants (a hold in progress ends: "dodged").
+func _dodge(dir: Vector3, seconds: float, why: String) -> void:
+	if hold_state in [Hold.SETTLING, Hold.HOLDING]:
+		if hold_state == Hold.HOLDING:
+			ctx.session.interactions.ai_stop(ctx.peer)
+		hold_state = Hold.ENDED
+		hold_reason = "dodged"
+	_dodge_dir = dir
+	_dodge_until = ctx.now + seconds
+	_dodge_from = Vector3.INF
+	_dirty = true  # plan again from wherever we end up
+	ctx.log_line(why)
+
+
+## A live (or about to be) jet or puddle just ahead: wait at its edge. Already inside one: keep going.
+func _hazard_ahead(pos: Vector3, dir: Vector3) -> bool:
+	var hazards := ctx.world.hazards
+	if hazards.cyclic.is_empty() or dir.length_squared() < 0.01:
+		_waiting_hazard = false
+		return false
+	var cross := ctx.tuning.hazard_cross_s
+	if hazards.blocking(pos, cross) != null:
+		_waiting_hazard = false
+		return false  # inside: get out
+	var ahead := pos + _flat(dir).normalized() * HAZARD_LOOKAHEAD
+	var waiting := hazards.blocking(ahead, cross) != null
+	if waiting and not _waiting_hazard:
+		hazard_waits += 1
+		ctx.log_line("waiting for a hazard at %s" % ahead.snapped(Vector3.ONE * 0.1))
+	_waiting_hazard = waiting
+	return waiting
+
+
+## Rats: a path segment that runs over a noticed trap gets a waypoint beside it (on the mesh). A trap
+## on the destination itself is the goal's business (AiContext.stand_for picks another spot).
+func _around_traps(path: AiNav.Path) -> void:
+	var traps := ctx.senses.traps()
+	if traps.is_empty():
+		return
+	var clear := ctx.tuning.trap_clearance
+	var detours := 0
+	var i := 0
+	while i < path.points.size() - 1 and detours < TRAP_DETOURS:
+		if path.links[i] != null:
+			i += 1
+			continue
+		var a := path.points[i]
+		var b := path.points[i + 1]
+		var inserted := false
+		for trap in traps:
+			var t := trap.global_position
+			if absf(t.y - a.y) > 1.0 or _flat(t - destination).length() < clear:
+				continue
+			var c := Geometry3D.get_closest_point_to_segment(t, a, b)
+			if _flat(c - t).length() >= clear or _flat(c - a).length() < 0.05 or _flat(c - b).length() < 0.05:
+				continue
+			var along := _flat(b - a).normalized()
+			var side := Vector3(-along.z, 0.0, along.x)
+			if side.dot(_flat(c - t)) < 0.0:
+				side = -side  # the side the path already leans to
+			for offset in [side, -side]:
+				var want: Vector3 = t + offset * (clear + 0.25)
+				var spot := ctx.nav.closest_point(ctx.role, want)
+				if _flat(spot - want).length() < 0.2 and absf(spot.y - t.y) < 0.6:
+					path.points.insert(i + 1, spot)
+					path.links.insert(i + 1, null)
+					detours += 1
+					inserted = true
+					break
+			if inserted:
+				break
+		if not inserted:
+			i += 1
 
 
 static func _flat(v: Vector3) -> Vector3:

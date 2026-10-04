@@ -21,7 +21,7 @@ The plan is drawn by the same script that builds the level, so the two can't dri
 - **Two loops for supervisors.** Inside: Control Room → Main Hall West → Reactor Hall → Turbine Hall → Main Hall East → back. Outside: the yard behind the halls. Keycard doors (Valve Corridor ↔ Break Room, Locker Room ↔ South Corridor) are supervisor shortcuts; rats have to go around.
 - **Rats live in the vents.** The nest is a sealed sewer room south of the plant. Its only exit is a duct that splits three ways: north into the South Corridor, west along the outside of the building (Valve Corridor ×2, Pump House, the substation), and east (South Corridor, Cage Room ×2, Storage, then the climbable shaft up to the vent roof). Two ducts run along the inside of the north walls: Pump House → Reactor Hall and Storage → Turbine Hall. A raised duct crosses over the South Corridor and **drops into the Control Room** (one-way: 2.8 m, too high to jump back), so rats can raid the hub but can't escape that way.
 - **Every sabotage point has two rat routes**, one on foot and one through a vent. The map check below measures both (the vent exits are at most 22 m away).
-- **The Cage Room is the tension spot.** It's in the east, about 90 m of ducts from the nest (18 s for a rat), next to two vent openings, so freeing a friend is always possible but never free.
+- **The Cage Room is the tension spot.** It's in the east, about 90 m of ducts from the nest (18 s for a rat), next to two vent openings, so freeing a friend is always possible but never free. A third cage stands in the Reactor Hall's west corner, under the catwalk (M10, with the carry raised to 12 s): rats stunned at the rods (9–15 m), the pumps (17–21 m) or the valves (27–28 m) are one carry from it, while the Cage Room's two serve the turbine and Storage. It is off the rats' walk from the nest and away from the supervisors' Break Room, so a carry from the valves is still a chance for a rescue.
 - **Two floors.** The Reactor Hall (10 m high) has an L-shaped catwalk at 4 m with stairs, the Turbine Hall (8 m) a catwalk along its north wall at 3.5 m with stairs at both ends. Crates let rats jump up (1.2 m, then 2.4 m), and supervisors use the stairs. The vent roof is a 6 m block reached by the yard ladder (everyone) or the shaft (rats).
 - **CCTV:** 8 cameras: Reactor Hall, Turbine Hall, Pump House, Valve Corridor, Substation, Vent Roof, Cage Room and Main Hall West. Their blind spots are on purpose: no camera sees the South Corridor (where the nest's vent comes out), the Storage, the Locker Room or the Break Room, and most cameras see only half of their room. Each camera's junction box is at the foot of the wall below it, so rats can reach it (hold E to break it, supervisors hold E to repair it).
 - **Out of bounds:** kill volumes under the map, beyond the yard fence and on every roof put a player back where they last stood.
@@ -30,7 +30,7 @@ The plan is drawn by the same script that builds the level, so the two can't dri
 `tests/integration/map_check.sh` (also in CI) bakes a navigation mesh for each role from the level's collision and measures real paths. Ladders, the shaft and the one-way drop are `NavigationLink3D`s in the level. Last run:
 
 <!-- map-check:begin -->
-Navigation meshes baked in 1.0 s (level: plant).
+Navigation meshes baked in 1.1 s (level: plant).
 
 ### Supervisors (from the Control Room, walking at 4 m/s)
 
@@ -52,6 +52,7 @@ Navigation meshes baked in 1.0 s (level: plant).
 | KeycardDoor ReaderBack | 39 m | 9.7 s |  |
 | KeycardDoor ReaderFront | 41 m | 10.2 s |  |
 | KeycardDoor ReaderFront | 43 m | 10.6 s |  |
+| ReactorHall CageWest | 39 m | 9.7 s |  |
 | Storage SpareKeycard | 47 m | 11.8 s |  |
 | Storage TrapRefill | 50 m | 12.5 s |  |
 | grid RepairPoint | 70 m | 17.5 s | ≤ 25 s ok |
@@ -78,6 +79,7 @@ Second route: on foot from the South Corridor with every vent sealed, and the ne
 | Camera 6 (Vent Roof) | 119 m | 23.8 s |  |  |  |
 | Camera 7 (Cage Room) | 100 m | 20.0 s |  |  |  |
 | Camera 8 (Main Hall West) | 41 m | 8.2 s |  |  |  |
+| ReactorHall CageWest | 48 m | 9.6 s | ≤ 30 s ok |  |  |
 | grid SabotageA | 84 m | 16.9 s |  | 76 m | 8 m |
 | grid SabotageB | 89 m | 17.8 s |  | 72 m | 13 m |
 | pumps SabotageA | 53 m | 10.5 s |  | 44 m | 4 m |

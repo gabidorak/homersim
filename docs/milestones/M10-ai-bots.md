@@ -140,33 +140,34 @@ These were agreed when the milestone was planned (2026-10-03).
 - [x] Debug flags `--ai-roles rat,rat,supervisor` and `--ai-goals role:goal,…` (only these goals) for focused tests.
 
 ### E. Advanced behaviours (the rest of the feature set)
-- [ ] **Traps.**
+- [x] **Traps.**
   - Supervisors place snap traps at the rats' stand spots of valuable machines and levers, and cheese lures at vent exits near targets and on the cage approaches (`ai_place_trap`: within 2 m, on the floor, 0.6 m apart).
   - They refill at Storage when their charges run out and things are calm.
   - They go to a SNAP (`snap_heard`) within 25 m.
   - Rats notice a trap within 6 m with line of sight, with the skill's `trap_notice` chance, and walk around it.
-- [ ] **Keycards.**
+- [x] **Keycards.**
   - Rats steal from a supervisor that stands still and faces away (go behind, hold the `StealHandle` 1 s, flee to a vent).
   - A supervisor whose keycard was stolen chases a known thief, picks up a dropped keycard, or collects a spare at Storage once `spare_ready()`.
-- [ ] **Donuts**: a supervisor eats one when it's ready and the Break Room is on the way or before a long trip.
-- [ ] **CCTV.**
+- [x] **Donuts**: a supervisor eats one when it's ready and the Break Room is on the way or before a long trip.
+- [x] **CCTV.**
   - Supervisors sit in the chair when the plant is calm and the chair is free (claim). Each unbroken camera then reveals rats within 15 m of its lens with line of sight. They stand up after 20 s at most, when they spot a rat, or when the plant is damaged.
   - Rats break cameras near their route, especially while someone sits in the chair (hold 2 s). Supervisors fix broken cameras on their way (hold 3 s).
-- [ ] **Control Room.**
+- [x] **Control Room.**
   - Emergency coolant when `core_temp > 650`, it's ready and the grid is at 25 or more.
   - SCRAM (cover, then button, within 5 s) only when `core_temp > 760` or meltdown > 50 %, because it costs +30 s of shift.
-- [ ] **Gang bites**: when 2 or more rat bots are within 12 m of the same supervisor, they bite together, going for the knockdown (3 bites in 6 s) and the swarm bonus.
-- [ ] **Hazards.**
+- [x] **Gang bites**: when 2 or more rat bots are within 12 m of the same supervisor, they bite together, going for the knockdown (3 bites in 6 s) and the swarm bonus.
+- [x] **Hazards.**
   - Wait at the edge of a live steam jet or puddle for its off phase (`Hazard.is_live(Net.server_time())`), and never start a hold inside a live hazard.
   - Step away from `DebrisZone.pending_impacts()` (humans see the warning circle).
   - Limit the time spent in the radiation zone.
 
 ### F. Difficulty, tuning, watch mode
-- [ ] Difficulty presets in `BotSkill` (the starting values in GDD §5.5). The presets are picked with `bot_difficulty`.
-- [ ] Optional: `--ai-labels` shows each bot's current goal under its name tag for a spectating debug client (an unreliable 2 Hz RPC on MatchManager, sent only with the flag).
-- [ ] A 30 s AI summary line in the server log for each bot: goal times, distance, stuck counts, path failures. Also the physics time per frame, with a budget under 0.3 ms per bot.
+- [x] Difficulty presets in `BotSkill` (the starting values in GDD §5.5). The presets are picked with `bot_difficulty`.
+- [x] Optional: `--ai-labels` shows each bot's current goal under its name tag for a spectating debug client (an unreliable 2 Hz RPC on MatchManager, sent only with the flag).
+- [x] A 30 s AI summary line in the server log for each bot: goal times, distance, stuck counts, path failures. Also the physics time per frame, with a budget under 0.3 ms per bot.
 - [ ] Solo playtests against bots on normal, in both roles. Bots-only matches over many seeds: **both teams should win sometimes** (tune `bot_tuning.tres`, not the game rules). Write notes in `docs/playtests/`.
-- [ ] Optional: mid-match backfill. A bot takes over the role (not the body) of a human who left, at their team's spawn.
+  *Bots-only part done (`ai_balance.sh`, notes in `docs/playtests/2026-10-04-bots-balance.md`): 15 rat wins and 17 supervisor wins over 32 full-length matches at normal. One game rule did change (the 12 s carry and the Reactor Hall cage, the user's call, see the status below). The human solo playtests are still to do.*
+- [ ] Optional: mid-match backfill. A bot takes over the role (not the body) of a human who left, at their team's spawn. *(Not built.)*
 
 ### Status (2026-10-03): phases A to D built
 Everything above E is in place and tested (unit tests, `ai_fill.sh`, `ai_target.sh`, `ai_nav_tour.sh`,
@@ -196,13 +197,57 @@ Everything above E is in place and tested (unit tests, `ai_fill.sh`, `ai_target.
   the Cage Room when PLAYING starts (`ai_capture.sh`). With `--ai-only`, humans who join watch as
   spectators.
 - **Balance** is phase F: in bots-only matches the rats are strong (meltdown 30–90 % after 150 s), and
-  supervisor bots rarely catch anyone (a rat must be stunned within about 20 m of a cage).
+  supervisor bots rarely catch anyone (a rat must be stunned within about 20 m of a cage). (See the phase E
+  and F status below.)
 - Measured: the AI costs 0.08–0.14 ms per bot per physics tick (budget 0.3 ms). `ai_fill.sh` passes
   against an exported Linux Server build (`SERVER_BIN=…`).
 
+### Status (2026-10-04): phases E and F built
+Phase E's whole feature list is in place, each behaviour with a focused test (`ai_items.sh`, `ai_steal.sh`,
+`ai_control.sh`, `ai_cctv.sh`, each looped with 5 seeds), and phase F's tools: the 30 s summaries,
+`--ai-labels`, and `ai_balance.sh` for many bots-only matches. Verified: 266 unit tests, all 24 integration
+tests (the AI ones looped with 5 seeds), the map check, a windowed spectator with `--ai-labels`. Bots-only
+balance at normal: 15 rat wins and 17 supervisor wins over 32 full-length matches (9–7 on the seeds used
+while tuning, 6–10 on fresh ones). Still open: the human solo playtests, the optional backfill. Where the
+build differs from the plan, and what changed on the way:
+- **Capture needed a rule change** (the user's call). With an 8 s carry at 3.2 m/s a rat had to be stunned
+  within ~20 m of the Cage Room to be caged, and every machine but the turbine is 40–100 m away: supervisor
+  bots bonked rats and walked off, and so would humans. The carry is now **12 s** (`pvp_tuning.tres`,
+  GDD §5.1) and a **third cage** stands in the Reactor Hall's west corner under the catwalk
+  (`gen_plant.py`): the rods, the pumps and the valves are one carry from it. A first try in Main Hall West
+  sat on the rats' walk from the nest and next to the supervisors' Break Room: every rat was caught within
+  a minute.
+- **New goals.** Supervisors: Console, Investigate, Keycard, Donut, FixCamera, PlaceTrap, Refill, Cctv.
+  Rats: Gang, Steal, BreakCamera. Hazards and trap detours live in `AiDriver` (every goal), with the
+  hazard checks in `server/ai/ai_hazards.gd`.
+- **Gang bites** go for a *busy* supervisor only (repairing, seated, at a console, or carrying), as GDD
+  §5.5 says, and never within 12 m of a cage: ganging up on any supervisor in sight got rats bonked and
+  caged.
+- **Traps.** Snap traps go on the rats' stand spots, cheese lures 1 m into the room from vent exits near
+  targets and cages (the exit markers themselves are where rats come out: no way around). A rat that
+  notices a trap re-plans at once; its stand spot moves 0.7 m aside.
+- **Rats got careful** (phase F, all `bot_tuning.tres`): a target near a supervisor seen in the last
+  `danger_memory_s` is worth less (`AiContext.danger_at`); the Break Room area is dangerous for the first
+  `opening_danger_s` (everyone knows supervisors start there); they flee from 10 m, from a supervisor
+  close by even standing still, from footsteps right next to them, plan the flight around every
+  supervisor they know, keep running while chased, and bolt into a duct (`World.hideouts`: a point just
+  inside each vent opening) where no supervisor can follow. Without that, two supervisor bots caught every
+  rat in most matches; the first bolt-holes swung it to 13–3 for the rats.
+- **The movement validator** let a rat that rode on a supervisor's head (stunned there after a jump) be
+  carried along: no more strikes for that (a body standing on another may move as fast as it).
+- **Cost.** Phase E first doubled the AI's cost (0.3–0.6 ms per bot per tick; the summary lines now split
+  it into senses / think / goal / driver). Back under budget with: strategic goals (where to sabotage,
+  repair, lay a trap, patrol…) scored at most every 0.6 s (`AiGoal.rescore_s`; flee, chase, capture,
+  rescue, gang, harass and steal still at every think); navmesh queries (~50 µs for a closest point,
+  ~150 µs for a path) through a cache (`AiNav.snap`); path lengths kept until the bot moved 8 m, with
+  staggered expiry; trap spots pre-filtered; the reflex check at 20 Hz; hazards, doors and the jet ahead
+  looked at 10 times a second; `enemies()`, the trap list, teammates and stand spots cached briefly.
+  Measured on one server, 6 bots: **0.24–0.28 ms per bot per tick** (1.4–1.7 ms per physics frame;
+  the busiest supervisor up to 0.39 ms).
+
 ## 2. Done when
 - [ ] With `bot_fill_to=6`, **one human** readies up alone and plays a full match against bots, as a rat and as a supervisor, and sees the bots do every action in the feature list.
-- [ ] Bots-only matches (`ai_match.sh`, 5 seeds) finish without errors, with sabotages and repairs by both teams, and with each team winning at least once over 10 matches.
+- [x] Bots-only matches (`ai_match.sh`, 5 seeds) finish without errors, with sabotages and repairs by both teams, and with each team winning at least once over 10 matches. (`ai_match.sh` 5 seeds; a match the supervisors win early by catching every rat shows the catches instead. `ai_balance.sh`: 15–17 over 32 full matches.)
 - [x] No bot gets hard-stuck in the nav tour or in a 10-match soak (`--ai-only`, matches back to back, no `--exit-after-match`). Memory stays stable. (`ai_nav_tour.sh` 5 seeds; `ai_soak.sh` 10 matches, 202.8 → 203.1 MB.)
 - [x] Bots never cheat: a review of `server/ai/` finds no enemy position read outside `AiSenses`. (Outside it, the AI reads only its own body, its teammates and the level.)
 - [x] Bots are clearly labelled: name tag badge, scoreboard, post-match screen, lobby line. (`UiTour --bots`, watch mode `--spectate first`.)
@@ -215,12 +260,14 @@ Everything above E is in place and tested (unit tests, `ai_fill.sh`, `ai_target.
   - `test_ai_scoring.gd`, `test_ai_path_follower.gd` (waypoints, link types, the stuck escalation fed with fake position samples).
   - `test_ai_blackboard.gd` (claim TTLs, release, the lever handshake).
   - `test_ai_senses.gd` (a pure `can_notice(...)`).
+  - `test_ai_hazards.gd` (inside a jet or a box, wait for the off phase); `test_ai_scoring.gd` and `test_ai_blackboard.gd` cover the phase E scores and the gang.
 - **Integration** (`tests/integration/ai_*.sh`, built like `run_match_loop.sh`, with `--no-lan --no-heatmap`):
   - `ai_fill.sh` (A): one test client + 5 bots, the roles, the no-humans rule when the client quits, no bots in the lobby.
   - A `pvp_bot.gd` scenario `ai_target` (A): a scripted supervisor client stuns, grabs and cages an AI rat. This proves the direct `attach_to` / `force_position` paths.
   - `ai_nav_tour.sh` (B): every target reached, `ai.tour.failed == []`.
   - `ai_match.sh` (D): `--ai-only --ai-fill 6 --test-duration 150`. Asserts at least one sabotage and one repair, more than 100 m walked per bot, no stall over 8 s, no hard stuck, no validator strikes, no `ERROR` / `SCRIPT ERROR` in the logs.
-  - `ai_lever.sh`, `ai_capture.sh`, `ai_items.sh`, `ai_control.sh` (C–E; `--ai-scenario` sets the plant state at PLAYING).
+  - `ai_lever.sh`, `ai_capture.sh` (C–D), `ai_items.sh` (traps, refill, donut), `ai_steal.sh` (`--ai-scenario steal`: keycard, spare), `ai_control.sh` (`--ai-scenario hot`: coolant, SCRAM), `ai_cctv.sh` (`--ai-scenario cctv`: the chair, a broken camera, its repair) (E; the scenarios set the plant state at PLAYING).
+  - `ai_balance.sh` (F, manual): bots-only matches in parallel, one seed each, full length unless `DURATION`; prints the winners and the team stats.
 - Loop each new script **5 times with different `--ai-seed` values** before calling it done, and keep the thresholds loose.
 - **Watch mode** (windowed): start a debug server with `--headless -- --server --ai-only --ai-fill 6 --ai-log`, then a client with `-- --connect 127.0.0.1:7777 --spectate first` (follow a bot; clicks cycle through the others). It joins mid-match as a spectator: the free camera plus the map, with everyone shown. `tools/heatmap.py` on the server's position log and `user://ai_stuck.csv` show where bots dwell or get stuck.
 

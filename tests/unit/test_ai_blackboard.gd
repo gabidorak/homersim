@@ -1,5 +1,6 @@
 extends GutTest
-## M10: a team's AiBlackboard: claims with a TTL, their release, the lever pair handshake.
+## M10: a team's AiBlackboard: claims with a TTL, their release, the lever pair handshake, gang bites,
+## the shared traps, thieves and CCTV sightings.
 
 var board: AiBlackboard
 
@@ -82,3 +83,38 @@ func test_sightings_and_events() -> void:
 	assert_eq(board.events.size(), 1, "old events are dropped")
 	board.clear()
 	assert_true(board.claims.is_empty() and board.sightings.is_empty() and board.events.is_empty())
+
+
+func test_gang_needs_two_fresh_rats() -> void:
+	board.mark_near(7, -1003, 10.0)
+	assert_eq(board.gang_members(7, 10.0), 1)
+	board.mark_near(7, -1004, 10.5)
+	assert_eq(board.gang_members(7, 10.6), 2, "two rat bots close to supervisor 7")
+	assert_eq(board.gang_members(7, 11.3), 1, "the first mark went stale (1 s)")
+	assert_eq(board.gang_members(8, 10.6), 0, "another supervisor")
+	board.start_gang(7, 10.6, 10.0)
+	assert_true(board.gang_on(7, 15.0))
+	assert_false(board.gang_on(8, 15.0), "only its target")
+	assert_false(board.gang_on(7, 20.7), "over unless renewed")
+
+
+func test_release_all_leaves_the_gang() -> void:
+	board.mark_near(7, -1003, 0.0)
+	board.mark_near(7, -1004, 0.0)
+	board.release_all(-1003)
+	assert_eq(board.gang_members(7, 0.5), 1)
+
+
+func test_seated_supervisor_sightings() -> void:
+	board.report_sighting(7, Vector3.ZERO, 5.0, -1003, true)
+	board.report_sighting(8, Vector3.ONE, 5.0, -1003, false)
+	assert_eq(board.seated_supervisor(10.0, 25.0), 7, "seen in the CCTV chair")
+	assert_eq(board.seated_supervisor(40.0, 25.0), 0, "too long ago")
+
+
+func test_clear_forgets_traps_and_thieves() -> void:
+	board.traps[1] = {"trap": null, "at": 0.0}
+	board.thieves[-1003] = 0.0
+	board.mark_near(7, -1003, 0.0)
+	board.clear()
+	assert_true(board.traps.is_empty() and board.thieves.is_empty() and board.near.is_empty())

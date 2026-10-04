@@ -29,6 +29,7 @@ const HAND_SOCKET_POSITION := Vector3(0.3, 0.75, -0.55)  ## supervisor: where a 
 const STATUS_TAG_GAP := 0.25  ## m above the name tag
 const REVEAL_MATERIAL: ShaderMaterial = preload("res://shaders/reveal_outline.tres")
 const BOT_BADGE_GAP := 0.18  ## m above the name tag (the status tag goes one step higher for bots)
+const AI_LABEL_GAP := 0.16  ## m below the name tag (--ai-labels)
 const BADGE_FONT: Font = preload("res://assets/fonts/LuckiestGuy-Regular.ttf")
 
 
@@ -276,6 +277,23 @@ func _add_bot_badge() -> void:
 	badge.position = name_tag.position + Vector3(0, BOT_BADGE_GAP, 0)
 	add_child(badge)
 	status_tag.position.y += BOT_BADGE_GAP
+
+
+## Test-only (--ai-labels, M10): the bot's current goal under its name tag (MatchManager.on_ai_labels).
+func show_ai_label(text: String) -> void:
+	var label := get_node_or_null("AiLabel") as Label3D
+	if label == null:
+		label = Label3D.new()
+		label.name = "AiLabel"
+		label.font_size = 22
+		label.outline_size = 8
+		label.modulate = Color("9fe7ff")
+		label.outline_modulate = Color("1b1b1f")
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		label.position = name_tag.position - Vector3(0, AI_LABEL_GAP, 0)
+		add_child(label)
+	label.text = text
 
 
 func _update_feedback(delta: float) -> void:

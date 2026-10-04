@@ -11,9 +11,11 @@ extends Node
 ##   5. the driver (AiDriver) writes the body's MoveIntent and sync_anim.
 ## The AI never moves the body itself and never skips a rule: everything goes through the same
 ## server checks as a player's requests. With --ai-log every change of goal is one log line
-## ("Gus: Repair(pumps) 0.82 > Patrol 0.30").
+## ("Gus: Repair(pumps) 0.82 > Patrol 0.30"). Every SUMMARY_S the server log gets one summary line
+## per bot (summary()): time per goal, distance, stuck counts, path failures, cost per tick.
 
-const REFLEX_INTERRUPT := 0.8  ## a reflex goal scoring this much takes over before the next think
+const REFLEX_INTERRUPT := 0.75  ## a reflex goal scoring this much takes over before the next think…
+const REFLEX_CHECK_S := 0.05  ## …checked this often (20 Hz)
 const RESCUE_BITE_M := 1.1  ## m from a carried teammate: its carrier is in bite reach
 const RETRY_AFTER_FAIL_S := 1.5  ## a goal that just failed sits out this long
 
@@ -27,7 +29,9 @@ var current: AiGoal
 var stats: Dictionary = {}
 
 var _next_think := 0.0
+var _next_reflex_check := 0.0
 var _next_trace := 0.0
+var _window: Dictionary = {}  # the stats at the last summary line (summary() prints the difference)
 var _resting: Dictionary = {}  # goal -> until when it sits out (it just failed)
 
 
@@ -53,7 +57,10 @@ func setup(p_director: AiDirector, p_body: Player) -> void:
 	ctx.senses = AiSenses.new(ctx)
 	goals = _make_goals()
 	stats = {"name": body.display_name, "role": body.role, "distance": 0.0, "goals": {}, "decisions": 0,
-		"stuck_hard": 0, "path_failures": 0, "max_stall_s": 0.0, "cpu_us": 0, "ticks": 0}
+		"stuck_hard": 0, "path_failures": 0, "max_stall_s": 0.0, "cpu_us": 0, "ticks": 0, "hazard_waits": 0,
+		"cost_us": {"senses": 0, "think": 0, "goal": 0, "driver": 0}}
+	_window = {"goals": {}, "distance": 0.0, "stuck_hard": 0, "path_failures": 0, "cpu_us": 0, "ticks": 0,
+		"cost_us": {"senses": 0, "think": 0, "goal": 0, "driver": 0}}
 
 
 func _ready() -> void:
@@ -90,10 +97,13 @@ func goal_label() -> String:
 func _make_goals() -> Array[AiGoal]:
 	var list: Array[AiGoal] = []
 	if body.role == Role.Kind.RAT:
-		list = [AiGoalFlee.new(ctx), AiGoalRescueCarried.new(ctx), AiGoalSabotage.new(ctx), AiGoalLeverPair.new(ctx),
-			AiGoalHarass.new(ctx), AiGoalFreeCaged.new(ctx), AiGoalLurk.new(ctx)]
+		list = [AiGoalFlee.new(ctx), AiGoalRescueCarried.new(ctx), AiGoalGang.new(ctx), AiGoalSabotage.new(ctx),
+			AiGoalLeverPair.new(ctx), AiGoalSteal.new(ctx), AiGoalHarass.new(ctx), AiGoalBreakCamera.new(ctx),
+			AiGoalFreeCaged.new(ctx), AiGoalLurk.new(ctx)]
 	elif body.role == Role.Kind.SUPERVISOR:
-		list = [AiGoalCapture.new(ctx), AiGoalChase.new(ctx), AiGoalRepair.new(ctx), AiGoalGuardCages.new(ctx),
+		list = [AiGoalCapture.new(ctx), AiGoalChase.new(ctx), AiGoalConsole.new(ctx), AiGoalRepair.new(ctx),
+			AiGoalInvestigate.new(ctx), AiGoalKeycard.new(ctx), AiGoalDonut.new(ctx), AiGoalFixCamera.new(ctx),
+			AiGoalPlaceTrap.new(ctx), AiGoalRefill.new(ctx), AiGoalCctv.new(ctx), AiGoalGuardCages.new(ctx),
 			AiGoalPatrol.new(ctx)]
 	var wanted: Array = director.only_goals.get(body.role, [])
 	return list.filter(func(g: AiGoal) -> bool: return wanted.is_empty() or g.id in wanted)
@@ -115,18 +125,24 @@ func _physics_process(delta: float) -> void:
 
 func _tick(delta: float) -> void:
 	ctx.now = _now()
-	if not ctx.playing():
+	if not ctx.playing() or _held():
 		if current != null:
 			current.stop()
 			current = null
 		ctx.driver.halt()
 		ctx.driver.tick(delta)
 		return
+	var t0 := Time.get_ticks_usec()
 	ctx.senses.update(ctx.now)
+	var t1 := Time.get_ticks_usec()
 	if ctx.can_act():
 		_reflexes()
-	if ctx.now >= _next_think or _reflex_wants_in():
+	var reflex_due := ctx.now >= _next_reflex_check
+	if reflex_due:
+		_next_reflex_check = ctx.now + REFLEX_CHECK_S
+	if ctx.now >= _next_think or (reflex_due and _reflex_wants_in()):
 		_think()
+	var t2 := Time.get_ticks_usec()
 	if current != null:
 		stats["goals"][current.id] = float(stats["goals"].get(current.id, 0.0)) + delta
 		var result := current.tick(delta)
@@ -135,16 +151,52 @@ func _tick(delta: float) -> void:
 			if result == AiGoal.Result.FAILED:
 				_resting[current] = ctx.now + RETRY_AFTER_FAIL_S
 			current.stop()
+			current.rescore()
 			current = null
 			_next_think = ctx.now  # pick something else right away
+	var t3 := Time.get_ticks_usec()
 	ctx.driver.tick(delta)
+	var parts: Dictionary = stats["cost_us"]
+	parts["senses"] += t1 - t0
+	parts["think"] += t2 - t1
+	parts["goal"] += t3 - t2
+	parts["driver"] += Time.get_ticks_usec() - t3
 	if director.trace != "" and ctx.now >= _next_trace and (director.trace == "all" or director.trace == body.display_name):
 		_next_trace = ctx.now + 0.25
 		_log_trace()
 	stats["distance"] = ctx.driver.distance
 	stats["path_failures"] = ctx.driver.path_failures
+	stats["hazard_waits"] = ctx.driver.hazard_waits
 	if ctx.driver.move_state == AiDriver.Move.MOVING and ctx.can_act():
 		stats["max_stall_s"] = maxf(stats["max_stall_s"], ctx.driver.stuck.stalled_for(ctx.now))
+
+
+## One line for the server log (AiDirector, every SUMMARY_S): what the bot did since the last one.
+## Returns the AI's cost per tick over that window, in µs (the director adds them up per frame).
+func summary() -> float:
+	var goals := {}
+	for goal: String in stats["goals"]:
+		var spent := float(stats["goals"][goal]) - float(_window["goals"].get(goal, 0.0))
+		if spent >= 0.5:
+			goals[goal] = roundi(spent)
+	var ticks := maxi(int(stats["ticks"]) - int(_window["ticks"]), 1)
+	var us := float(int(stats["cpu_us"]) - int(_window["cpu_us"])) / ticks
+	var parts := PackedStringArray()
+	for part: String in stats["cost_us"]:
+		parts.append("%s %.0f" % [part, float(int(stats["cost_us"][part]) - int(_window["cost_us"][part])) / ticks])
+	Log.info("ai", "summary %s (%s): %s | %.0f m | stuck %d, path failures %d | %.3f ms/tick (µs: %s) | now %s" % [
+		body.display_name, Role.display_name(body.role).to_lower(), goals, float(stats["distance"]) - float(_window["distance"]),
+		int(stats["stuck_hard"]) - int(_window["stuck_hard"]), int(stats["path_failures"]) - int(_window["path_failures"]),
+		us / 1000.0, ", ".join(parts), goal_label()])
+	_window = {"goals": (stats["goals"] as Dictionary).duplicate(), "distance": stats["distance"],
+		"stuck_hard": stats["stuck_hard"], "path_failures": stats["path_failures"], "cpu_us": stats["cpu_us"],
+		"ticks": stats["ticks"], "cost_us": (stats["cost_us"] as Dictionary).duplicate()}
+	return us
+
+
+## Caged or carried: nothing to decide until a friend (or the 12 s) gets us out.
+func _held() -> bool:
+	return body.status.has(StatusComponent.Status.CAGED) or body.status.has(StatusComponent.Status.CARRIED)
 
 
 ## --ai-trace: where the bot is and what it is doing, for debugging a spot.
@@ -168,7 +220,7 @@ func _think() -> void:
 	for goal in goals:
 		if ctx.now < float(_resting.get(goal, -INF)):
 			continue
-		var s := AiScoring.committed(goal.score(), goal == current, ctx.tuning.commitment_bonus)
+		var s := AiScoring.committed(goal.cached_score(ctx.now), goal == current, ctx.tuning.commitment_bonus)
 		if s > best_score:
 			if best != null:
 				runner_up = best.label()

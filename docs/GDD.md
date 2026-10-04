@@ -107,7 +107,7 @@ Each action's console has its own screen with its cooldown. The HUD shows the SC
 
 Abilities:
 - **Broom swing** (LMB): 2.0 m range, 70° cone, 1.2 s cooldown, **stuns a rat for 2.0 s** (rats get 1.5 s of stun immunity after a stun ends).
-- **Grab** (E on a stunned rat): carry the rat at carry speed. It escapes on its own after **8 s**, and a single bite from another rat makes the supervisor drop it (so does getting stunned or knocked down). A dropped rat lands at the carrier's feet with **1.5 s of invulnerability**.
+- **Grab** (E on a stunned rat): carry the rat at carry speed. It escapes on its own after **12 s** (about 38 m: the pumps, the valves and the control rods are one carry from the Reactor Hall's cage), and a single bite from another rat makes the supervisor drop it (so does getting stunned or knocked down). A dropped rat lands at the carrier's feet with **1.5 s of invulnerability**.
 - **Cage** (E at a cage while carrying): the rat is caged. See [elimination](#53-capture-and-elimination).
 - **Traps** (hold RMB to aim, release to place, Q to switch the kind; 3 charges shared by both kinds, refill at Storage; within 2 m, on the floor, at least 0.6 m apart). Only the placing supervisor sees the aiming preview:
   - *Snap trap*: stuns the rat that steps on it for 3 s and plays a loud SNAP heard by every supervisor. A rat that can't be stunned right then (invulnerable, stun immunity) doesn't set it off.
@@ -214,7 +214,7 @@ One level, about **104 × 64 m** plus the sewer nest, two floors in places (catw
 | POI | Purpose | Notes |
 |---|---|---|
 | Control Room | Supervisor hub: status board, CCTV chair, wall screens, remote actions (M6) | 2 doors (west, east) and 1 vent (a one-way drop). Windows overlook the Reactor and Turbine Halls. |
-| Reactor Hall | Control rods (critical) | 10 m high, glowing pool, L-shaped catwalk at 4 m |
+| Reactor Hall | Control rods (critical), a cage | 10 m high, glowing pool, L-shaped catwalk at 4 m. The west cage (M10) stands under the west catwalk: rats caught at the rods, the pumps or the valves are one carry from it |
 | Turbine Hall | Turbine (critical) | Long hall, the turbine control desk behind the turbine, catwalk at 3.5 m, crates up for rats |
 | Pump House | Coolant pumps | Cramped, pipes for rats to run along |
 | Valve Corridor | Coolant valves | A long hall split by a valve rack; keycard shortcut to the Break Room |

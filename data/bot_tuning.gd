@@ -26,6 +26,10 @@ const PATH := "res://data/bot_tuning.tres"
 @export var memory_s := 8.0  ## a last known position is kept this long, then becomes "search this area"
 @export var search_s := 12.0  ## …for this long
 @export var share_delay_s := 1.0  ## teammate bots hear about a sighting this much later (a callout)
+@export var trap_notice_radius := 6.0  ## m: rats may notice a trap this close, in sight (BotSkill.trap_notice)
+@export var cctv_range := 15.0  ## m: a seated supervisor sees rats this close to an unbroken camera's lens…
+@export var cctv_fov_deg := 110.0  ## …inside its view (full angle)
+@export var camera_seen_radius := 15.0  ## m: whether a camera is broken is seen from this close
 
 @export_group("Decisions")
 @export var commitment_bonus := 0.15  ## added to the running goal's score, so bots don't flip-flop
@@ -46,15 +50,26 @@ const PATH := "res://data/bot_tuning.tres"
 @export var door_grace_s := 1.0  ## an opening door doesn't count as stuck for this long
 
 @export_group("Rats")
-@export var flee_radius := 7.0  ## m: a known supervisor closer than this (and closing) → flee
+@export var flee_radius := 10.0  ## m: a known supervisor closer than this (and closing) → flee
 @export var flee_search_radius := 20.0  ## m: escape spots (vents, vent exits) within this
 @export var flee_candidates := 6
 @export var flee_min_s := 2.5  ## flee at least this long once started
-@export var sabotage_supervisor_radius := 8.0  ## a known supervisor this near a target lowers its score
+@export var sabotage_supervisor_radius := 8.0  ## m: a known supervisor this near a camera or a cage: not now
+@export var danger_radius := 16.0  ## m: a known supervisor this close to a target makes it less appealing…
+@export var danger_memory_s := 15.0  ## …while it was seen (or heard) this recently
+@export var opening_danger_s := 30.0  ## everyone knows supervisors start in the Break Room: rats keep away
+@export var opening_danger_radius := 30.0  ## …from this far around it (fully within half), fading out over the second half of this long
 @export var lever_wait_s := 15.0  ## the first rat at a lever waits this long for its partner
 @export var harass_keep_away := 3.0  ## m: while the bite cools down
 @export var free_safe_radius := 10.0  ## m: no known supervisor this near a cage before freeing
 @export var squeak_chance := 0.25  ## after a sabotage, and now and then while lurking
+@export var steal_radius := 10.0  ## m: a supervisor standing still, facing away, this close can be robbed
+@export var camera_detour_s := 8.0  ## a camera this many seconds away is worth half as much (rats break them on the way)
+@export var gang_radius := 12.0  ## m: two rat bots this close to the same supervisor bite it together…
+@export var gang_s := 10.0  ## …for this long (renewed while they stay close)
+@export var gang_cage_radius := 12.0  ## m: never start a fight this close to a cage (a stun there is a capture)
+@export var trap_clearance := 0.6  ## m: a rat's path passes a trap it noticed at least this far
+@export var sabotage_rest_s := 0.0  ## after a sabotage, a rat lurks this long before the next one (balance)
 
 @export_group("Supervisors")
 @export var chase_radius := 12.0  ## m: a known rat closer than this can be chased
@@ -63,6 +78,22 @@ const PATH := "res://data/bot_tuning.tres"
 @export var swing_cone_deg := 30.0  ## the reflex swings when the rat is within this of the facing
 @export var carry_spare_s := 1.5  ## a grab only if a cage is reachable before the carry ends, with this to spare
 @export var patrol_revisit_s := 60.0  ## a room not visited for this long is worth a full patrol score
+@export var snap_radius := 25.0  ## m: a supervisor this close to a SNAP goes to look…
+@export var snap_answer_s := 8.0  ## …while it is this recent
+@export var investigate_radius := 35.0  ## m: a rat heard, called out or seen on CCTV this close is worth a look
+@export var thief_chase_radius := 20.0  ## m: a rat seen stealing a keycard is chased this far
+@export var trap_spot_spacing := 3.0  ## m: a new trap spot this close to another trap is taken already
+@export var cctv_max_s := 20.0  ## a supervisor watches the cameras this long at most…
+@export var cctv_rest_s := 45.0  ## …and not again for this long
+@export var coolant_temp := 650.0  ## core_temp above this: emergency coolant (if the grid has power)
+@export var scram_temp := 760.0  ## core_temp above this, or meltdown above scram_meltdown: SCRAM (+30 s of shift)
+@export var scram_meltdown := 50.0
+@export var donut_detour_m := 12.0  ## a donut is worth this many metres out of the way
+
+@export_group("Hazards")
+@export var hazard_cross_s := 1.2  ## a bot waits at a steam jet or a puddle that is live, or goes live sooner than this
+@export var radiation_limit_s := 3.0  ## exposure: a bot that isn't just passing through leaves the zone after this
+@export var debris_margin := 0.6  ## m beyond the warning circle: step away from it
 
 
 static func load_default() -> BotTuning:

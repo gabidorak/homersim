@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3]
+[gd_scene load_steps=40 format=3]
 
 [ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
 [ext_resource type="ArrayMesh" path="res://levels/plant/baked/ReactorHall_shell.res" id="2_reactorhall_"]
@@ -14,12 +14,13 @@
 [ext_resource type="PackedScene" path="res://assets/generated/reactor_core.glb" id="12_reactor_core"]
 [ext_resource type="PackedScene" path="res://assets/generated/crate.glb" id="13_crate"]
 [ext_resource type="PackedScene" path="res://assets/generated/tank_horizontal.glb" id="14_tank_horizon"]
-[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="15_alarmbeacon"]
-[ext_resource type="Script" path="res://hazards/radiation_zone/radiation_zone.gd" id="16_radiation_zo"]
-[ext_resource type="PackedScene" path="res://assets/generated/radiation_vial_crate.glb" id="17_radiation_vi"]
-[ext_resource type="PackedScene" path="res://assets/generated/barrel_yellow.glb" id="18_barrel_yello"]
-[ext_resource type="PackedScene" path="res://assets/generated/warning_sign_radiation.glb" id="19_warning_sign"]
-[ext_resource type="Script" path="res://levels/ambient_sound.gd" id="20_ambient_soun"]
+[ext_resource type="PackedScene" path="res://interactables/cage/Cage.tscn" id="15_cage"]
+[ext_resource type="PackedScene" path="res://levels/plant/props/AlarmBeacon.tscn" id="16_alarmbeacon"]
+[ext_resource type="Script" path="res://hazards/radiation_zone/radiation_zone.gd" id="17_radiation_zo"]
+[ext_resource type="PackedScene" path="res://assets/generated/radiation_vial_crate.glb" id="18_radiation_vi"]
+[ext_resource type="PackedScene" path="res://assets/generated/barrel_yellow.glb" id="19_barrel_yello"]
+[ext_resource type="PackedScene" path="res://assets/generated/warning_sign_radiation.glb" id="20_warning_sign"]
+[ext_resource type="Script" path="res://levels/ambient_sound.gd" id="21_ambient_soun"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
 size = Vector3(10.24, 10, 0.24)
@@ -267,6 +268,10 @@ shape = SubResource("BoxShape3D_15")
 [node name="Tank" parent="." instance=ExtResource("14_tank_horizon")]
 position = Vector3(-35.5, 0, -8.5)
 
+[node name="CageWest" parent="." instance=ExtResource("15_cage")]
+position = Vector3(-36.1, 0.5, -5)
+rotation = Vector3(0, 1.5708, 0)
+
 [node name="Light7" type="OmniLight3D" parent="Lights"]
 position = Vector3(-24, 2.2, -13.6)
 light_color = Color(0.6, 1, 0.3, 1)
@@ -282,7 +287,7 @@ light_energy = 1
 omni_range = 7
 omni_attenuation = 0.8
 
-[node name="AlarmBeacon" parent="." instance=ExtResource("15_alarmbeacon")]
+[node name="AlarmBeacon" parent="." instance=ExtResource("16_alarmbeacon")]
 position = Vector3(-24, 9.6, -2)
 
 [node name="Sign" type="Label3D" parent="."]
@@ -294,22 +299,22 @@ outline_size = 18
 
 [node name="RadiationZone" type="Area3D" parent="."]
 position = Vector3(-24, 0, -11)
-script = ExtResource("16_radiation_zo")
+script = ExtResource("17_radiation_zo")
 subsystem_id = &"rods"
 size = Vector3(11, 5, 11)
 
-[node name="Dressing" parent="." instance=ExtResource("17_radiation_vi")]
+[node name="Dressing" parent="." instance=ExtResource("18_radiation_vi")]
 position = Vector3(-13, 0, -2)
 rotation = Vector3(0, 0.5236, 0)
 
-[node name="Dressing2" parent="." instance=ExtResource("18_barrel_yello")]
+[node name="Dressing2" parent="." instance=ExtResource("19_barrel_yello")]
 position = Vector3(-37.2, 0, -12.6)
 
 [node name="Box4" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-37.2, 0.45, -12.6)
 shape = SubResource("BoxShape3D_16")
 
-[node name="Dressing3" parent="." instance=ExtResource("18_barrel_yello")]
+[node name="Dressing3" parent="." instance=ExtResource("19_barrel_yello")]
 position = Vector3(-36.4, 0, -13.4)
 rotation = Vector3(0, 0.6981, 0)
 
@@ -317,20 +322,20 @@ rotation = Vector3(0, 0.6981, 0)
 position = Vector3(-36.4, 0.45, -13.4)
 shape = SubResource("BoxShape3D_17")
 
-[node name="Dressing4" parent="." instance=ExtResource("19_warning_sign")]
+[node name="Dressing4" parent="." instance=ExtResource("20_warning_sign")]
 position = Vector3(-24, 0.6, -7.42)
 
-[node name="Dressing5" parent="." instance=ExtResource("19_warning_sign")]
+[node name="Dressing5" parent="." instance=ExtResource("20_warning_sign")]
 position = Vector3(-27.58, 0.6, -11)
 rotation = Vector3(0, -1.5708, 0)
 
-[node name="Dressing6" parent="." instance=ExtResource("19_warning_sign")]
+[node name="Dressing6" parent="." instance=ExtResource("20_warning_sign")]
 position = Vector3(-20.42, 0.6, -11)
 rotation = Vector3(0, 1.5708, 0)
 
 [node name="Ambient" type="Marker3D" parent="."]
 position = Vector3(-24, 2, -11)
-script = ExtResource("20_ambient_soun")
+script = ExtResource("21_ambient_soun")
 sound = "hum_reactor"
 
 [node name="Reverb" type="Area3D" parent="."]

@@ -17,6 +17,7 @@ var _hold_since := 0.0
 func _init(p_ctx: AiContext) -> void:
 	super(p_ctx)
 	id = "LeverPair"
+	rescore_s = AiGoal.STRATEGIC_RESCORE_S
 
 
 ## The two levers of each critical subsystem: {subsystem: {"A": lever, "B": lever}}.
@@ -46,9 +47,12 @@ func score() -> float:
 		if wanted == "":
 			continue
 		var partner := _partner_chance(s, pair)
-		var stand := ctx.world.stand(pair[wanted], Role.Kind.RAT)
+		var stand := ctx.stand_for(pair[wanted])
+		if stand == Vector3.INF:
+			continue
 		var t := ctx.path_time(stand, "lever%d" % (pair[wanted] as Node).get_instance_id())
-		var value := AiScoring.lever_pair(plant.data(a.index).heat_weight, plant.health(a.index), t, partner)
+		var value := AiScoring.lever_pair(plant.data(a.index).heat_weight, plant.health(a.index), t, partner,
+			ctx.danger_at(stand))
 		if value > best:
 			best = value
 			sub = s
@@ -122,7 +126,11 @@ func tick(_delta: float) -> Result:
 	claim("lever:%s:%s" % [sub, side])
 	var driver := ctx.driver
 	if not _holding:
-		driver.go_to(ctx.world.stand(lever, Role.Kind.RAT), false, 0.3)
+		var stand := ctx.stand_for(lever)
+		if stand == Vector3.INF:
+			ctx.blacklist("lever:%s" % sub)
+			return Result.FAILED
+		driver.go_to(stand, false, 0.3)
 		if driver.failed():
 			ctx.blacklist("lever:%s" % sub)
 			return Result.FAILED

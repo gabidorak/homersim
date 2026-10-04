@@ -12,10 +12,25 @@ extends RefCounted
 ##            ±hear_noise of error
 ##   always   Revealed enemies (the outline through walls); what the HUD and the map show anyone
 ##            (machines, cages) is read by the goals from the level directly
+##   CCTV     supervisors seated in the chair: rats within cctv_range of an unbroken camera's lens,
+##            inside its view (cctv_fov_deg), with a clear line from the lens
 ##   memory   a last known position is kept memory_s, then becomes a search area for search_s.
 ##            Teammate bots share sightings through the blackboard, after share_delay_s.
+## Things, checked twice a second:
+##   traps    rats notice a trap within trap_notice_radius, in sight, with the skill's trap_notice
+##            chance (one roll per trap); teammate bots hear about it like a sighting
+##   cameras  supervisors see whether a camera is broken from camera_seen_radius in sight, on the
+##            Control Room's wall screens, or from the chair
+##   keycards supervisors see a dropped keycard in sight; a rat seen (or heard about) stealing one is
+##            a known thief until a stun or a cage makes it drop it
+##   keycard  rats see whether a supervisor still has its keycard from close up (the steal prompt)
 ## The pure checks (can_notice, hearing_radius, seen_long_enough) are unit tested
 ## (tests/unit/test_ai_senses.gd).
+
+const THINGS_EVERY_S := 0.5  ## traps, cameras and dropped keycards are looked for this often
+const KEYCARD_SEEN_M := 4.0  ## m: whether a supervisor has its keycard is seen this close (the steal prompt)
+const CONTROL_ROOM_SCREENS_M := 10.0  ## m from the CCTV chair: the Control Room's wall screens show the cameras
+
 
 ## What the bot knows about one enemy.
 class Known:
@@ -33,6 +48,9 @@ class Known:
 	var busy := false  ## standing at something: repairing, sabotaging, seated at the CCTV
 	var seated := false
 	var facing := 0.0  ## body yaw, while seen
+	var cctv := false  ## the position came from a CCTV camera (a seated supervisor)
+	var keycard := true  ## supervisors: still has its keycard (seen from close up; assumed until then)
+	var invulnerable := false
 
 	func age(now: float) -> float:
 		return now - at
@@ -43,12 +61,23 @@ var known: Dictionary[int, Known] = {}
 var searches: Array[Dictionary] = []  ## {"pos": Vector3, "until": float}
 var bitten_by := 0  ## the last enemy that bit us (we know where it is: it just bit us)
 var bitten_at := -INF
+var traps_noticed: Dictionary = {}  ## rats: Trap instance id -> Trap, noticed and still armed
+var broken_cameras: Dictionary = {}  ## supervisors: CctvCamera -> broken, as last seen
+var keycards_seen: Array[Pickup] = []  ## supervisors: dropped keycards in sight
+var thieves: Dictionary = {}  ## supervisors: rat peer -> when it was seen stealing (it still has the keycard)
+var cctv_spotted_at := -INF  ## supervisors: the last time the CCTV showed a rat
 
 var _sight_since: Dictionary[int, float] = {}  # peer -> when continuous sight began
 var _last: Dictionary[int, Array] = {}  # peer -> [position, time] at the last update (velocity, hearing)
 var _emoting: Dictionary[int, bool] = {}  # rats' FLAG_EMOTE at the last update (squeaks)
 var _next_update := 0.0
+var _next_things := 0.0  # traps, cameras and keycards: twice a second
 var _events_read := 0.0  # AiDirector sound events up to this time are already heard
+var _traps_rolled: Dictionary = {}  # trap instance id -> true: the notice roll was made
+var _enemies: Array[Known] = []  # enemies(), sorted, for this tick
+var _enemies_at := -1.0
+var _traps: Array[Trap] = []  # traps(), for this tick
+var _traps_at := -1.0
 
 
 func _init(p_ctx: AiContext) -> void:
@@ -92,10 +121,12 @@ func update(now: float) -> void:
 	if now < _next_update:
 		return
 	_next_update = now + 1.0 / ctx.tuning.senses_hz
+	_enemies_at = -1.0
 	var me := ctx.body
 	var eye := _eye_of(me)
 	var enemy_role := Role.Kind.RAT if ctx.role == Role.Kind.SUPERVISOR else Role.Kind.SUPERVISOR
 	var fov := ctx.tuning.fov_supervisor_deg if ctx.role == Role.Kind.SUPERVISOR else ctx.tuning.fov_rat_deg
+	var cameras := _cctv_lenses() if ctx.role == Role.Kind.SUPERVISOR and me.seated_console() != null else []
 	var present := {}
 	for node in ctx.session.players_root.get_children():
 		var enemy := node as Player
@@ -124,21 +155,30 @@ func update(now: float) -> void:
 			_sight_since.erase(enemy.peer_id)
 		var revealed := enemy.status.has(StatusComponent.Status.REVEALED)
 		var seen := in_view and seen_long_enough(_sight_since.get(enemy.peer_id, -1.0), now, ctx.skill.reaction_s)
-		if seen or revealed or (enemy.peer_id == bitten_by and now - bitten_at < 1.0):
+		var on_cctv := not seen and not cameras.is_empty() and _on_camera(cameras, center, enemy)
+		if seen or revealed or on_cctv or (enemy.peer_id == bitten_by and now - bitten_at < 1.0):
 			var k := _entry(enemy)
 			k.velocity = (pos - previous_pos) / maxf(now - previous_time, 0.05) if k.visible else Vector3.ZERO
 			k.pos = pos
 			k.at = now
 			k.visible = seen
 			k.heard = false
+			k.cctv = on_cctv
 			k.revealed = revealed
 			k.stunned = enemy.status.has(StatusComponent.Status.STUNNED)
 			k.knocked = enemy.status.has(StatusComponent.Status.KNOCKED_DOWN)
+			k.invulnerable = enemy.status.has(StatusComponent.Status.INVULNERABLE)
 			k.carrying = enemy.status.carrying
 			k.seated = enemy.seated_console() != null
 			k.facing = enemy.rotation.y
 			k.busy = k.seated or enemy.sync_anim & AnimationController.FLAG_INTERACT != 0
-			ctx.board.report_sighting(enemy.peer_id, pos, now, ctx.peer)
+			if seen and enemy_role == Role.Kind.SUPERVISOR and pos.distance_to(me.global_position) <= KEYCARD_SEEN_M:
+				k.keycard = enemy.inventory.keycard  # (the steal prompt says so)
+			if seen and k.stunned:
+				_not_a_thief(enemy.peer_id)  # a stun makes it drop what it stole
+			if on_cctv:
+				cctv_spotted_at = now
+			ctx.board.report_sighting(enemy.peer_id, pos, now, ctx.peer, k.seated)
 		else:
 			if known.has(enemy.peer_id):
 				known[enemy.peer_id].visible = false
@@ -155,9 +195,19 @@ func update(now: float) -> void:
 		if not present.has(peer):
 			known.erase(peer)  # caged, eliminated or gone
 			_sight_since.erase(peer)
+	for peer: int in thieves.keys():
+		if not present.has(peer):
+			_not_a_thief(peer)  # caught (a cage takes the keycard off it) or gone
 	_read_events(now)
 	_read_callouts(now)
 	_forget(now)
+	if now >= _next_things:
+		_next_things = now + THINGS_EVERY_S
+		if ctx.role == Role.Kind.RAT:
+			_look_for_traps(eye, now)
+		else:
+			_look_at_cameras(eye)
+			_look_for_keycards(eye)
 
 
 ## Sounds AiDirector recorded (bites, broom swings, SNAPs) since our last look.
@@ -174,8 +224,15 @@ func _read_events(now: float) -> void:
 	_events_read = now
 
 
-## Teammate bots' sightings, once share_delay_s old: like hearing a callout.
+## Teammate bots' sightings, traps and thieves, once share_delay_s old: like hearing a callout.
 func _read_callouts(now: float) -> void:
+	for id: int in ctx.board.traps:
+		var t: Dictionary = ctx.board.traps[id]
+		if not traps_noticed.has(id) and now - float(t["at"]) >= ctx.tuning.share_delay_s and is_instance_valid(t["trap"]):
+			traps_noticed[id] = t["trap"]
+	for rat: int in ctx.board.thieves:
+		if not thieves.has(rat) and now - float(ctx.board.thieves[rat]) >= ctx.tuning.share_delay_s:
+			thieves[rat] = ctx.board.thieves[rat]
 	for enemy: int in ctx.board.sightings:
 		var s: Dictionary = ctx.board.sightings[enemy]
 		if s["by"] == ctx.peer or now - float(s["at"]) < ctx.tuning.share_delay_s:
@@ -195,9 +252,11 @@ func _read_callouts(now: float) -> void:
 
 
 func _forget(now: float) -> void:
+	# Rats keep a supervisor's last spot as long as it makes that area dangerous (AiContext.danger_at).
+	var keep := maxf(ctx.tuning.memory_s, ctx.tuning.danger_memory_s) if ctx.role == Role.Kind.RAT else ctx.tuning.memory_s
 	for peer: int in known.keys():
 		var k: Known = known[peer]
-		if not k.visible and k.age(now) > ctx.tuning.memory_s:
+		if not k.visible and k.age(now) > keep:
 			searches.append({"pos": k.pos, "until": now + ctx.tuning.search_s})
 			known.erase(peer)
 	searches = searches.filter(func(s: Dictionary) -> bool: return now < float(s["until"]))
@@ -238,13 +297,15 @@ func on_bitten(attacker: int) -> void:
 
 # --- For goals --------------------------------------------------------------------------------
 
-## The enemies we know of, nearest (last known position) first.
+## The enemies we know of, nearest (last known position) first. Sorted once per tick (goals ask often).
 func enemies() -> Array[Known]:
-	var out: Array[Known] = []
-	out.assign(known.values())
+	if _enemies_at == ctx.now:
+		return _enemies
+	_enemies_at = ctx.now
+	_enemies.assign(known.values())
 	var here := ctx.body.global_position
-	out.sort_custom(func(a: Known, b: Known) -> bool: return a.pos.distance_to(here) < b.pos.distance_to(here))
-	return out
+	_enemies.sort_custom(func(a: Known, b: Known) -> bool: return a.pos.distance_to(here) < b.pos.distance_to(here))
+	return _enemies
 
 
 ## The nearest known enemy within `max_distance` (visible ones only if `visible_only`), or null.
@@ -299,6 +360,107 @@ func heard_recently(kind: String, radius: float, seconds: float) -> bool:
 	return false
 
 
+## The traps this rat knows of (noticed itself or called out), still armed (gathered once per tick).
+func traps() -> Array[Trap]:
+	if _traps_at == ctx.now:
+		return _traps
+	_traps_at = ctx.now
+	var out := _traps
+	out.clear()
+	for id: int in traps_noticed.keys():
+		var trap: Variant = traps_noticed[id]  # (untyped: it may have been freed, sprung)
+		if is_instance_valid(trap) and not (trap as Trap).is_queued_for_deletion():
+			out.append(trap)
+		else:
+			traps_noticed.erase(id)
+	return out
+
+
+## A trap this rat knows of within `radius` (flat) of `pos`.
+func trap_near(pos: Vector3, radius: float) -> bool:
+	for trap in traps():
+		var at := trap.global_position
+		if Vector2(at.x - pos.x, at.z - pos.z).length() <= radius and absf(at.y - pos.y) < 1.0:
+			return true
+	return false
+
+
+func is_thief(peer: int) -> bool:
+	return thieves.has(peer)
+
+
+func _not_a_thief(peer: int) -> void:
+	thieves.erase(peer)
+	ctx.board.thieves.erase(peer)
+
+
+## A seen keycard steal (AiDirector): a rat we know of right now stole one. The team hears of it.
+func on_theft(rat: int) -> void:
+	var k: Known = known.get(rat)
+	if k != null and (k.visible or k.cctv) and k.age(ctx.now) < 1.0:
+		thieves[rat] = ctx.now
+		ctx.board.thieves[rat] = ctx.now
+		ctx.log_line("saw %s steal a keycard" % ctx.session.name_of(rat))
+
+
+## Rats: a trap within trap_notice_radius, in sight, is noticed with the skill's chance (one roll each).
+func _look_for_traps(eye: Vector3, now: float) -> void:
+	var here := ctx.body.global_position
+	for trap in ctx.world.traps():
+		var id := trap.get_instance_id()
+		if _traps_rolled.has(id) or trap.global_position.distance_to(here) > ctx.tuning.trap_notice_radius:
+			continue
+		if not _clear_line(eye, trap.global_position + Vector3.UP * 0.15):
+			continue
+		_traps_rolled[id] = true
+		if ctx.rng.randf() < ctx.skill.trap_notice:
+			traps_noticed[id] = trap
+			ctx.board.traps[id] = {"trap": trap, "at": now}
+			ctx.log_line("noticed a %s trap at %s" % [trap.trap_kind, trap.global_position.snapped(Vector3.ONE * 0.1)])
+
+
+## Supervisors: which cameras are broken, as far as we can see (close up, the wall screens, the chair).
+func _look_at_cameras(eye: Vector3) -> void:
+	var here := ctx.body.global_position
+	var screens := ctx.body.seated_console() != null or (ctx.world.console != null \
+		and ctx.world.console.global_position.distance_to(here) <= CONTROL_ROOM_SCREENS_M)
+	for camera in ctx.world.cameras:
+		if screens or (camera.global_position.distance_to(here) <= ctx.tuning.camera_seen_radius \
+				and (_clear_line(eye, camera.lens.global_position) or _clear_line(eye, camera.global_position + Vector3.UP * 0.3))):
+			broken_cameras[camera] = camera.broken
+
+
+## Supervisors: dropped keycards in sight.
+func _look_for_keycards(eye: Vector3) -> void:
+	keycards_seen.clear()
+	var here := ctx.body.global_position
+	for pickup in ctx.world.dropped_keycards():
+		if pickup.global_position.distance_to(here) <= ctx.skill.view_range \
+				and _clear_line(eye, pickup.global_position + Vector3.UP * 0.1):
+			keycards_seen.append(pickup)
+
+
+# --- CCTV ----------------------------------------------------------------------------------------
+
+## The unbroken cameras' lenses: [[position, yaw], …].
+func _cctv_lenses() -> Array:
+	var out: Array = []
+	for camera in ctx.world.cameras:
+		if not camera.broken and camera.lens != null:
+			var forward := -camera.lens.global_basis.z
+			out.append([camera.lens.global_position, atan2(-forward.x, -forward.z)])
+	return out
+
+
+func _on_camera(lenses: Array, center: Vector3, enemy: Player) -> bool:
+	for lens: Array in lenses:
+		var at: Vector3 = lens[0]
+		if can_notice(at, lens[1], ctx.tuning.cctv_fov_deg, ctx.tuning.cctv_range, center) \
+				and _clear_line(at, center, [enemy.get_rid()]):
+			return true
+	return false
+
+
 # --- Physics -------------------------------------------------------------------------------------
 
 ## Where a body looks from: a supervisor's eyes; a rat's third-person camera pivot above it.
@@ -309,7 +471,13 @@ static func _eye_of(body: Player) -> Vector3:
 
 
 func _line_of_sight(from: Vector3, to: Vector3, target: Player) -> bool:
-	var query := PhysicsRayQueryParameters3D.create(from, to, PhysicsLayers.WORLD, [ctx.body.get_rid(), target.get_rid()])
+	return _clear_line(from, to, [target.get_rid()])
+
+
+func _clear_line(from: Vector3, to: Vector3, exclude: Array[RID] = []) -> bool:
+	var skip: Array[RID] = [ctx.body.get_rid()]
+	skip.append_array(exclude)
+	var query := PhysicsRayQueryParameters3D.create(from, to, PhysicsLayers.WORLD, skip)
 	return ctx.body.get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 

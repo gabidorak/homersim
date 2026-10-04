@@ -6,7 +6,7 @@ extends Resource
 const PATH := "res://data/pvp_tuning.tres"
 
 @export_group("Capture")
-@export var carry_max_s := 8.0  ## a carried rat escapes on its own after this
+@export var carry_max_s := 12.0  ## a carried rat escapes on its own after this
 @export var drop_invulnerable_s := 1.5  ## a dropped rat (escape, bite on the carrier)
 @export var free_hold_s := 4.0  ## rat hold at a cage
 @export var freed_invulnerable_s := 3.0

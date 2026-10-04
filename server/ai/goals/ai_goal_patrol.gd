@@ -13,6 +13,7 @@ var _arrived_at := -1.0
 func _init(p_ctx: AiContext) -> void:
 	super(p_ctx)
 	id = "Patrol"
+	rescore_s = AiGoal.STRATEGIC_RESCORE_S
 
 
 func score() -> float:

@@ -15,6 +15,7 @@ var _holding := false
 func _init(p_ctx: AiContext) -> void:
 	super(p_ctx)
 	id = "Repair"
+	rescore_s = AiGoal.STRATEGIC_RESCORE_S
 
 
 func score() -> float:

@@ -56,7 +56,7 @@ Supported CLI args (user args after `--`):
 - Since M4: `--bot-scenario capture|swarm|items|hack [--bot-part P]` runs a PvP scenario instead (`tests/helpers/pvp_bot.gd`); bots of one test coordinate only through replicated state and find each other by name.
 - Since M6: client `--hold-repairs` (any build: repairs use the 6 s hold instead of the minigame, until M8's settings toggle). `--bot-scenario hazards|minigame|control` (on the plant) runs an M6 scenario (`tests/helpers/m6_bot.gd`). Test-only RPC `Session.request_debug_plant(what, id, value)` (server `--allow-debug`): set a subsystem's health or the core temperature.
 - Since M5: `--level plant|test` (debug builds; server and clients must match, the join handshake checks it) picks the level, default the plant. The M4 PvP tests use `--level test` (TestArena). `--bot-scenario plant` (CCTV, ladder, shaft, out of bounds). Server: `--no-heatmap` (no position log). Client, any build: `--debug-overlay` (F3 overlay on from the start).
-- M10, AI bots: `bot_fill_to` and `bot_difficulty` are `[match]` keys (any build). Test-only server flags (debug builds): `--ai-only` (bots-only matches, back to back; humans who join spectate), `--ai-fill N` (overrides `bot_fill_to`), `--ai-seed S`, `--ai-roles rat,rat,supervisor` (exactly these bots), `--ai-goals role:Goal,…` (only these goals; `rat:none` = a bot that stands still), `--ai-scenario NAME` (`tour`: every bot walks to its share of its role's targets; `capture`: the bots start in the Cage Room; `path:X,Y,Z:X,Y,Z[:…]`: the first bot starts at the first point and walks to the others, for debugging a spot), `--ai-log` (one log line per change of goal), `--ai-trace NAME|all` (a bot's position, intent and path 4 times a second), `--ai-labels` (phase F: goal labels for a spectating client). Client, test-only: `--spectate NAME|first` (spectating, follow that body: watch mode).
+- M10, AI bots: `bot_fill_to` and `bot_difficulty` are `[match]` keys (any build). Test-only server flags (debug builds): `--ai-only` (bots-only matches, back to back; humans who join spectate), `--ai-fill N` (overrides `bot_fill_to`), `--ai-seed S`, `--ai-roles rat,rat,supervisor` (exactly these bots), `--ai-goals role:Goal,…` (only these goals; `rat:none` = a bot that stands still), `--ai-scenario NAME` (`tour`: every bot walks to its share of its role's targets; `capture`: the bots start in the Cage Room; `path:X,Y,Z:X,Y,Z[:…]`: the first bot starts at the first point and walks to the others, for debugging a spot; `hot`, `steal`, `cctv`: the phase E tests' set-ups), `--ai-log` (one log line per change of goal), `--ai-trace NAME|all` (a bot's position, intent and path 4 times a second), `--ai-labels` (each bot's goal under its name tag on spectating clients). Client, test-only: `--spectate NAME|first` (spectating, follow that body: watch mode).
 - Since M8: server `--password X` (overrides server.cfg), `--no-lan` (no LAN announcements; every integration test but menus_smoke uses it). Client, any build: `--settings PATH` (another settings file; the UI tour uses a throwaway one). `--connect` and `--name` still work but are no longer needed. Test-only (debug builds): client `--debug-kick-me`, `--screenshot-times T1,T2,…`; in the main menu (`client/menu_test_hooks.gd`) `--lan-join NAME`, `--auto-password A,B,…`, `--dismiss-errors`.
 
 ### `server.cfg` (ConfigFile/INI)
@@ -305,19 +305,52 @@ Planned in [milestones/M10-ai-bots.md](milestones/M10-ai-bots.md); the gameplay 
 - `AiNav` bakes one navmesh per role from the level's static colliders when the server boots. The map check uses the same code.
 - The level's `NavigationLink3D`s are added, plus a keycard link per keycard door on navigation layer 4; supervisors use that layer only while they hold a keycard.
 - `AiPathFollower` handles ladders, drops, keycard doors, jumps and getting unstuck. Bots never teleport.
+- Hazards (`AiHazards`, phase E) are handled by `AiDriver` for every goal: a bot waits at the edge of a
+  live steam jet or puddle (or one that switches on before it could get through), never starts a hold
+  inside one, steps out of a debris warning circle and waits there until the impact, and leaves the
+  radiation zone once its exposure passes `radiation_limit_s` unless it is walking through. The hazard
+  clocks are `Net.server_time()`.
+- Rats plan around the traps they noticed: a path segment that runs over one gets a waypoint beside it,
+  and a stand spot with a trap on it is swapped for one beside it, still in reach (`AiContext.stand_for`).
 
 **Brains**
 - Utility-scored goals (`server/ai/goals/`, `AiGoal`), each a small state machine; `AiScoring` holds the
-  scores (pure, unit tested). Rats: Flee, RescueCarried (reflexes), Sabotage, LeverPair, Harass, FreeCaged,
-  Lurk. Supervisors: Capture, Chase, Repair, GuardCages, Patrol. A goal that fails sits out 1.5 s.
+  scores (pure, unit tested). A goal's `score()` picks a target that `start()` takes over, so the running
+  goal keeps its own target while it is scored again. A goal that fails sits out 1.5 s.
+  - Rats: Flee, RescueCarried (reflexes), Gang (bite a busy supervisor together, never next to a cage),
+    Sabotage, LeverPair, Steal (a keycard, from behind), Harass, BreakCamera, FreeCaged, Lurk. Their
+    targets are less appealing the closer a known supervisor is (`AiContext.danger_at`).
+  - Supervisors: Capture, Chase (a known keycard thief counts more), Console (coolant, SCRAM), Repair,
+    Investigate (a SNAP, a rat heard or called out or seen on the CCTV, an old trace), Keycard (a dropped
+    one, the spare), Donut, FixCamera, PlaceTrap, Refill, Cctv (sit while the plant is calm), GuardCages,
+    Patrol.
 - Reflexes in `AiBot`: a rat bites the carrier of a teammate next to it; a supervisor swings the broom at
   a rat it sees in reach and in front, and turns toward whoever bit it.
-- `AiSenses` is the only code that reads enemy positions: sight, hearing, Revealed, CCTV only while seated
-  (phase E). Sounds (bites, broom swings) reach it through `AiDirector.sound_events`.
-- `AiBlackboard` (one per team) holds claims and the lever pairing, and accounts for human teammates.
+- `AiSenses` is the only code that reads enemy positions: sight, hearing, Revealed, and the CCTV while
+  seated (rats near an unbroken camera's lens, in its view, in sight of it). Sounds (bites, broom swings)
+  reach it through `AiDirector.sound_events`, a SNAP through `ItemService.snap_heard`, a keycard theft
+  (seen by a supervisor that sees the thief) through `ItemService.keycard_stolen`. It also notices things:
+  traps (rats: within 6 m, in sight, the skill's `trap_notice` chance, one roll each), which cameras are
+  broken (supervisors: close up, on the Control Room's screens, from the chair) and dropped keycards.
+- `AiBlackboard` (one per team) holds claims, the lever pairing, the gang (which rat bots are close to
+  which supervisor), shared traps and thieves (callouts), and accounts for human teammates.
 - `AiContext` is what a goal works with (body, driver, senses, blackboard, the level's targets in
   `AiDirector.World`, the bot's own `RandomNumberGenerator`, cached path lengths).
 - The numbers live in `data/bot_tuning.tres`.
+
+**Watching and measuring (phase F)**
+- Every 30 s of a match the server log gets a summary line per bot (time per goal, distance, stuck
+  counts, path failures, cost per tick split into senses / think / goal / driver) and the AI's total
+  cost per physics frame against a budget of 0.3 ms per bot. The test result's `ai` section has the
+  worst frame.
+- Keeping it cheap: strategic goals score at most every `AiGoal.STRATEGIC_RESCORE_S` (reactive ones at
+  every think), navmesh closest points go through `AiNav.snap` (cached on a 0.25 m grid: the meshes never
+  change in a match), path lengths are cached per target, and the driver looks at hazards and doors 10
+  times a second.
+- `--ai-labels` (debug builds) sends each bot's current goal to every client twice a second
+  (`MatchManager.on_ai_labels`, unreliable); a spectating client shows it under the bot's name tag.
+- `tests/integration/ai_balance.sh` (manual) plays many bots-only matches in parallel and prints who won
+  and the team stats: the tuning target is that both teams win sometimes.
 
 ## 7. Data-driven tuning
 All tunables are custom `Resource` classes saved as `.tres`:
@@ -361,7 +394,7 @@ The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_d
 | Assets (M7) | `tests/unit/test_assets.gd` | Every sound file, music stem, model and named part the code uses exists; the characters have every clip the AnimationController plays; no CSG left in the plant |
 | Visual (M7, windowed) | `tests/helpers/MapTour.tscn` (`--players 6 --no-vsync` for the performance numbers), `CharacterTour.tscn` (every animation state), `ArtGallery.tscn` (models under the real shaders), `HazardTour.tscn`; M8: `UiTour.tscn` (every menu and in-game screen with made-up data, `--lang fr`), `HowToShots.tscn` (the How to play illustrations) | Screenshots to look at; not run in CI |
 | Map check | `tests/integration/map_check.sh` (`tests/helpers/MapCheck.tscn`) | Bakes a navigation mesh per role from the level's collision and checks the GDD §7 rules: reachability, walk times, two rat routes per sabotage point, supervisors kept out of the vents and the nest. `--update-docs` refreshes the table in docs/map/README.md. From M10 the bake is `AiNav`'s, the same one the bots use. |
-| AI bots (M10) | GUT: `test_bot_fill.gd`, `test_ai_scoring.gd`, `test_ai_path_follower.gd`, `test_ai_blackboard.gd`, `test_ai_senses.gd`. Integration (`ai_lib.sh` helpers, `SEED=N`): `ai_fill.sh` (one client + 5 bots; also against an exported server, `SERVER_BIN=`), `ai_target.sh` (a client cages an AI rat), `ai_nav_tour.sh`, `ai_match.sh` (a bots-only match: sabotages, repairs, distance walked, nobody stuck, no strikes or errors), `ai_lever.sh`, `ai_capture.sh`; later `ai_items.sh`, `ai_control.sh` | Loop each one 5× with different seeds. Watch mode: a `--ai-only` server plus a windowed client that joins as a spectator |
+| AI bots (M10) | GUT: `test_bot_fill.gd`, `test_ai_scoring.gd`, `test_ai_path_follower.gd`, `test_ai_blackboard.gd`, `test_ai_senses.gd`. Integration (`ai_lib.sh` helpers, `SEED=N`): `ai_fill.sh` (one client + 5 bots; also against an exported server, `SERVER_BIN=`), `ai_target.sh` (a client cages an AI rat), `ai_nav_tour.sh`, `ai_match.sh` (a bots-only match: sabotages, repairs, distance walked, nobody stuck, no strikes or errors), `ai_lever.sh`, `ai_capture.sh`, `ai_items.sh` (traps, refill, donut), `ai_steal.sh` (keycard, spare), `ai_control.sh` (coolant, SCRAM), `ai_cctv.sh` (chair, cameras); `test_ai_hazards.gd`. Manual: `ai_soak.sh`, `ai_balance.sh` | Loop each one 5× with different seeds. Watch mode: a `--ai-only` server plus a windowed client that joins as a spectator |
 | Manual | Run Instances (editor: *Debug → Customize Run Instances*) | 1 instance with `-- --server --debug-start`, 3 instances with `-- --connect 127.0.0.1:7777`. A server started without `--headless` turns V-Sync and rendering off in its window: on Wayland a hidden window is throttled to about 1 frame/s, which slowed the whole server |
 | Network conditions | `tc netem` on Linux (`sudo tc qdisc add dev lo root netem delay 80ms 20ms loss 1%`) | Play with 80–150 ms latency before calling any PvP feature done |
 

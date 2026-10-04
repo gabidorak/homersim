@@ -43,7 +43,7 @@ func start() -> void:
 func tick(_delta: float) -> Result:
 	if not is_instance_valid(mate) or not mate.status.has(StatusComponent.Status.CARRIED):
 		return Result.DONE
-	ctx.driver.go_to(mate.global_position, true, 0.6)
+	ctx.driver.go_to(ctx.nav.snap(Role.Kind.RAT, mate.global_position), true, 0.6)  # (it hangs in the air)
 	ctx.driver.face(mate.global_position)
 	if ctx.driver.failed():
 		return Result.FAILED

@@ -918,6 +918,10 @@ def build_props():
     crate(p, -14.5, 0, -18.5, -13.0, 1.2, -17.0)
     crate(p, -12.5, 0, -18.5, -11.0, 2.4, -17.0)
     fill(p, "Tank", "tank_horizontal", -36.5, 0, -10.0, -34.5, 2.5, -7.0)
+    # The west cage (M10): under the west catwalk, its back bars against the wall (no gap a rat fits
+    # in), door to the east. Rats stunned at the rods, the pumps or the valves are one carry from it.
+    p.s.node("CageWest", None, ".", {"position": V3(-36.1, 0.5, -5.0), "rotation": V3(0, deg(90), 0)},
+             instance=SCN_CAGE)
     p.light(-24, 2.2, -13.6, 9.0, 1.6, (0.6, 1.0, 0.3), shadow=True)
     p.light(-24, 2.2, -8.4, 7.0, 1.0, (0.6, 1.0, 0.3))
     beacon(p, -24, 9.6, -2)
@@ -1738,7 +1742,7 @@ def draw_plan():
         a, b = P(x, z)
         d.ellipse([a - 6, b - 6, a + 6, b + 6], fill=mark_col[t], outline=(0, 0, 0))
         d.text((a, b), t, fill=(0, 0, 0), font=small, anchor="mm")
-    for (x, z), t in (((37.2, 2.0), "CAGE"), ((47.2, 10.0), "CAGE"), ((35.0, -15.0), "traps +\nkeycard"),
+    for (x, z), t in (((37.2, 2.0), "CAGE"), ((47.2, 10.0), "CAGE"), ((-35.3, -5.0), "CAGE"), ((35.0, -15.0), "traps +\nkeycard"),
                       ((-15.2, 14.0), "donuts"), ((-1.0, 15.6), "CCTV\nchair"), ((-13.7, 12.0), "status\nboard")):
         a, b = P(x, z)
         d.rectangle([a - 4, b - 4, a + 4, b + 4], fill=(255, 255, 255))

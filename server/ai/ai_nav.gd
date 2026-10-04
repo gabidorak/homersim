@@ -20,6 +20,8 @@ const MAX_SLOPE := 45.0
 const EDGE_MAX_LENGTH := 4.0  ## long thin vent polygons otherwise come out broken
 const KEYCARD_LINK_OFFSET := 1.2  ## m from a keycard door's centre to each end of its link
 const LADDER_SEARCH := 3.0  ## m: a link with a Ladder volume this close is a ladder
+const SNAP_GRID := 0.25  ## m: snap() rounds its point to this grid…
+const SNAP_CACHE_MAX := 20000  ## …and keeps this many answers
 
 ## What a body of one role can walk on.
 class Agent:
@@ -74,6 +76,7 @@ var bake_seconds := 0.0
 
 var _links: Dictionary = {}  # link RID -> Link
 var _rids: Array[RID] = []
+var _snaps: Dictionary = {}  # [role, grid cell] -> closest point (snap)
 
 
 ## The agent specs (the same as the map check always used).
@@ -255,6 +258,22 @@ static func _spans(link: Link, a: Vector3, b: Vector3) -> bool:
 		or (a.distance_to(link.end) < NEAR and b.distance_to(link.start) < NEAR)
 
 
+## The closest point of `role`'s mesh to `point` rounded to a SNAP_GRID grid, cached: the meshes never
+## change during a match, and a query costs ~50 µs. For goals' targets (several per tick); exact
+## geometry (stand spots, bolt-holes) uses closest_point.
+func snap(role: Variant, point: Vector3) -> Vector3:
+	var cell := Vector3i((point / SNAP_GRID).round())
+	var key := [role, cell]
+	var hit: Variant = _snaps.get(key)
+	if hit != null:
+		return hit
+	if _snaps.size() > SNAP_CACHE_MAX:
+		_snaps.clear()
+	var out := closest_point(role, Vector3(cell) * SNAP_GRID)
+	_snaps[key] = out
+	return out
+
+
 ## The closest point of `role`'s mesh to `point`.
 func closest_point(role: Variant, point: Vector3) -> Vector3:
 	var agent := agent_for(role)
@@ -267,4 +286,5 @@ func release() -> void:
 		NavigationServer3D.free_rid(rid)
 	_rids.clear()
 	_links.clear()
+	_snaps.clear()
 	agents.clear()

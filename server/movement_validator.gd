@@ -8,10 +8,13 @@ extends Node
 ##
 ## Checking over 0.25 s rather than every tick absorbs network jitter: BodySync packets arrive
 ## every 50 ms, sometimes two at once, so per-tick distances are meaningless.
+## A body standing on another player's head (a rat that jumped onto a supervisor) rides along: it may
+## also move as fast as the body under it, even stunned.
 
 const CHECK_INTERVAL_S := 0.25
 const SPEED_TOLERANCE := 1.5
 const DISTANCE_SLACK := 0.5  ## m
+const MOUNT_DY := 0.35  ## m: feet this close to another body's top count as standing on it
 
 var strikes: Dictionary[int, int] = {}  ## peer -> strike count (kept across respawns)
 
@@ -60,11 +63,27 @@ func _check(player: Player, previous: Vector3, seconds: float, now: int) -> void
 	var max_speed := player.max_speed()
 	if not player.status.can_act():
 		max_speed = 0.0
+	var mount := _mount_of(player)
+	if mount != null:
+		max_speed += mount.max_speed()
 	var allowed := allowed_distance(max_speed, seconds)
 	if moved > allowed:
 		_strike(player, "too fast: %.2f m in %.2f s (allowed %.2f)" % [moved, seconds, allowed])
 	if not player.role_data.can_use_vents and VentVolume.contains(player):
 		_strike(player, "inside a vent as %s" % Role.display_name(player.role))
+
+
+## The player whose head `player` stands on, or null.
+func _mount_of(player: Player) -> Player:
+	for node in session.players_root.get_children():
+		var other := node as Player
+		if other == null or other == player or other.role_data == null:
+			continue
+		var top := other.global_position.y + other.role_data.height
+		var flat := Vector2(player.global_position.x - other.global_position.x, player.global_position.z - other.global_position.z)
+		if absf(player.global_position.y - top) < MOUNT_DY and flat.length() < other.role_data.radius + player.role_data.radius:
+			return other
+	return null
 
 
 func _strike(player: Player, reason: String) -> void:

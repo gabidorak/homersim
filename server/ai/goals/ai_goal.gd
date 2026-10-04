@@ -9,10 +9,18 @@ extends RefCounted
 
 enum Result { RUNNING, DONE, FAILED }
 
+const STRATEGIC_RESCORE_S := 0.6
+
 var ctx: AiContext
 var id := "Goal"  ## the name in logs and --ai-goals ("Sabotage", "Repair"…)
 var target_label := ""  ## what it is about right now ("pumps"…), for the label
 var reflex := false  ## a reflex goal (flee, rescue): a big enough score interrupts at once, between thinks
+## Strategic goals (where to sabotage, repair, lay a trap…) are scored again at most this often; 0 = at
+## every think (goals that react to what the senses just saw). Scoring every target is the AI's main cost.
+var rescore_s := 0.0
+
+var _score := 0.0
+var _scored_at := -INF
 
 
 func _init(p_ctx: AiContext) -> void:
@@ -22,6 +30,19 @@ func _init(p_ctx: AiContext) -> void:
 ## How much the bot wants this now (0 = not at all). Picks the target too.
 func score() -> float:
 	return 0.0
+
+
+## score(), or its last result if that is less than rescore_s old (AiBot._think).
+func cached_score(now: float) -> float:
+	if now - _scored_at >= rescore_s:
+		_score = score()
+		_scored_at = now
+	return _score
+
+
+## The next cached_score() scores again (the goal just ended).
+func rescore() -> void:
+	_scored_at = -INF
 
 
 func start() -> void:

@@ -163,7 +163,7 @@ func text_of(id: String) -> Array[String]:
 		"knocked_down":
 			return [tr("Knocked down"), tr("The rats bit you three times in a row. You get up in a few seconds, and nobody can knock you down again right away.")]
 		"carrying":
-			return [tr("Got one!"), tr("Carry the rat to a cage in the Cage Room and press %s there. Hurry: it wriggles free after a few seconds, and a bite from another rat makes you drop it.") % interact]
+			return [tr("Got one!"), tr("Carry the rat to the nearest cage (Cage Room or Reactor Hall) and press %s there. Hurry: it wriggles free after a few seconds, and a bite from another rat makes you drop it.") % interact]
 		"keycard_stolen":
 			return [tr("Keycard stolen"), tr("Without it, the keycard doors stay shut. Stun the thief to drop it, or pick up the spare in Storage when it's ready.")]
 		"cctv":

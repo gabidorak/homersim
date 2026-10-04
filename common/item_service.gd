@@ -8,7 +8,8 @@ extends Node
 ## Traps and dropped keycards live in World/Dynamic, created through the DynamicSpawner so they
 ## appear (and disappear) on every client. The spawn function runs on every peer.
 ## It lives in Session (on the server AND the clients) like the other services.
-## AI bots (M10) place traps with ai_place_trap() and hear a SNAP through snap_heard.
+## AI bots (M10) place traps with ai_place_trap(), hear a SNAP through snap_heard, and see a theft
+## through keycard_stolen.
 
 const PLACE_TOLERANCE := 0.5  ## m added to the trap range (lag)
 const FLOOR_PROBE := 0.35  ## m above / below the requested spot to look for the floor
@@ -16,6 +17,7 @@ const MIN_FLOOR_NORMAL_Y := 0.7  ## about 45°: steeper isn't a floor
 
 signal trap_snapped(position: Vector3)  ## clients (supervisors only receive it)
 signal snap_heard(position: Vector3)  ## server: a snap trap went off (AI supervisors hear it)
+signal keycard_stolen(rat: int, supervisor: int)  ## server: AI supervisors who see the thief remember it
 
 var tuning: PvpTuning = PvpTuning.load_default()
 
@@ -123,6 +125,7 @@ func steal(rat: Player, supervisor: Player) -> void:
 	session.match_manager.feed("stolen", supervisor.display_name)
 	session.chat.tell(supervisor.peer_id, "A rat stole your keycard! Stun it to get it back, or take the spare in Storage in %d s.",
 		[roundi(tuning.spare_keycard_delay_s)])
+	keycard_stolen.emit(rat.peer_id, supervisor.peer_id)
 
 
 ## A stunned or caught rat drops what it stole, as a pickup at its feet.

@@ -12,6 +12,7 @@ var _holding := false
 func _init(p_ctx: AiContext) -> void:
 	super(p_ctx)
 	id = "FreeCaged"
+	rescore_s = AiGoal.STRATEGIC_RESCORE_S
 
 
 func score() -> float:
@@ -21,7 +22,9 @@ func score() -> float:
 		var key := "free:%s" % c.name
 		if c.occupants.is_empty() or ctx.board.claimed_by_other(key, ctx.peer, ctx.now) or ctx.blacklisted(key):
 			continue
-		var stand := ctx.world.stand(c, Role.Kind.RAT)
+		var stand := ctx.stand_for(c)
+		if stand == Vector3.INF:
+			continue
 		var near := ctx.senses.enemy_near(c.global_position, ctx.tuning.free_safe_radius)
 		var s := AiScoring.free_caged(c.occupants.size(), ctx.path_time(stand, "cage%d" % c.get_instance_id()), near)
 		if s > best:
@@ -45,7 +48,11 @@ func tick(_delta: float) -> Result:
 		return Result.FAILED  # a supervisor showed up: come back later
 	var driver := ctx.driver
 	if not _holding:
-		driver.go_to(ctx.world.stand(cage, Role.Kind.RAT), false, 0.35)
+		var stand := ctx.stand_for(cage)
+		if stand == Vector3.INF:
+			ctx.blacklist(_key)
+			return Result.FAILED
+		driver.go_to(stand, false, 0.35)
 		if driver.failed():
 			ctx.blacklist(_key)
 			return Result.FAILED

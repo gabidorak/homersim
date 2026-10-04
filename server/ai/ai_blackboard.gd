@@ -9,9 +9,12 @@ extends RefCounted
 ##   lever pairs one per critical subsystem: the first bot opens it (side A), the next joins
 ##               (side B). Human rats need no entry: a lever a human holds alone is a standing
 ##               request the goal sees on the lever itself.
-##   gang        the supervisor the team's rats bite together, until gang_until
-##   sightings   enemy peer → where a teammate bot last saw it; AiSenses picks them up after
-##               share_delay_s, like a callout
+##   gang        the supervisor the team's rats bite together, until gang_until; `near` says which
+##               rat bots are close to which supervisor (gang_members counts the fresh ones)
+##   sightings   enemy peer → where a teammate bot last saw it (and whether it sat at the CCTV);
+##               AiSenses picks them up after share_delay_s, like a callout
+##   traps       rats: traps a teammate bot noticed (trap instance id → {"trap", "at"})
+##   thieves     supervisors: rats a teammate bot saw stealing a keycard (peer → when)
 ##   events      sounds the team heard: {"kind", "pos", "at", "peer"} (SNAPs, bites…)
 
 const EVENT_KEEP_S := 15.0
@@ -23,6 +26,9 @@ var events: Array[Dictionary] = []
 var gang_target := 0
 var gang_until := 0.0
 var visited: Dictionary = {}  ## supervisors' patrol: subsystem -> when a bot last looked at it
+var traps: Dictionary = {}  ## rats: trap instance id -> {"trap": Trap, "at": float}
+var thieves: Dictionary = {}  ## supervisors: rat peer -> when it was seen stealing
+var near: Dictionary = {}  ## rats: supervisor peer -> {rat bot peer: when it was last close to it}
 
 
 func clear() -> void:
@@ -31,6 +37,9 @@ func clear() -> void:
 	sightings.clear()
 	events.clear()
 	visited.clear()
+	traps.clear()
+	thieves.clear()
+	near.clear()
 	gang_target = 0
 
 
@@ -69,6 +78,8 @@ func release_all(owner: int) -> void:
 		lever_leave(sub, owner)
 	if gang_target == owner:
 		gang_target = 0
+	for sup: int in near:
+		(near[sup] as Dictionary).erase(owner)
 
 
 # --- Lever pairs ------------------------------------------------------------------------------
@@ -157,8 +168,45 @@ func lever_leave(sub: StringName, peer: int) -> void:
 
 # --- Sightings and events -------------------------------------------------------------------------
 
-func report_sighting(enemy: int, pos: Vector3, now: float, by: int) -> void:
-	sightings[enemy] = {"pos": pos, "at": now, "by": by}
+func report_sighting(enemy: int, pos: Vector3, now: float, by: int, seated: bool = false) -> void:
+	sightings[enemy] = {"pos": pos, "at": now, "by": by, "seated": seated}
+
+
+## A supervisor a teammate bot saw seated at the CCTV in the last `within_s` seconds (0 = none).
+func seated_supervisor(now: float, within_s: float) -> int:
+	for enemy: int in sightings:
+		var s: Dictionary = sightings[enemy]
+		if s.get("seated", false) and now - float(s["at"]) <= within_s:
+			return enemy
+	return 0
+
+
+# --- Gang bites -----------------------------------------------------------------------------------
+
+## Rat bot `rat` is within gang range of supervisor `sup` now.
+func mark_near(sup: int, rat: int, now: float) -> void:
+	if not near.has(sup):
+		near[sup] = {}
+	near[sup][rat] = now
+
+
+## How many rat bots were close to `sup` in the last `fresh_s` seconds.
+func gang_members(sup: int, now: float, fresh_s: float = 1.0) -> int:
+	var count := 0
+	for rat: int in near.get(sup, {}):
+		if now - float(near[sup][rat]) <= fresh_s:
+			count += 1
+	return count
+
+
+## The team bites `sup` together until now + seconds (renewed while the gang holds).
+func start_gang(sup: int, now: float, seconds: float) -> void:
+	gang_target = sup
+	gang_until = now + seconds
+
+
+func gang_on(sup: int, now: float) -> bool:
+	return gang_target == sup and now < gang_until
 
 
 func add_event(kind: String, pos: Vector3, now: float, peer: int = 0) -> void:
