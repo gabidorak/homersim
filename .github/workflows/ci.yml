@@ -10,22 +10,97 @@ env:
   GODOT_VERSION: 4.7.2
 
 jobs:
-  unit-tests:
+  # Before the test jobs: the test names, and the LFS files in a cache. The names are "unit" (the GUT
+  # tests) then every integration test, longest first, from run_all.sh (so a new test runs in CI
+  # without touching this file). The LFS cache: every LFS download counts against the free 10 GiB a
+  # month, GitHub Actions included, so the files are downloaded here once (on a new key, only what
+  # changed since the newest cache), not by each of the ~25 test jobs.
+  prepare:
     runs-on: ubuntu-latest
-    container:
-      image: barichello/godot-ci:4.7.2
+    outputs:
+      tests: ${{ steps.list.outputs.tests }}
+      lfs-key: ${{ steps.lfs.outputs.key }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: List the tests
+        id: list
+        run: echo "tests=$({ echo unit; tests/integration/run_all.sh --list; } | jq -cnR '[inputs]')" >> "$GITHUB_OUTPUT"
+
+      - name: LFS cache key (changes with any LFS file)
+        id: lfs
+        run: echo "key=lfs-$(git lfs ls-files --long | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Is it cached already?
+        id: lfs-cached
+        uses: actions/cache/restore@v4
         with:
-          lfs: true
+          path: .git/lfs
+          key: ${{ steps.lfs.outputs.key }}
+          lookup-only: true
+
+      - name: Restore the newest LFS cache
+        if: steps.lfs-cached.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: .git/lfs
+          key: ${{ steps.lfs.outputs.key }}
+          restore-keys: lfs-
+
+      - name: Fetch the missing LFS files
+        if: steps.lfs-cached.outputs.cache-hit != 'true'
+        run: git lfs pull
+
+      - name: Save the LFS cache
+        if: steps.lfs-cached.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .git/lfs
+          key: ${{ steps.lfs.outputs.key }}
+
+  # One job per test, all at the same time: the integration tests mostly wait for timed matches, so
+  # the slowest one sets the time, and alone on its runner a timing-sensitive bot test isn't slowed
+  # down by the others. No Docker image here (pulling it took about a minute): Godot is a single
+  # binary.
+  tests:
+    needs: prepare
+    name: ${{ matrix.test }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  # every test reports, not only the first one to fail
+      matrix:
+        test: ${{ fromJSON(needs.prepare.outputs.tests) }}
+    env:
+      TEST: ${{ matrix.test }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          mkdir -p "$RUNNER_TEMP/godot"
+          unzip -q -p "$RUNNER_TEMP/godot.zip" > "$RUNNER_TEMP/godot/godot"
+          chmod +x "$RUNNER_TEMP/godot/godot"
+          echo "$RUNNER_TEMP/godot" >> "$GITHUB_PATH"
+
+      - name: Restore the LFS files (cached by prepare)
+        uses: actions/cache/restore@v4
+        with:
+          path: .git/lfs
+          key: ${{ needs.prepare.outputs.lfs-key }}
+          restore-keys: lfs-
+
+      - name: Put the LFS files in place (downloads only if the cache missed some)
+        run: git lfs pull
 
       - name: Import project (builds the .godot/ cache)
         run: godot --headless --import
 
       - name: Run GUT unit tests
+        if: matrix.test == 'unit'
         run: godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
 
-      # Every integration test (smoke, lobby, match loop, PvP, map check, plant, M6), in parallel.
-      # Each test's output is printed in one block when it finishes; see the file for the list.
-      - name: Integration tests (headless server + bot clients)
-        run: tests/integration/run_all.sh -j 3
+      - name: Integration test (headless server + bot clients)
+        if: matrix.test != 'unit'
+        run: tests/integration/"$TEST".sh

@@ -5,14 +5,17 @@
 # sensitive (hold durations, knockdown windows), so don't push -j past the cores you have.
 # Usage: tests/integration/run_all.sh [-j N] [test ...]   (default: every test, -j 4)
 #   e.g. tests/integration/run_all.sh -j 2 hazards pvp_items
+#        tests/integration/run_all.sh --list   (prints the test names, one per line: ci.yml makes a job of each)
 set -u
 cd "$(dirname "$0")"
 JOBS=4
+LIST=0
+if [ "${1:-}" = "--list" ]; then LIST=1; shift; fi
 if [ "${1:-}" = "-j" ]; then JOBS=$2; shift 2; fi
-# Longest first, so the slowest ones don't start last.
-ALL=(ai_nav_tour ai_match ai_items ai_steal ai_cctv pvp_capture pvp_items hazards minigames critical_lever ai_lever
-	pvp_swarm plant_cctv run_match_loop ai_control ai_capture ai_target control_room pvp_hack ai_fill menus_smoke lobby_smoke
-	join_smoke map_check)
+# Longest first, so the slowest ones don't start last (here and in CI).
+ALL=(ai_match ai_steal ai_items ai_nav_tour ai_cctv ai_control ai_lever pvp_items hazards critical_lever minigames
+	pvp_swarm run_match_loop pvp_capture lobby_smoke plant_cctv menus_smoke ai_fill pvp_hack control_room join_smoke
+	ai_target ai_capture map_check)
 if [ $# -gt 0 ]; then
 	TESTS=("$@")
 else
@@ -22,6 +25,7 @@ else
 		if [ "$t" != run_all ] && [ "$t" != pvp_lib ] && [ "$t" != ai_lib ] && [ "$t" != ai_soak ] && [ "$t" != ai_balance ] && [[ " ${ALL[*]} " != *" $t "* ]]; then TESTS+=("$t"); fi
 	done
 fi
+if [ $LIST -eq 1 ]; then printf '%s\n' "${TESTS[@]}"; exit 0; fi
 
 OUT=$(mktemp -d)
 BASE_PORT=$((20000 + RANDOM % 19000))
