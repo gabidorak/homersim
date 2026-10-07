@@ -28,6 +28,21 @@ func _count(roles: Dictionary[int, Role.Kind], kind: Role.Kind) -> int:
 	return roles.values().count(kind)
 
 
+## The default rules with other seats (the host's choice).
+func _seats(supervisors: int, rats: int) -> MatchRules:
+	var custom: MatchRules = rules.duplicate()
+	custom.max_supervisors = supervisors
+	custom.max_rats = rats
+	return custom
+
+
+func _all_any(n: int) -> Dictionary[int, Role.Kind]:
+	var list := []
+	list.resize(n)
+	list.fill(ANY)
+	return _prefs(list)
+
+
 func _assert_table(roles: Dictionary[int, Role.Kind], n: int, label: String) -> void:
 	assert_eq(roles.size(), n, "%s: everyone gets a role" % label)
 	assert_eq(_count(roles, SUP), TABLE[n][0], "%s: supervisors for %d players" % [label, n])
@@ -100,12 +115,39 @@ func test_extra_players_beyond_the_rat_cap_spectate() -> void:
 	assert_eq(_count(roles, SPEC), 2)
 
 
+func test_custom_seats_split_fewer_players_in_proportion() -> void:
+	# seats -> {players: [supervisors, rats, spectators]}
+	var cases := {
+		[3, 6]: {2: [1, 1, 0], 3: [1, 2, 0], 4: [1, 3, 0], 5: [2, 3, 0], 6: [2, 4, 0], 8: [3, 5, 0], 9: [3, 6, 0], 11: [3, 6, 2]},
+		[2, 2]: {2: [1, 1, 0], 3: [1, 2, 0], 4: [2, 2, 0], 5: [2, 2, 1]},  # a half goes to the rats
+		[1, 6]: {3: [1, 2, 0], 7: [1, 6, 0], 8: [1, 6, 1]},
+		[3, 1]: {2: [1, 1, 0], 3: [2, 1, 0], 4: [3, 1, 0], 5: [3, 1, 1]},  # always at least one rat
+		[1, 1]: {2: [1, 1, 0], 3: [1, 1, 1]},
+	}
+	for seats: Array in cases:
+		for n: int in cases[seats]:
+			var roles := MatchRulesModel.assign_roles(_all_any(n), _seats(seats[0], seats[1]), _rng())
+			var expected: Array = cases[seats][n]
+			assert_eq([_count(roles, SUP), _count(roles, RAT), _count(roles, SPEC)], expected,
+				"%d supervisor + %d rat seats, %d players" % [seats[0], seats[1], n])
+
+
+func test_seats_outside_the_limits_are_clamped() -> void:
+	var big := _seats(9, 20)
+	assert_eq([big.supervisor_seats(), big.rat_seats()], [MatchRules.SUPERVISORS_LIMIT, MatchRules.RATS_LIMIT])
+	var roles := MatchRulesModel.assign_roles(_all_any(12), big, _rng())
+	assert_eq([_count(roles, SUP), _count(roles, RAT), _count(roles, SPEC)], [3, 6, 3])
+	var none := _seats(0, -2)
+	assert_eq([none.supervisor_seats(), none.rat_seats()], [1, 1], "at least one of each")
+
+
 func test_empty_lobby() -> void:
 	assert_eq(MatchRulesModel.assign_roles(_prefs([]), rules, _rng()).size(), 0)
 
 
 func test_ready_vote() -> void:
 	assert_false(MatchRulesModel.ready_vote_passes(2, 2, rules), "below min players")
+	assert_true(MatchRulesModel.ready_vote_passes(2, 2, _seats(1, 1)), "1 vs 1: two players are a full match")
 	assert_false(MatchRulesModel.ready_vote_passes(4, 2, rules), "exactly half is not a majority")
 	assert_true(MatchRulesModel.ready_vote_passes(4, 3, rules))
 	assert_true(MatchRulesModel.ready_vote_passes(3, 2, rules))

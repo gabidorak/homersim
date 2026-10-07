@@ -45,7 +45,7 @@ func test_bots_needed_for_every_human_count_and_fill() -> void:
 		for humans in range(0, 9):
 			var expected := 0
 			if fill_to >= 2:
-				var target := mini(fill_to, rules.supervisors_for(fill_to) + rules.max_rats)
+				var target := mini(fill_to, rules.seats())
 				expected = maxi(0, target - humans)
 			assert_eq(MatchRulesModel.bots_needed(humans, rules), expected, "fill %d, %d humans" % [fill_to, humans])
 
@@ -166,6 +166,29 @@ func _pre_m10_assign(prefs: Dictionary[int, Role.Kind], rules: MatchRules, rng: 
 	for peer in remaining:
 		result[peer] = SPEC
 	return result
+
+
+func test_bots_take_every_custom_seat() -> void:
+	for seats: Array in [[1, 1], [1, 6], [3, 1], [3, 6], [2, 5]]:
+		var rules := _rules(seats[0] + seats[1])
+		rules.max_supervisors = seats[0]
+		rules.max_rats = seats[1]
+		for pref: Role.Kind in [ANY, RAT, SUP]:
+			var fillers := _fillers(MatchRulesModel.bots_needed(1, rules))
+			assert_eq(fillers.size(), seats[0] + seats[1] - 1, "%s: every seat but the human's" % [seats])
+			var roles := MatchRulesModel.assign_roles(_prefs([pref]), rules, _rng(), fillers)
+			assert_eq([_count(roles, SUP), _count(roles, RAT)], seats, "%s, a human who wants %s" % [seats, Role.pref_name(pref)])
+			assert_eq(roles[100], RAT if pref == RAT else SUP, "the human gets its preference")
+
+
+func test_fill_never_goes_past_the_seats() -> void:
+	var rules := _rules(9)
+	assert_eq(MatchRulesModel.bot_target(rules), 6, "the default 2 + 4 seats")
+	rules.max_supervisors = 3
+	rules.max_rats = 6
+	assert_eq(MatchRulesModel.bots_needed(1, rules), 8)
+	rules.max_rats = 2
+	assert_eq(MatchRulesModel.bots_needed(1, rules), 4)
 
 
 func test_bots_only_match() -> void:

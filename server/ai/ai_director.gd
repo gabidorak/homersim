@@ -305,8 +305,10 @@ func _ready() -> void:
 	await nav.bake(session.level)
 	if not is_inside_tree():
 		return
-	Log.info("ai", "navigation meshes baked in %.2f s: bots fill matches up to %d players (%s)" % [nav.bake_seconds,
-		session.match_manager.rules.bot_fill_to, tuning.skill(session.match_manager.rules.bot_difficulty).label])
+	var rules := session.match_manager.rules
+	Log.info("ai", "navigation meshes baked in %.2f s: bots fill matches up to %d players, %d supervisors + %d rats (%s)"
+		% [nav.bake_seconds, MatchRulesModel.bot_target(rules), rules.supervisor_seats(), rules.rat_seats(),
+		tuning.skill(rules.bot_difficulty).label])
 	session.ai_ready = true
 	session.match_manager.recheck_start()
 

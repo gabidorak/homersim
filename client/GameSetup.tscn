@@ -33,7 +33,7 @@ size_flags_vertical = 0
 [node name="Col" type="VBoxContainer" parent="Margin/Panel"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 10
 
 [node name="Header" type="HBoxContainer" parent="Margin/Panel/Col"]
 layout_mode = 2
@@ -62,7 +62,7 @@ autowrap_mode = 3
 [node name="Rows" type="VBoxContainer" parent="Margin/Panel/Col"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
 [node name="StartButton" type="Button" parent="Margin/Panel/Col"]
 unique_name_in_owner = true

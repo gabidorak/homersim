@@ -6,7 +6,7 @@ extends Node
 ##
 ## Solo: it listens on 127.0.0.1 only (nobody else can reach it), on any free port, for one player, off
 ## the LAN, and bots fill the match. Host: it listens on the chosen port and announces itself on the
-## LAN (unless turned off), with the chosen name, password, player count and bots.
+## LAN (unless turned off), with the chosen name, password, player count, teams and bots.
 ##
 ## The host's client proves it is the host with a random token (Session.host_token): when the host
 ## leaves, the server sends everyone back to their menu and quits by itself. The server also stops:
@@ -57,14 +57,16 @@ var _ready_path := ""
 
 # --- What to start (pure, unit tested) ---------------------------------------------
 
-## Solo, from the saved choices (Config.solo_*).
+## Solo, from the saved choices (Config.solo_*): bots take every seat but yours.
 static func solo_options() -> Dictionary:
 	return {
 		"name": TranslationServer.translate("Solo game"),
 		"password": "",
 		"port": 0,
 		"max_players": 1,
-		"bots": Config.solo_players,
+		"supervisors": Config.solo_supervisors,
+		"rats": Config.solo_rats,
+		"bots": Config.solo_supervisors + Config.solo_rats,
 		"difficulty": Config.solo_difficulty,
 		"lan": false,
 		"bind": SOLO_BIND,
@@ -79,7 +81,9 @@ static func host_options(player: String) -> Dictionary:
 		"password": Config.host_password,
 		"port": Config.host_port,
 		"max_players": Config.host_max_players,
-		"bots": Config.host_bots,
+		"supervisors": Config.host_supervisors,
+		"rats": Config.host_rats,
+		"bots": Config.host_supervisors + Config.host_rats if Config.host_bots else 0,
 		"difficulty": Config.host_difficulty,
 		"lan": Config.host_lan,
 		"bind": "*",
@@ -89,12 +93,6 @@ static func host_options(player: String) -> Dictionary:
 
 static func default_host_name(player: String) -> String:
 	return TranslationServer.translate("%s's plant") % (player if player != "" else JoinRules.DEFAULT_NAME)
-
-
-## The players a match with bots filling up to `fill` has: [supervisors, rats] (GDD §2 table).
-static func teams_for(fill: int, rules: MatchRules) -> Array[int]:
-	var supervisors := rules.supervisors_for(fill)
-	return [supervisors, mini(fill - supervisors, rules.max_rats)]
 
 
 ## Where friends on the local network reach this computer: the private IPv4 addresses of

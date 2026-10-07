@@ -12,23 +12,29 @@ func _bytes(text: String) -> PackedByteArray:
 
 func test_options_are_clamped_like_the_host_card() -> void:
 	var clean := OnlineApi.sanitize_options({"name": "  Friday [b]night[/b]  ", "password": " cheese ", "max_players": 99.0,
-		"bots": 5.0, "difficulty": -3})
+		"supervisors": 3.0, "rats": 9, "bots": 5.0, "difficulty": -3})
 	assert_eq(clean["name"], ChatService.clean("Friday [b]night[/b]").strip_edges(), "cleaned like chat")
 	assert_false(str(clean["name"]).contains("[b]"), "no BBCode")
 	assert_eq(clean["password"], "cheese")
 	assert_eq(clean["max_players"], Config.HOST_MAX_PLAYERS)
+	assert_eq(clean["supervisors"], 3)
+	assert_eq(clean["rats"], MatchRules.RATS_LIMIT)
 	assert_eq(clean["bots"], 5)
 	assert_eq(clean["difficulty"], 0)
 
 
 func test_options_fall_back_on_anything_unusable() -> void:
-	var clean := OnlineApi.sanitize_options({"name": 12, "max_players": "8", "bots": 1, "difficulty": [2]})
+	var clean := OnlineApi.sanitize_options({"name": 12, "max_players": "8", "supervisors": 0, "rats": "3", "bots": 1,
+		"difficulty": [2]})
 	assert_eq(clean["name"], "12")
 	assert_eq(clean["max_players"], 6, "a string is not a number")
 	assert_eq(clean["bots"], 0, "fewer than 2 = no bots (as Config's host_bots)")
 	assert_eq(clean["difficulty"], 1)
+	assert_eq([clean["supervisors"], clean["rats"]], [1, 4], "at least one supervisor; a string is not a number")
 	assert_eq(OnlineApi.sanitize_options({})["name"], "Online game")
-	assert_eq(OnlineApi.sanitize_options({"bots": 40})["bots"], Config.BOT_FILL_MAX)
+	assert_eq([OnlineApi.sanitize_options({})["supervisors"], OnlineApi.sanitize_options({})["rats"]], [2, 4], "the default seats")
+	assert_eq(OnlineApi.sanitize_options({"bots": 40})["bots"], 6, "bots never fill past the seats")
+	assert_eq(OnlineApi.sanitize_options({"supervisors": 1, "rats": 2, "bots": 40})["bots"], 3)
 	assert_eq(str(OnlineApi.sanitize_options({"password": "x".repeat(100)})["password"]).length(), OnlineApi.MAX_PASSWORD)
 	assert_eq(str(OnlineApi.sanitize_options({"name": "y".repeat(100)})["name"]).length(), LanDiscovery.MAX_NAME)
 

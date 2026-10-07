@@ -54,7 +54,7 @@ curl -s -m 5 -w " [%{http_code}]" "$URL/" > "$LOGS/health.log" 2>&1
 curl -s -m 5 -w " [%{http_code}]" "$URL/games" > "$LOGS/nokey.log" 2>&1
 curl -s -m 5 -w " [%{http_code}]" -H "Authorization: Bearer $KEY" "$URL/games" > "$LOGS/empty.log" 2>&1
 
-client Hosty 45 --online-key "$KEY" --host-online "$GAME" --host-bots 0 --leave-after 12
+client Hosty 45 --online-key "$KEY" --host-online "$GAME" --host-bots 0 --teams 1,2 --leave-after 12
 sleep 4
 client Joiner 50 --online-key "$KEY" --online-join "$GAME" --leave-after 16
 client Busy 20 --online-key "$KEY" --host-online "Busy-$RANDOM" --dismiss-errors
@@ -78,6 +78,8 @@ expect after   '"games":\[\].* \[200\]'                                      "ap
 expect Hosty   "pressing Host on the online host card"                       "host: the card's Host button, online"
 expect Hosty   "the online server started '$GAME' at 127.0.0.1:[0-9]+"       "host: the launcher started the game"
 expect launcher "starting '$GAME' for 127.0.0.1 on UDP $((PORT + 1))"         "launcher: started it on the first game port"
+expect launcher "starting '$GAME' .*, 1 v 2, bots 0"                           "launcher: with the teams picked on the card"
+expect launcher "match rule max_rats = 2"                                    "game: its server plays with those teams"
 expect launcher "'$GAME' listening on UDP $((PORT + 1)), max"                 "launcher: its server listens"
 expect launcher "quits after 8 s with nobody in the game"                    "launcher: the game stops by itself when idle"
 expect Hosty   "joined as Hosty"                                             "host: joined"

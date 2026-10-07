@@ -2,8 +2,9 @@ extends Node
 ## Visual check of the menus and the in-game UI (M8), windowed: opens every screen with made-up data
 ## and saves a screenshot of each.
 ##   godot tests/helpers/UiTour.tscn -- --settings /tmp/ui_tour.cfg --out /tmp/ui [--only NAME] [--lang fr] [--bots]
-##     [--local solo|host]
+##     [--big] [--local solo|host]
 ## --bots (M10): the server fills its matches with AI bots, and two of the made-up rats are bots.
+## --big: the biggest teams (3 supervisors and 6 rats): three more bots in the match.
 ## --local: the made-up game is one this game started (LocalServer): the solo or the host's lobby and menu.
 ## Always pass --settings with a throwaway file: the tour changes settings (name, favourites…).
 ## Shots: menu, welcome, browser_lan, browser_online_key, browser_online, browser_online_error, browser_fav,
@@ -213,8 +214,10 @@ func _in_game() -> void:
 		session.players[peer] = PlayerInfo.new(peer, names[peer])
 		roster[peer] = {"name": names[peer], "pref": [Role.Kind.SUPERVISOR, Role.Kind.NONE, Role.Kind.RAT, Role.Kind.RAT,
 			Role.Kind.NONE, Role.Kind.SUPERVISOR][peer - 11], "ready": peer % 2 == 1, "role": Role.Kind.NONE, "eliminated": false}
+	var big := Cli.has_arg("big")
 	mm.server_info = {"name": "Sunny Acres #1", "max_players": 6, "duration_s": 540, "duration_single_s": 480,
-		"min_players": 1 if bots else 3, "locked": false, "bot_fill_to": 6 if bots else 0}
+		"min_players": 1 if bots or big else 3, "locked": false, "supervisors": 3 if big else 2, "rats": 6 if big else 4,
+		"bot_fill_to": 9 if big else 6 if bots else 0}
 	mm.min_players = mm.server_info["min_players"]
 	mm.pings = _as_bots({11: 18, 12: 42, 13: 95, 14: 160, 15: 33, 16: 61}) if bots else {11: 18, 12: 42, 13: 95, 14: 160, 15: 33, 16: 61}
 	mm.roster = roster
@@ -230,6 +233,10 @@ func _in_game() -> void:
 		16: Role.Kind.RAT}
 	if bots:
 		roles = _as_bots(roles)
+	if big:
+		for i in 3:
+			names[-1003 - i] = ["Big Earl", "Crumbs", "Fuzzbucket"][i]
+			roles[-1003 - i] = Role.Kind.SUPERVISOR if i == 0 else Role.Kind.RAT
 	var playing := roster.duplicate(true)
 	for peer: int in roles:
 		if not playing.has(peer):
@@ -245,6 +252,8 @@ func _in_game() -> void:
 		16: {"caught": 2, "sabotages": 1}}
 	if bots:
 		mm.live_stats = _as_bots(mm.live_stats)
+	if big:
+		mm.live_stats.merge({-1003: {"repairs": 3, "catches": 1}, -1004: {"sabotages": 3}, -1005: {"bites": 2, "frees": 2}})
 	session.plant.meltdown = 46.0
 	if _wanted("feed") or _wanted("scoreboard"):
 		for line: Array in [["sabotaged", "turbine", ""], ["bonk", "Gabriel", "Bob the Rat"], ["caged", "Gabriel", "Chloé"],

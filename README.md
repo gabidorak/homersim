@@ -4,6 +4,7 @@ A goofy, cartoon-style **asymmetric multiplayer** game set in a nuclear power pl
 
 - **1–2 Supervisors** (first person) must keep the plant running until the shift ends.
 - **3–4 Rats** (third person) sneak through vents and sabotage the plant until it melts down.
+- Whoever starts a game can pick other teams: 1–3 supervisors against 1–6 rats, bots filling the empty seats.
 - Supervisors whack, catch and cage rats. Rats bite, trip and rob supervisors. Broken machinery hurts everyone.
 
 Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows**.

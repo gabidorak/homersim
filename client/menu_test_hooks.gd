@@ -7,10 +7,11 @@ extends Node
 ##   --auto-password A,B,...  answer each password prompt with the next password of the list
 ##   --dismiss-errors         press the error box's button (logs what it said)
 ##   --solo [any|supervisor|rat]  open the Play solo card (with that role) and press Start
-##   --host-game NAME [--host-port N] [--host-bots N]  open the Host a game card with these choices
-##                            and press Host
-##   --host-online NAME [--host-bots N]  the same with "Online server" chosen (the friends key and the
-##                            launcher's address come from --online-key / --online-url)
+##   --host-game NAME [--host-port N] [--host-bots 0|1]  open the Host a game card with these choices
+##                            (--host-bots 0: no bots) and press Host
+##   --host-online NAME [--host-bots 0|1]  the same with "Online server" chosen (the friends key and
+##                            the launcher's address come from --online-key / --online-url)
+##   --teams S,R              with --solo / --host-*: S supervisors and R rats on the card
 ##   --online-join NAME       open the server browser's Online tab and press Join on the game called
 ##                            NAME as soon as it shows up
 ## (Headless clients don't save their settings, so the choices made here don't stick.)
@@ -57,9 +58,14 @@ func _start_local() -> void:
 		Config.set_value("host_name", Cli.get_str("host-online" if online else "host-game"))
 		Config.set_value("host_port", Cli.get_int("host-port", Net.DEFAULT_PORT))
 		if Cli.has_arg("host-bots"):
-			Config.set_value("host_bots", Cli.get_int("host-bots"))
+			Config.set_value("host_bots", Cli.get_int("host-bots") != 0)
 	else:
 		Config.set_value("solo_role", Role.from_text(Cli.get_str("solo", "any")))
+	var teams := Cli.get_str("teams").split(",", false)
+	if teams.size() == 2:
+		var prefix := "host_" if hosting else "solo_"
+		Config.set_value(prefix + "supervisors", teams[0].to_int())
+		Config.set_value(prefix + "rats", teams[1].to_int())
 	var opener: Button = _menu.get_node("%HostButton" if hosting else "%SoloButton")
 	_menu._open(MainMenu.SETUP_SCENE, opener, {"hosting": hosting})
 	await get_tree().process_frame

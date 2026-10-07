@@ -77,6 +77,12 @@ func bot_badge(font_size: int = 13) -> PanelContainer:
 	return badge
 
 
+## ["2 supervisors", "4 rats"]: team sizes as the setup cards and the lobby show them.
+func teams_text(supervisors: int, rats: int) -> Array:
+	return [tr("1 supervisor") if supervisors == 1 else tr("%d supervisors") % supervisors,
+		tr("1 rat") if rats == 1 else tr("%d rats") % rats]
+
+
 ## A UI sound (no position).
 func play(sound: String) -> void:
 	if is_inside_tree() and DisplayServer.get_name() != "headless":

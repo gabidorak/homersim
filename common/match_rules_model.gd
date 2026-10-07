@@ -5,10 +5,10 @@ extends RefCounted
 enum Team { NONE, SUPERVISORS, RATS }
 
 
-## Gives every peer a role. Team sizes come from the balance table (GDD §2); within those sizes,
-## preferences are honoured where possible: supervisor slots go to players who asked for
-## Supervisor, then to "Any", then to rat fans; rat slots the other way round. Ties are broken
-## by a shuffle from `rng`, so a fixed seed gives a fixed result. Players beyond the rat cap
+## Gives every peer a role. Team sizes come from the seats (GDD §2, MatchRules.supervisors_for);
+## within those sizes, preferences are honoured where possible: supervisor slots go to players who
+## asked for Supervisor, then to "Any", then to rat fans; rat slots the other way round. Ties are
+## broken by a shuffle from `rng`, so a fixed seed gives a fixed result. Players beyond the seats
 ## become spectators. A lone player (debug only) simply gets their preference.
 ## `fillers` (M10) are AI bots' ids: they count toward the team sizes but always come after the
 ## humans who want a slot, in both orderings (supervisor slots: human Supervisor, Any, then fillers,
@@ -34,7 +34,7 @@ static func assign_roles(prefs: Dictionary[int, Role.Kind], rules: MatchRules,
 		return result
 
 	var supervisors := mini(rules.supervisors_for(n), n - 1)  # always leave at least one rat
-	var rats := mini(n - supervisors, rules.max_rats)
+	var rats := mini(n - supervisors, rules.rat_seats())
 
 	var remaining := _ordered_by_pref(peers, prefs, [Role.Kind.SUPERVISOR, Role.Kind.NONE])
 	remaining.append_array(fillers)
@@ -55,23 +55,27 @@ static func assign_roles(prefs: Dictionary[int, Role.Kind], rules: MatchRules,
 	return result
 
 
-## How many AI bots to add to a match of `humans` (GDD §2 Bots): enough to reach bot_fill_to
-## players, but never more than the balance table has slots for (2 supervisors + max_rats at 6).
+## How many AI bots to add to a match of `humans` (GDD §2 Bots): enough to reach bot_target.
 ## 0 when bots are off (bot_fill_to below 2).
 static func bots_needed(humans: int, rules: MatchRules) -> int:
 	if not bots_enabled(rules):
 		return 0
-	var target := mini(rules.bot_fill_to, rules.supervisors_for(rules.bot_fill_to) + rules.max_rats)
-	return maxi(0, target - humans)
+	return maxi(0, bot_target(rules) - humans)
+
+
+## The players bots fill a match up to: bot_fill_to, but never past the seats.
+static func bot_target(rules: MatchRules) -> int:
+	return mini(rules.bot_fill_to, rules.seats())
 
 
 static func bots_enabled(rules: MatchRules) -> bool:
 	return rules.bot_fill_to >= 2
 
 
-## The fewest humans the ready vote needs: one when bots fill the match, min_players otherwise.
+## The fewest humans the ready vote needs: one when bots fill the match, min_players otherwise (or
+## the seats, if there are fewer: a 1 vs 1 game starts with two).
 static func effective_min_players(rules: MatchRules) -> int:
-	return 1 if bots_enabled(rules) else rules.min_players
+	return 1 if bots_enabled(rules) else mini(rules.min_players, rules.seats())
 
 
 ## `peers` regrouped by preference in the given order, keeping their relative order within a group.

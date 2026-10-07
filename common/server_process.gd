@@ -14,14 +14,19 @@ const MAX_FPS := 60  ## a headless server has nothing else to pace its main loop
 const STATUS_EVERY_S := 2.0
 
 
-## The server.cfg for `options` (see server.cfg.example): name, password, port, max_players, bots,
-## difficulty.
+## The server.cfg for `options` (see server.cfg.example): name, password, port, max_players,
+## supervisors and rats (the teams' seats; the rules' own when left out), bots (fill up to that many
+## players, 0 = none), difficulty.
 static func config_for(options: Dictionary) -> ConfigFile:
 	var cfg := ConfigFile.new()
 	cfg.set_value("server", "name", str(options.get("name", "")))
 	cfg.set_value("server", "password", str(options.get("password", "")))
 	cfg.set_value("server", "port", int(options.get("port", Net.DEFAULT_PORT)))
 	cfg.set_value("server", "max_players", int(options.get("max_players", 6)))
+	if options.has("supervisors"):
+		cfg.set_value("match", "max_supervisors", int(options["supervisors"]))
+	if options.has("rats"):
+		cfg.set_value("match", "max_rats", int(options["rats"]))
 	cfg.set_value("match", "bot_fill_to", int(options.get("bots", 0)))
 	cfg.set_value("match", "bot_difficulty", int(options.get("difficulty", 1)))
 	return cfg

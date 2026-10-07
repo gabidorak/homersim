@@ -5,8 +5,9 @@
 # difficulty DIFFICULTY (0 easy, 1 normal, 2 hard; default 1). Prints one line per match (winner, why,
 # meltdown, the team stats) and the totals: both teams should win sometimes (GDD §5.5, M10 phase F).
 # Fails only on errors in the logs, hard-stuck bots or validator strikes.
+# TEAMS=S,R plays S supervisors against R rats (the seats; default 2,4).
 # AI_LOG=1 adds --ai-log, GOALS=role:Goal,… passes --ai-goals (experiments), KEEP_LOGS=1 keeps the logs.
-# Usage: tests/integration/ai_balance.sh   (MATCHES=N JOBS=N SEED=N DURATION=S DIFFICULTY=D, GODOT=…)
+# Usage: tests/integration/ai_balance.sh   (MATCHES=N JOBS=N SEED=N DURATION=S DIFFICULTY=D TEAMS=S,R, GODOT=…)
 set -u
 cd "$(dirname "$0")/../.."
 GODOT=${GODOT:-godot}
@@ -14,19 +15,23 @@ MATCHES=${MATCHES:-10}
 JOBS=${JOBS:-4}
 SEED=${SEED:-$((RANDOM % 1000))}
 DIFFICULTY=${DIFFICULTY:-1}
+TEAMS=${TEAMS:-2,4}
+SUPERVISORS=${TEAMS%,*}
+RATS=${TEAMS#*,}
 BASE_PORT=$((20000 + RANDOM % 19000))
 LOGS=$(mktemp -d)
-printf '[match]\ncountdown_s=3\nbot_difficulty=%d\n' "$DIFFICULTY" > "$LOGS/server.cfg"
+printf '[match]\ncountdown_s=3\nbot_difficulty=%d\nmax_supervisors=%d\nmax_rats=%d\n' "$DIFFICULTY" "$SUPERVISORS" "$RATS" \
+	> "$LOGS/server.cfg"
 EXTRA=()
 if [ -n "${DURATION:-}" ]; then EXTRA=(--test-duration "$DURATION"); fi
 if [ -n "${AI_LOG:-}" ]; then EXTRA+=(--ai-log); fi
 if [ -n "${GOALS:-}" ]; then EXTRA+=(--ai-goals "$GOALS"); fi
-echo "seeds $SEED..$((SEED + MATCHES - 1)), difficulty $DIFFICULTY, ${DURATION:-full} s, $JOBS at a time (logs in $LOGS)"
+echo "seeds $SEED..$((SEED + MATCHES - 1)), $SUPERVISORS v $RATS, difficulty $DIFFICULTY, ${DURATION:-full} s, $JOBS at a time (logs in $LOGS)"
 
 run_one() {  # run_one <index>
 	local seed=$((SEED + $1)) port=$((BASE_PORT + $1))
 	timeout -s KILL 900 "$GODOT" --headless --max-fps 120 -- --server --no-heatmap --no-lan --port "$port" \
-		--config "$LOGS/server.cfg" --allow-debug --ai-only --ai-fill 6 --ai-seed "$seed" --exit-after-match \
+		--config "$LOGS/server.cfg" --allow-debug --ai-only --ai-fill $((SUPERVISORS + RATS)) --ai-seed "$seed" --exit-after-match \
 		--result-file "$LOGS/result_$seed.json" "${EXTRA[@]}" > "$LOGS/server_$seed.log" 2>&1
 }
 

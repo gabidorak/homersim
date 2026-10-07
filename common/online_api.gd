@@ -7,7 +7,8 @@ extends RefCounted
 ##   GET  /         -> 200 {"game": "homersim", "version": V}   (no key needed: a health check)
 ##   GET  /games    -> 200 {"version": V, "host": H, "games": [{id, name, players, max, state, locked,
 ##                     version, port}, …]}
-##   POST /games    {"version", "name", "password", "max_players", "bots", "difficulty"}
+##   POST /games    {"version", "name", "password", "max_players", "supervisors", "rats", "bots",
+##                   "difficulty"}
 ##                  -> 200 {"host": H, "port": N, "version": V} once the new game's server listens
 ##   anything else  -> an HTTP error status with {"error": CODE} (the ERR_* below)
 ## /games needs "Authorization: Bearer <friends key>". H is the launcher's game_host setting; "" means
@@ -45,12 +46,16 @@ const REASONS := {
 ## limits as the Host a game card (Config.clean_value of the host_* settings).
 static func sanitize_options(raw: Dictionary) -> Dictionary:
 	var game_name := ChatService.clean(str(raw.get("name", ""))).strip_edges().substr(0, LanDiscovery.MAX_NAME)
+	var supervisors := clampi(_int(raw.get("supervisors"), 2), 1, MatchRules.SUPERVISORS_LIMIT)
+	var rats := clampi(_int(raw.get("rats"), 4), 1, MatchRules.RATS_LIMIT)
 	var bots := _int(raw.get("bots"), 0)
 	return {
 		"name": game_name if game_name != "" else "Online game",
 		"password": str(raw.get("password", "")).strip_edges().substr(0, MAX_PASSWORD),
 		"max_players": clampi(_int(raw.get("max_players"), 6), 2, Config.HOST_MAX_PLAYERS),
-		"bots": 0 if bots < 2 else mini(bots, Config.BOT_FILL_MAX),
+		"supervisors": supervisors,
+		"rats": rats,
+		"bots": 0 if bots < 2 else mini(bots, supervisors + rats),
 		"difficulty": clampi(_int(raw.get("difficulty"), 1), 0, 2),
 	}
 

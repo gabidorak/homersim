@@ -73,8 +73,8 @@ var roster: Dictionary = {}:
 ## {"winner": MatchRulesModel.Team, "reason": String, "stats": Array of
 ##  {"peer", "name", "role", "bot", and one count per STAT_KEYS}}
 var result: Dictionary = {}
-## {"name", "max_players", "duration_s", "duration_single_s", "min_players", "locked", "bot_fill_to"}:
-## the lobby shows it.
+## {"name", "max_players", "duration_s", "duration_single_s", "min_players", "locked", "supervisors",
+##  "rats" (the teams' seats), "bot_fill_to" (0 = no bots)}: the lobby shows it.
 var server_info: Dictionary = {}
 var pings: Dictionary = {}  ## peer -> round trip in ms
 var live_stats: Dictionary = {}  ## peer -> {stat: count} during PLAYING (only the stats that are not 0)
@@ -127,7 +127,9 @@ func _ready() -> void:
 		"duration_single_s": rules.duration_single_supervisor_s,
 		"min_players": min_players,
 		"locked": session.password != "",
-		"bot_fill_to": rules.bot_fill_to if bots_enabled() else 0,
+		"supervisors": rules.supervisor_seats(),
+		"rats": rules.rat_seats(),
+		"bot_fill_to": MatchRulesModel.bot_target(rules) if bots_enabled() else 0,
 	}
 
 
@@ -136,14 +138,14 @@ func _read_ai_flags() -> void:
 	if not rules.resource_path.is_empty():
 		rules = rules.duplicate()  # (never change the shared resource)
 	if Cli.has_arg("ai-fill"):
-		rules.bot_fill_to = clampi(Cli.get_int("ai-fill", 6), 0, 6)
+		rules.bot_fill_to = maxi(Cli.get_int("ai-fill", 6), 0)
 	for text in Cli.get_str("ai-roles").split(",", false):
 		var role := Role.from_text(text.strip_edges())
 		if role in [Role.Kind.SUPERVISOR, Role.Kind.RAT]:
 			_ai_roles.append(role)
 	_ai_only = Cli.has_arg("ai-only")
 	if (_ai_only or not _ai_roles.is_empty()) and rules.bot_fill_to < 2:
-		rules.bot_fill_to = 6
+		rules.bot_fill_to = rules.seats()
 	if _ai_only:
 		Log.info("match", "--ai-only: bots-only matches, back to back")
 

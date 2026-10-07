@@ -157,6 +157,11 @@ CAMERAS = [
 ]
 
 LADDER_YARD = (23.75, -29.0)  # on the block's west face, climbing east
+# Spawn points (x, z): one per team seat (MatchRules.SUPERVISORS_LIMIT / RATS_LIMIT), the default
+# 2 supervisors and 4 rats first (matches use them in this order); lobby spawns in the yard.
+SUPERVISOR_SPAWNS = [(-24, 12), (-28, 12), (-20, 12)]
+RAT_SPAWNS = [(-32, 34), (-28, 34), (-32, 37), (-28, 37), (-30, 34), (-30, 37)]
+LOBBY_SPAWNS = [(18, -22), (18, -25), (18, -28), (14, -22), (14, -25), (14, -28)]
 
 # Hazards (M6, GDD §6), switched on by the server's HazardDirector when their subsystem drops below 50.
 # Steam jets: POI scene, subsystem, x, z, yaw (deg, the jet blows along +Z), length, phase (s)
@@ -1019,8 +1024,8 @@ def build_props():
     fill(p, "Table", "table_breakroom", -32.0, 0, 15.0, -29.0, 0.75, 17.0)
     fill(p, "Vending", "vending_machine", -37.75, 0, 7.0, -36.75, 2.0, 8.5, yaw=90, stretch=False)
     fill(p, "Coffee", "coffee_station", -16.0, 0, 18.0, -14.25, 1.4, 19.75, yaw=-90)
-    spawn(p, "Supervisor1", 1, -24.0, 0, 12.0, 0)
-    spawn(p, "Supervisor2", 1, -28.0, 0, 12.0, 0)
+    for i, (x, z) in enumerate(SUPERVISOR_SPAWNS):
+        spawn(p, "Supervisor%d" % (i + 1), 1, x, 0, z, 0)
     p.label("BREAK ROOM", -26, 3.2, 13, 90)
 
     # --- Locker Room: rows of lockers to hide between; a clear lane between the two doors.
@@ -1045,7 +1050,7 @@ def build_props():
     p.box("Sludge", -35.75, 0.0, 35.0, -24.25, 0.05, 39.75, p.mat(M_WATER))
     fill(p, "Junk", "junk_pile", -35.5, 0, 31.0, -34.0, 0.8, 33.0)
     fill(p, "Junk", "junk_pile_tall", -26.0, 0, 37.0, -24.5, 1.2, 39.0, yaw=180)
-    for i, (x, z) in enumerate(((-32, 34), (-28, 34), (-32, 37), (-28, 37))):
+    for i, (x, z) in enumerate(RAT_SPAWNS):
         spawn(p, "Rat%d" % (i + 1), 2, x, 0, z, 0)
     p.light(-30, 2.4, 35, 9.0, 1.2, (0.5, 1.0, 0.4))
     p.label("RAT NEST", -30, 2.4, 36, 72)
@@ -1059,7 +1064,7 @@ def build_props():
     fill(p, "Barrels", "barrels_cluster", -24.0, 0, -31.0, -22.5, 1.0, -29.5)
     for x, z in ((-40, -22), (-14, -24), (10, -24), (16, -34)):
         p.light(x, 5.0, z, 18.0, 1.4, (0.75, 0.85, 1.0))
-    for i, (x, z) in enumerate(((18, -22), (18, -25), (18, -28), (14, -22), (14, -25), (14, -28))):
+    for i, (x, z) in enumerate(LOBBY_SPAWNS):
         spawn(p, "Spawn%d" % (i + 1), 0, x, 0, z, 90)
     # Ladder up the block's west face to the vent roof (supervisors and rats).
     lx, lz = LADDER_YARD
@@ -1737,8 +1742,7 @@ def draw_plan():
         d.rectangle([a - 5, b - 4, a + 5, b + 4], fill=(255, 70, 60) if action == "scram" else (80, 140, 255))
         d.text((a, b + 6), action, fill=(255, 255, 255), font=small, anchor="ma", stroke_width=2, stroke_fill=(0, 0, 0))
     # Spawns, cages, pickups, console.
-    marks = [((-24, 12), "S"), ((-28, 12), "S")] + [((x, z), "R") for x, z in ((-32, 34), (-28, 34), (-32, 37), (-28, 37))] \
-        + [((x, z), "L") for x, z in ((18, -22), (18, -25), (18, -28), (14, -22), (14, -25), (14, -28))]
+    marks = [(xz, "S") for xz in SUPERVISOR_SPAWNS] + [(xz, "R") for xz in RAT_SPAWNS] + [(xz, "L") for xz in LOBBY_SPAWNS]
     mark_col = {"S": (255, 220, 80), "R": (120, 255, 120), "L": (230, 230, 230)}
     for (x, z), t in marks:
         a, b = P(x, z)

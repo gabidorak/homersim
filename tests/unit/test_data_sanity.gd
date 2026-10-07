@@ -41,9 +41,25 @@ func test_match_rules_match_gdd() -> void:
 	var m: MatchRules = load(Config.DEFAULT_MATCH_RULES)
 	assert_eq([m.duration_s, m.duration_single_supervisor_s, m.countdown_s, m.post_match_s], [540, 480, 10, 15])
 	assert_eq(m.min_players, 3)
-	assert_eq(m.max_rats, 4)
+	assert_eq([m.max_supervisors, m.max_rats], [2, 4], "the default seats")
 	for n: int in {2: 1, 3: 1, 4: 1, 5: 2, 6: 2}:
 		assert_eq(m.supervisors_for(n), {2: 1, 3: 1, 4: 1, 5: 2, 6: 2}[n], "%d players" % n)
+
+
+## Every seat a host can pick has its own spawn point (or two bodies would spawn inside each other).
+func test_levels_have_a_spawn_point_per_seat() -> void:
+	for paths: Array in [["res://levels/plant/pois/BreakRoom.tscn", "res://levels/plant/pois/RatNest.tscn"],
+			["res://levels/test/TestArena.tscn"]]:
+		var counts := {}
+		for path: String in paths:
+			var scene := (load(path) as PackedScene).instantiate()
+			for node in scene.find_children("*", "Marker3D"):
+				var point := node as SpawnPoint
+				if point != null:
+					counts[point.role] = counts.get(point.role, 0) + 1
+			scene.free()
+		assert_eq(counts.get(Role.Kind.SUPERVISOR, 0), MatchRules.SUPERVISORS_LIMIT, "%s: supervisor spawns" % [paths])
+		assert_eq(counts.get(Role.Kind.RAT, 0), MatchRules.RATS_LIMIT, "%s: rat spawns" % [paths])
 
 
 func test_validator_allowed_distance() -> void:
@@ -222,5 +238,5 @@ func test_bot_names_and_numbers_are_sane() -> void:
 func test_bot_fill_is_off_or_a_real_match_size() -> void:
 	var m: MatchRules = load(Config.DEFAULT_MATCH_RULES)
 	assert_eq(m.bot_fill_to, 0, "bots are off by default")
-	assert_true(m.bot_fill_to == 0 or (m.bot_fill_to >= 2 and m.bot_fill_to <= 6))
+	assert_true(m.bot_fill_to == 0 or (m.bot_fill_to >= 2 and m.bot_fill_to <= m.seats()))
 	assert_between(m.bot_difficulty, 0, 2)

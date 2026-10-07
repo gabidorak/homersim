@@ -516,21 +516,19 @@ Host a game,Host a game,Héberger une partie
 A match against bots on this computer. Nobody else can join.,A match against bots on this computer. Nobody else can join.,Une partie contre des bots sur cet ordinateur. Personne d'autre ne peut la rejoindre.
 Start,Start,Lancer
 Bots,Bots,Bots
-%d players,%d players,%d joueurs
-Match size,Match size,Taille de la partie
 The match doesn't pause: Esc only opens the menu.,The match doesn't pause: Esc only opens the menu.,La partie ne se met pas en pause : Échap ouvre seulement le menu.
 "Your computer runs the game and you play in it. When you leave, the game ends for everyone.","Your computer runs the game and you play in it. When you leave, the game ends for everyone.","Votre ordinateur fait tourner la partie et vous y jouez. Quand vous partez, la partie s'arrête pour tout le monde."
 Host,Host,Héberger
 None: anyone can join,None: anyone can join,Aucun : tout le monde peut entrer
 Most players,Most players,Joueurs au maximum
-No bots,No bots,Pas de bots
-Fill up to %d players,Fill up to %d players,Jusqu'à %d joueurs
-Bot difficulty,Bot difficulty,Difficulté des bots
 UDP port,UDP port,Port UDP
 Show it on the local network,Show it on the local network,La montrer sur le réseau local
 Bots take the empty seats: %s and %s in all.,Bots take the empty seats: %s and %s in all.,Les bots prennent les places libres : %s et %s en tout.
 "Friends on your network find it in their server browser. Over the internet, they need your public address, and UDP port %s must be forwarded to this computer on your router.","Friends on your network find it in their server browser. Over the internet, they need your public address, and UDP port %s must be forwarded to this computer on your router.","Vos amis sur votre réseau la trouvent dans leur liste de serveurs. Par Internet, il leur faut votre adresse publique, et le port UDP %s doit être redirigé vers cet ordinateur sur votre box."
 You and %d bots: %s and %s.,You and %d bots: %s and %s.,Vous et %d bots : %s et %s.
+You and 1 bot: %s and %s.,You and 1 bot: %s and %s.,Vous et 1 bot : %s et %s.
+"Without bots, matches have up to %s and %s, depending on who joins.","Without bots, matches have up to %s and %s, depending on who joins.","Sans bots, les parties ont jusqu'à %s et %s, selon qui vient."
+A lone rat can't sabotage the critical machines: their two levers need two rats.,A lone rat can't sabotage the critical machines: their two levers need two rats.,Un rat seul ne peut pas saboter les machines critiques : leurs deux leviers demandent deux rats.
 1 supervisor,1 supervisor,1 superviseur
 %d supervisors,%d supervisors,%d superviseurs
 1 rat,1 rat,1 rat
@@ -539,6 +537,8 @@ Easy,Easy,Facile
 Normal,Normal,Normal
 Hard,Hard,Difficile
 Matches of %s (%s with one supervisor),Matches of %s (%s with one supervisor),Parties de %s (%s avec un seul superviseur)
+%s vs %s,%s vs %s,%s contre %s
+Up to %s and %s,Up to %s and %s,Jusqu'à %s et %s
 Press Ready to start a match against the bots.,Press Ready to start a match against the bots.,Appuyez sur Prêt pour lancer une partie contre les bots.
 You are the host. Friends on your network can also type %s,You are the host. Friends on your network can also type %s,Vous êtes l'hôte. Vos amis sur votre réseau peuvent aussi taper %s
 You are the host (UDP port %d).,You are the host (UDP port %d).,Vous êtes l'hôte (port UDP %d).

@@ -383,6 +383,12 @@ role = 1
 position = Vector3(17.5, 0, 17.5)
 rotation = Vector3(0, 0.785398, 0)
 
+[node name="Supervisor3" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 1
+position = Vector3(17.5, 0, 15)
+rotation = Vector3(0, 0.785398, 0)
+
 [node name="Rat1" type="Marker3D" parent="SpawnPoints"]
 script = ExtResource("spawn_point")
 role = 2
@@ -405,6 +411,18 @@ rotation = Vector3(0, -2.35619, 0)
 script = ExtResource("spawn_point")
 role = 2
 position = Vector3(-15.5, 0, -15.5)
+rotation = Vector3(0, -2.35619, 0)
+
+[node name="Rat5" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-19, 0, -14)
+rotation = Vector3(0, -2.35619, 0)
+
+[node name="Rat6" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-14, 0, -19)
 rotation = Vector3(0, -2.35619, 0)
 
 [node name="Stations" type="Node3D" parent="."]

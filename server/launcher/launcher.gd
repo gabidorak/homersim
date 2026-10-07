@@ -210,8 +210,8 @@ func _create(exchange: HttpServer.Exchange) -> void:
 		_fail(game, "could not start %s" % cmd[0])
 		return
 	game["started_ms"] = Time.get_ticks_msec()
-	Log.info("launcher", "starting '%s' for %s on UDP %d (pid %d, %d player(s), bots %d, %s)" % [options["name"],
-		_who(exchange), port, game["pid"], options["max_players"], options["bots"],
+	Log.info("launcher", "starting '%s' for %s on UDP %d (pid %d, %d player(s), %d v %d, bots %d, %s)" % [options["name"],
+		_who(exchange), port, game["pid"], options["max_players"], options["supervisors"], options["rats"], options["bots"],
 		"password" if options["password"] != "" else "no password"])
 
 

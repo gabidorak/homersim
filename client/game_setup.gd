@@ -2,22 +2,21 @@ extends Control
 ## The card before "Play solo" and "Host a game" (main menu): the choices for the server this game
 ## starts itself (client/local_server.gd). Every change is saved at once (Config.solo_* / host_*), so
 ## the card opens with the last choices. Start emits start_requested; the main menu does the rest.
-##   Solo: the role you'd like, the bots' difficulty, the match size (you + bots).
+##   Solo: the role you'd like, the teams (you + bots), the bots' difficulty.
 ##   Host: where (this computer, or the online server: the launcher on the VPS, OnlineClient), the
-##   game's name, a password, the most players, the bots (off or fill up to N players) and their
-##   difficulty; on this computer the UDP port and whether the game shows on the local network, online
-##   the friends key.
+##   game's name, a password, the most players, the teams' seats, the bots (none, or a difficulty: they
+##   take the seats nobody fills); on this computer the UDP port and whether the game shows on the
+##   local network, online the friends key.
 
 signal closed
 signal start_requested(mode: LocalServer.Mode, options: Dictionary)
 
-const CONTROL_WIDTH := 330
+const CONTROL_WIDTH := 390
 const PORT_ERROR_COLOR := Color(1, 0.55, 0.5)
 
 ## Set by the main menu before the card enters the tree.
 var hosting := false
 
-var _difficulty_buttons: Array[Button] = []
 var _teams_label: Label
 var _port_edit: LineEdit
 var _note: Label
@@ -55,11 +54,8 @@ func _build_solo() -> void:
 	start_button.text = tr("Start")
 	_choices(tr("I'd like to play"), "solo_role", [[Role.Kind.NONE, tr("Any")],
 		[Role.Kind.SUPERVISOR, tr("Supervisor")], [Role.Kind.RAT, tr("Rat")]])
-	_difficulty_buttons = _choices(tr("Bots"), "solo_difficulty", _difficulties())
-	var sizes := []
-	for players in range(Config.SOLO_PLAYERS_MIN, Config.BOT_FILL_MAX + 1):
-		sizes.append([players, tr("%d players") % players])
-	_choices(tr("Match size"), "solo_players", sizes)
+	_team_rows("solo_supervisors", "solo_rats")
+	_choices(tr("Bots"), "solo_difficulty", _difficulties())
 	_teams_label = _muted(rows)
 	_note = _muted(%Col)
 	_note.text = tr("The match doesn't pause: Esc only opens the menu.")
@@ -86,13 +82,13 @@ func _build_host() -> void:
 	for count in range(2, Config.HOST_MAX_PLAYERS + 1):
 		players.append([count, str(count)])
 	_row(tr("Most players"), _option("host_max_players", players))
-	var bots := [[0, tr("No bots")]]
-	for fill in range(Config.SOLO_PLAYERS_MIN, Config.BOT_FILL_MAX + 1):
-		bots.append([fill, tr("Fill up to %d players") % fill])
-	var bots_option := _option("host_bots", bots)
-	bots_option.item_selected.connect(func(_i: int) -> void: _refresh())
-	_row(tr("Bots"), bots_option)
-	_difficulty_buttons = _choices(tr("Bot difficulty"), "host_difficulty", _difficulties())
+	_team_rows("host_supervisors", "host_rats")
+	# One row for both: no bots, or bots of a difficulty (host_bots + host_difficulty).
+	_choice_row(tr("Bots"), [[-1, tr("None")]] + _difficulties(), Config.host_difficulty if Config.host_bots else -1,
+		func(value: int) -> void:
+			Config.set_value("host_bots", value >= 0)
+			if value >= 0:
+				Config.set_value("host_difficulty", value))
 	_teams_label = _muted(rows)
 	_port_edit = _line_edit(str(Config.host_port), 5)
 	_port_edit.text_changed.connect(func(_t: String) -> void: _refresh())
@@ -129,13 +125,11 @@ func _typed_port() -> int:
 # --- Both ----------------------------------------------------------------------
 
 func _refresh() -> void:
-	var rules: MatchRules = load(Config.DEFAULT_MATCH_RULES)
 	if hosting:
-		var fill := Config.host_bots
-		for button in _difficulty_buttons:
-			button.disabled = fill == 0
-		_teams_label.visible = fill > 0
-		_teams_label.text = tr("Bots take the empty seats: %s and %s in all.") % _teams_text(fill, rules)
+		var teams := Ui.teams_text(Config.host_supervisors, Config.host_rats)
+		_teams_label.text = (tr("Bots take the empty seats: %s and %s in all.") if Config.host_bots
+			else tr("Without bots, matches have up to %s and %s, depending on who joins.")) % teams \
+			+ _lone_rat_note(Config.host_rats)
 		var online := Config.host_online
 		for row in _local_rows:
 			row.visible = not online
@@ -156,14 +150,15 @@ func _refresh() -> void:
 		_note.text = tr("Friends on your network find it in their server browser. Over the internet, they need your public address, and UDP port %s must be forwarded to this computer on your router.") \
 			% (str(port) if port > 0 else "?")
 	else:
-		_teams_label.text = tr("You and %d bots: %s and %s.") % ([Config.solo_players - 1] + _teams_text(Config.solo_players, rules))
+		var bots := Config.solo_supervisors + Config.solo_rats - 1
+		var teams := Ui.teams_text(Config.solo_supervisors, Config.solo_rats)
+		_teams_label.text = (tr("You and 1 bot: %s and %s.") % teams if bots == 1
+			else tr("You and %d bots: %s and %s.") % ([bots] + teams)) + _lone_rat_note(Config.solo_rats)
 
 
-## ["2 supervisors", "4 rats"] for a match of `players`.
-func _teams_text(players: int, rules: MatchRules) -> Array:
-	var teams := LocalServer.teams_for(players, rules)
-	return [tr("1 supervisor") if teams[0] == 1 else tr("%d supervisors") % teams[0],
-		tr("1 rat") if teams[1] == 1 else tr("%d rats") % teams[1]]
+## A lone rat can't sabotage the critical machines: their two levers need two rats (GDD §4.3).
+func _lone_rat_note(rats: int) -> String:
+	return " " + tr("A lone rat can't sabotage the critical machines: their two levers need two rats.") if rats == 1 else ""
 
 
 func _start() -> void:
@@ -211,12 +206,26 @@ func _row(text: String, control: Control) -> HBoxContainer:
 	return row
 
 
+## The Supervisors and Rats rows: the teams' seats, 1 to the most the plant has spawn points for.
+func _team_rows(supervisors_key: String, rats_key: String) -> void:
+	for team: Array in [[tr("Supervisors"), supervisors_key, MatchRules.SUPERVISORS_LIMIT],
+			[tr("Rats"), rats_key, MatchRules.RATS_LIMIT]]:
+		var counts := []
+		for count in range(1, team[2] + 1):
+			counts.append([count, str(count)])
+		_choices(team[0], team[1], counts)
+
+
 ## A row of ChoiceButtons (one chosen, yellow) for an int setting. `items`: [[value, text], …].
-func _choices(text: String, key: String, items: Array) -> Array[Button]:
+func _choices(text: String, key: String, items: Array) -> void:
+	_choice_row(text, items, Config.get(key), func(value: Variant) -> void: Config.set_value(key, value))
+
+
+## A row of ChoiceButtons with `selected` chosen; `on_pick(value)` saves a pick (then the card refreshes).
+func _choice_row(text: String, items: Array, selected: Variant, on_pick: Callable) -> void:
 	var box := HBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	var group := ButtonGroup.new()
-	var buttons: Array[Button] = []
 	for item: Array in items:
 		var button := Button.new()
 		button.text = item[1]
@@ -226,14 +235,12 @@ func _choices(text: String, key: String, items: Array) -> Array[Button]:
 		button.toggle_mode = true
 		button.button_group = group
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.button_pressed = Config.get(key) == item[0]
+		button.button_pressed = selected == item[0]
 		button.pressed.connect(func() -> void:
-			Config.set_value(key, item[0])
+			on_pick.call(item[0])
 			_refresh())
 		box.add_child(button)
-		buttons.append(button)
 	_row(text, box)
-	return buttons
 
 
 ## `items`: [[value, shown text], …] for an int setting.

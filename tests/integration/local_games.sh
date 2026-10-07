@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Play solo and Host a game: the client starts a server itself (client/local_server.gd), headless,
 # through the real menu cards (test flags --solo / --host-game, client/menu_test_hooks.gd).
-#   - solo: a server on 127.0.0.1 with bots, the player becomes the host and plays a rat, the match
-#     starts with no stop in the lobby; leaving closes the server
+#   - solo: a server on 127.0.0.1 with bots, the player becomes the host and plays a rat in the
+#     biggest teams (3 supervisors and 6 rats, picked on the card), the match starts with no stop in
+#     the lobby; leaving closes the server
 #   - host: a server on the chosen port, found on the LAN by a friend who joins; when the host
 #     leaves, the friend is sent back to the menu ("the host left") and the server stops
 #   - a port already in use: an error box, no server left behind
@@ -39,7 +40,7 @@ expect_gone() {  # expect_gone <client> <description>: the server it started is 
 # Something already listens on PORT2.
 "$GODOT" --headless --max-fps 60 -- --server --no-heatmap --no-lan --port "$PORT2" > "$LOGS/blocker.log" 2>&1 &
 BLOCKER=$!
-client Solo 45 --solo rat --leave-after 20
+client Solo 45 --solo rat --teams 3,6 --leave-after 20
 client Hosty 45 --host-game "$HOST_NAME" --host-port "$PORT" --host-bots 0 --leave-after 16
 client Crash 14 --solo
 sleep 3
@@ -58,6 +59,12 @@ expect Solo "'Solo game' listening on UDP [0-9]+ of 127.0.0.1"           "solo: 
 expect Solo "joined as Solo"                                              "solo: joined its own server"
 expect Solo "Solo is the host"                                            "solo: the server knows its host"
 expect Solo "roles: .*Solo=Rat.*\(bot\)"                                  "solo: a rat as asked, with bots"
+ROLES=$(grep -m1 -oE "roles: .*" "$LOGS/Solo.log")
+if [ "$(grep -o "=Supervisor" <<< "$ROLES" | wc -l)" -eq 3 ] && [ "$(grep -o "=Rat" <<< "$ROLES" | wc -l)" -eq 6 ]; then
+	echo "ok   - solo: 3 supervisors and 6 rats, as picked on the card"
+else
+	echo "FAIL - solo: 3 supervisors and 6 rats, as picked on the card ($ROLES)"; FAIL=1
+fi
 expect Solo "\[C[0-9]+\]\[match\] state: PLAYING"                         "solo: the match started without pressing Ready"
 expect Solo "back to menu: Left the server"                               "solo: left"
 expect Solo "the host left, closing the server"                           "solo: the server closed"

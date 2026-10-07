@@ -1,7 +1,7 @@
 extends Control
-## The lobby panel (M8): the server's name and match settings, one card per player (name, preferred
-## role, ready, ping), a line when bots fill the matches (M10), the role preference and the Ready
-## button, plus the centre banner for the
+## The lobby panel (M8): the server's name and match settings (the teams first), one card per player
+## (name, preferred role, ready, ping), a line when bots fill the matches (M10), the role preference
+## and the Ready button, plus the centre banner for the
 ## countdown ("You are a RAT!", the goal, the seconds left) and "GO!". Keys work without the mouse:
 ## 1 / 2 / 3 pick a preference, R toggles ready (rebindable). It only shows the replicated
 ## MatchManager state and sends requests; the server decides.
@@ -111,11 +111,16 @@ func _refresh() -> void:
 	var minutes := func(s: int) -> String: return "%d:%02d" % [s / 60, s % 60]
 	var duration := minutes.call(int(info.get("duration_s", 540))) as String
 	var duration_single := minutes.call(int(info.get("duration_single_s", 480))) as String
+	var seats := [int(info.get("supervisors", 2)), int(info.get("rats", 4))]
+	var teams := Ui.teams_text(seats[0], seats[1])
+	# Bots in every empty seat: the teams are always these. Otherwise they depend on who plays.
+	var teams_line := tr("%s vs %s") % teams if int(info.get("bot_fill_to", 0)) >= seats[0] + seats[1] \
+		else tr("Up to %s and %s") % teams
 	if solo:
-		%Summary.text = tr("Matches of %s (%s with one supervisor)") % [duration, duration_single]
+		%Summary.text = "%s · %s" % [teams_line, tr("Matches of %s (%s with one supervisor)") % [duration, duration_single]]
 	else:
-		%Summary.text = tr("Matches of %s (%s with one supervisor) · %d+ players to start · %d / %d here") % [
-			duration, duration_single, mm.min_players, mm.roster.size(), int(info.get("max_players", 6))]
+		%Summary.text = "%s · %s" % [teams_line, tr("Matches of %s (%s with one supervisor) · %d+ players to start · %d / %d here") % [
+			duration, duration_single, mm.min_players, mm.roster.size(), int(info.get("max_players", 6))]]
 	var count := mm.roster.size()
 	if solo:
 		status_label.text = tr("Press Ready to start a match against the bots.")

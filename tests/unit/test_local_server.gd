@@ -5,8 +5,8 @@ extends GutTest
 
 const CFG := "user://test_local_server.cfg"
 
-const HOST_OPTIONS := {"name": "Friday night", "password": "cheese", "port": 7790, "max_players": 8, "bots": 0,
-	"difficulty": 2, "lan": true, "bind": "*", "role": -1}
+const HOST_OPTIONS := {"name": "Friday night", "password": "cheese", "port": 7790, "max_players": 8, "supervisors": 3,
+	"rats": 5, "bots": 0, "difficulty": 2, "lan": true, "bind": "*", "role": -1}
 
 
 func after_each() -> void:
@@ -42,6 +42,7 @@ func test_host_config_reads_back() -> void:
 	assert_eq(int(server["max_players"]), 8)
 	var rules := Config.load_match_rules(CFG)
 	assert_false(MatchRulesModel.bots_enabled(rules), "no bots")
+	assert_eq([rules.max_supervisors, rules.max_rats], [3, 5], "the teams' seats")
 	assert_eq(rules.min_players, (load(Config.DEFAULT_MATCH_RULES) as MatchRules).min_players, "the usual rules otherwise")
 
 
@@ -104,11 +105,24 @@ func test_command_from_source_adds_the_project_folder() -> void:
 	assert_eq(args.slice(2), PackedStringArray(["--headless", "--", "--server"]))
 
 
-func test_team_sizes_follow_the_rules() -> void:
-	var rules: MatchRules = load(Config.DEFAULT_MATCH_RULES)
-	assert_eq(LocalServer.teams_for(4, rules), [1, 3] as Array[int])
-	assert_eq(LocalServer.teams_for(5, rules), [2, 3] as Array[int])
-	assert_eq(LocalServer.teams_for(6, rules), [2, 4] as Array[int])
+func test_options_carry_the_teams_and_bots_take_the_empty_seats() -> void:
+	var saved := [Config.solo_supervisors, Config.solo_rats, Config.host_supervisors, Config.host_rats, Config.host_bots]
+	Config.set_value("solo_supervisors", 3)
+	Config.set_value("solo_rats", 6)
+	var solo := LocalServer.solo_options()
+	assert_eq([solo["supervisors"], solo["rats"], solo["bots"]], [3, 6, 9], "solo: bots fill every seat")
+	Config.set_value("host_supervisors", 1)
+	Config.set_value("host_rats", 2)
+	Config.set_value("host_bots", true)
+	var host := LocalServer.host_options("Gabriel")
+	assert_eq([host["supervisors"], host["rats"], host["bots"]], [1, 2, 3])
+	Config.set_value("host_bots", false)
+	assert_eq(LocalServer.host_options("Gabriel")["bots"], 0, "no bots")
+	assert_eq(ServerProcess.config_for(solo).save(CFG), OK)
+	var rules := Config.load_match_rules(CFG)
+	assert_eq([rules.supervisor_seats(), rules.rat_seats(), MatchRulesModel.bot_target(rules)], [3, 6, 9])
+	for i in saved.size():
+		Config.set_value(["solo_supervisors", "solo_rats", "host_supervisors", "host_rats", "host_bots"][i], saved[i])
 
 
 func test_lan_addresses_skip_virtual_interfaces() -> void:

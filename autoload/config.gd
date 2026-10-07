@@ -55,15 +55,14 @@ const SECTIONS := {
 	"player_name": "gameplay", "chat_filter": "gameplay", "show_fps": "gameplay", "language": "gameplay",
 	"show_minimap": "gameplay", "minimap_rotate": "gameplay",
 	"last_address": "servers",
-	"solo_role": "solo", "solo_difficulty": "solo", "solo_players": "solo",
+	"solo_role": "solo", "solo_difficulty": "solo", "solo_supervisors": "solo", "solo_rats": "solo",
 	"host_name": "host", "host_password": "host", "host_port": "host", "host_max_players": "host",
-	"host_bots": "host", "host_difficulty": "host", "host_lan": "host", "host_online": "host",
+	"host_supervisors": "host", "host_rats": "host", "host_bots": "host", "host_difficulty": "host",
+	"host_lan": "host", "host_online": "host",
 	"online_key": "online",
 }
-## Host a game: the choices for the most players and the match size with bots (client/game_setup.gd).
+## Host a game: the choices for the most players (client/game_setup.gd).
 const HOST_MAX_PLAYERS := 16
-const BOT_FILL_MAX := 6
-const SOLO_PLAYERS_MIN := 4
 
 # --- Video ---------------------------------------------------------------------
 var window_mode := WindowMode.WINDOWED
@@ -105,12 +104,17 @@ var last_address := ""  ## what was last typed in the server browser's address f
 # --- Play solo and Host a game (the last choices, client/game_setup.gd) -----------
 var solo_role := 0  ## the Role.Kind asked for: 0 any, 1 supervisor, 2 rat
 var solo_difficulty := 1  ## bots: 0 easy, 1 normal, 2 hard
-var solo_players := 6  ## the match: you and the bots (SOLO_PLAYERS_MIN to BOT_FILL_MAX)
+## The teams (you and the bots): 1 to MatchRules.SUPERVISORS_LIMIT / RATS_LIMIT.
+var solo_supervisors := 2
+var solo_rats := 4
 var host_name := ""  ## the server's name; "" = "<player name>'s plant"
 var host_password := ""  ## "" = anyone may join
 var host_port: int = SERVER_DEFAULTS["port"]
 var host_max_players := 6
-var host_bots := 6  ## bots fill each match up to this many players; 0 = no bots
+## The teams' seats (MatchRules.max_supervisors / max_rats); without bots, the most of each team.
+var host_supervisors := 2
+var host_rats := 4
+var host_bots := true  ## bots take the seats nobody fills
 var host_difficulty := 1
 var host_lan := true  ## announce the game on the local network (the server browser's LAN list)
 var host_online := false  ## host on the online server (the VPS launcher) instead of this computer
@@ -236,8 +240,10 @@ func clean_value(key: String, value: Variant) -> Variant:
 			return clampi(value, Role.Kind.NONE, Role.Kind.RAT)
 		"solo_difficulty", "host_difficulty":
 			return clampi(value, 0, 2)
-		"solo_players":
-			return clampi(value, SOLO_PLAYERS_MIN, BOT_FILL_MAX)
+		"solo_supervisors", "host_supervisors":
+			return clampi(value, 1, MatchRules.SUPERVISORS_LIMIT)
+		"solo_rats", "host_rats":
+			return clampi(value, 1, MatchRules.RATS_LIMIT)
 		"host_name":
 			return str(value).strip_edges().substr(0, LanDiscovery.MAX_NAME)
 		"host_password":
@@ -246,8 +252,6 @@ func clean_value(key: String, value: Variant) -> Variant:
 			return clampi(value, 1024, 65535)
 		"host_max_players":
 			return clampi(value, 2, HOST_MAX_PLAYERS)
-		"host_bots":
-			return 0 if value < 2 else mini(value, BOT_FILL_MAX)
 		"online_key":
 			return str(value).strip_edges().substr(0, 200)
 	if key.begins_with("volume_"):
