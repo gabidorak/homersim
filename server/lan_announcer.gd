@@ -7,13 +7,6 @@ extends Node
 
 const BROADCAST := "255.255.255.255"
 const LOOPBACK := "127.0.0.1"
-const STATE_NAMES := {
-	MatchManager.State.LOBBY: "lobby",
-	MatchManager.State.ROLE_ASSIGN: "starting",
-	MatchManager.State.COUNTDOWN: "starting",
-	MatchManager.State.PLAYING: "playing",
-	MatchManager.State.POST_MATCH: "results",
-}
 
 var _socket := PacketPeerUDP.new()
 var _id := 0
@@ -45,18 +38,11 @@ func _exit_tree() -> void:
 	_socket.close()
 
 
+## What the announcements say: Session.public_info(), plus this server's id on the LAN.
 func info() -> Dictionary:
-	var mm := session.match_manager
-	return {
-		"id": _id,
-		"name": session.server_name,
-		"players": session.players.size(),
-		"max": session.max_players,
-		"port": Net.port,
-		"version": Session.game_version(),
-		"state": STATE_NAMES.get(mm.state, "lobby"),
-		"locked": session.password != "",
-	}
+	var data := session.public_info()
+	data["id"] = _id
+	return data
 
 
 func announce() -> void:

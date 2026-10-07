@@ -36,7 +36,7 @@ Reference docs to keep open:
 ```
 - The server has peer id **1**. Clients get random ids from ENet.
 - The server **does not play**. It has no camera and no player body of its own. The one exception (M10) is AI bots: their bodies are owned and moved by the server (§6 AI bots).
-- Only one match per server process. To host several matches, run several processes on different ports (Docker makes this trivial).
+- Only one match per server process. To host several matches, run several processes on different ports: the VPS launcher (below) does exactly that, one process per online game.
 
 ### Servers started by the client (Play solo, Host a game)
 The client never turns into a listen server. For **Play solo** and **Host a game**, `client/local_server.gd` (`LocalServer`) starts a **second copy of its own executable as a headless dedicated server** (`--headless -- --server …`; from source, the editor binary with `--path`), waits until it listens, then joins `127.0.0.1` like any other server. Everything above still holds: the server is the same code, and the host is an ordinary client.
@@ -46,6 +46,19 @@ The client never turns into a listen server. For **Play solo** and **Host a game
 - **Never left behind**: the client kills the server if it hasn't quit 2 s after the session ended, and at once if the player cancels while it starts. The server also quits by itself once the client process is gone, even after a crash (`--owner-pid`, polled every second with `common/process_watch.gd`: `/proc` on Linux, `tasklist` on Windows; the auto-updater's server child uses the same check for its supervisor).
 - **Other flags**: `--no-update` (the client already updated itself), `--no-heatmap`, `--max-fps 60` (an idle headless server otherwise spins its main loop next to the player's game), `--log-file user://logs/local_server.log` (both processes would otherwise write `godot.log`). On Linux the server's output also shows in the client's terminal.
 - **Solo** readies up at once: the client asks for its role and sends Ready as soon as it is accepted (`Session.ready_as`), so the match starts without a stop in the lobby. After the match the lobby works as usual (one human, so Ready starts the next one). Nothing pauses: the Esc menu only frees the mouse, as in any game.
+
+### Online games (the VPS launcher)
+Friends on different networks play **online games**: a **launcher** runs on a VPS, always on, and starts one dedicated server per game (setup and operation: [HOSTING.md](HOSTING.md)). It is the same server binary started with `--launcher --config launcher.cfg` (`server/launcher/launcher.gd`), so the auto-updater's supervisor runs and updates it like any server (§11).
+```
+game ──HTTPS──> Caddy :443 (homersim.mooo.com) ──HTTP──> launcher :7790 ──spawns──> one server per game
+game ──UDP────> homersim.mooo.com:7800-7809 ─────────────────────────────────────────┘
+```
+- **API** (`common/online_api.gd`, pure and unit tested; served by `server/launcher/http_server.gd`, a minimal HTTP/1.1 server, one request per connection, size and time caps): `GET /` (health), `GET /games` (the games that are up: name, players, max, state, locked, version, port), `POST /games` (`{version, name, password, max_players, bots, difficulty}`, clamped like the Host a game card; the answer `{host, port, version}` comes once the new server listens, usually within a second). `/games` needs `Authorization: Bearer <friends key>`. Errors are `{"error": key|full|busy|start|version|bad_request|not_found}`; the game shows them as `LeaveReason.Code.ONLINE` (version: `VERSION`). Caddy terminates HTTPS; the launcher speaks plain HTTP.
+- **A game's server** is the normal dedicated server, spawned with the shared helpers of `common/server_process.gd` (also used by `LocalServer`): its settings in `user://launcher/game_<port>.cfg`, a free port of `game_ports` (round robin, so a port just freed isn't handed out again at once), no host token (the game goes on when its creator leaves), `--idle-quit S` (it quits after S seconds with nobody in it, counted from its start, so a game whose creator never joins goes too), `--status-file` (`Session.public_info()` every 2 s, which the launcher reads for the list; the LAN announcements send the same dict), `--owner-pid <launcher>`, `--no-lan`, `--no-heatmap`, `--no-update`. The launcher reaps finished processes every second and forgets them.
+- **Limits**: `max_games` running at once (`full`), 6 new games a minute for everyone together (`busy`), at most 16 HTTP connections, a request must arrive within 10 s.
+- **Updates**: unlike a game server, the launcher installs a new build even while games run (on Linux the running games keep their old file), so new games always start on the newest build; it restarts once no game runs (`Updater._server_empty()` asks `Launcher.current`). A request from a player on another build makes it check for an update first (`Updater.install_update()`); if the new game still runs another build than the player's, the launcher stops it and answers `version`.
+- **Game side**: `client/online_client.gd` (`OnlineClient`: `list()`, `create(options)`, one request at a time; the URL is `OnlineApi.DEFAULT_URL`, `--online-url` for one run; the key `Config.online_key`, `--online-key` for one run), the server browser's **Online** tab (refreshes every 3 s while open; the friends key field), the Host a game card's **Where: This computer / Online server** (`Config.host_online`; online hides the port and LAN rows and shows the key), and `MainMenu.start_online()` (the same "Starting..." box, then `connect_to(host:port)`).
+- **Deployment**: `tools/docker/` (Dockerfile, entrypoint.sh, compose.yml). The image holds no game: the entrypoint downloads the newest server build into the `/data` volume on the first start (checked against `build.json`), and the game's auto-updater replaces it there.
 
 ### Entry point (`main.gd`)
 ```gdscript
@@ -67,6 +80,7 @@ Supported CLI args (user args after `--`):
 - Since M5: `--level plant|test` (debug builds; server and clients must match, the join handshake checks it) picks the level, default the plant. The M4 PvP tests use `--level test` (TestArena). `--bot-scenario plant` (CCTV, ladder, shaft, out of bounds). Server: `--no-heatmap` (no position log). Client, any build: `--debug-overlay` (F3 overlay on from the start).
 - M10, AI bots: `bot_fill_to` and `bot_difficulty` are `[match]` keys (any build). Test-only server flags (debug builds): `--ai-only` (bots-only matches, back to back; humans who join spectate), `--ai-fill N` (overrides `bot_fill_to`), `--ai-seed S`, `--ai-roles rat,rat,supervisor` (exactly these bots), `--ai-goals role:Goal,…` (only these goals; `rat:none` = a bot that stands still), `--ai-scenario NAME` (`tour`: every bot walks to its share of its role's targets; `capture`: the bots start in the Cage Room; `path:X,Y,Z:X,Y,Z[:…]`: the first bot starts at the first point and walks to the others, for debugging a spot; `hot`, `steal`, `cctv`: the phase E tests' set-ups), `--ai-log` (one log line per change of goal), `--ai-trace NAME|all` (a bot's position, intent and path 4 times a second), `--ai-labels` (each bot's goal under its name tag on spectating clients). Client, test-only: `--spectate NAME|first` (spectating, follow that body: watch mode).
 - Servers started by the client (any build, passed by `client/local_server.gd`): `--bind IP`, `--port 0`, `--ready-file PATH`, `--owner-pid PID`, `--host-token T`. Test-only client flags (debug builds): `--solo [any|supervisor|rat]` and `--host-game NAME [--host-port N] [--host-bots N]` press Start on the Play solo / Host a game card (`client/menu_test_hooks.gd`), `--leave-after S` leaves the game S seconds after joining (`client/debug_hooks.gd`), `--local-server-args "…"` adds arguments to that server's command line (`--level` is passed on by itself).
+- Online games (any build): `--launcher [--config launcher.cfg]` runs the launcher (see "Online games" above; [launcher.cfg.example](../launcher.cfg.example)). Server flags the launcher passes: `--status-file PATH`, `--idle-quit S`. Client: `--online-url URL` and `--online-key K` (this run only: tests, a local launcher). Test-only client flags (debug builds): `--host-online NAME [--host-bots N]` presses Host on the Host a game card with Online server chosen, `--online-join NAME` joins that game from the browser's Online tab (`client/menu_test_hooks.gd`).
 - Since M8: server `--password X` (overrides server.cfg), `--no-lan` (no LAN announcements; every integration test but menus_smoke uses it). Client, any build: `--settings PATH` (another settings file; the UI tour uses a throwaway one). `--connect` and `--name` still work but are no longer needed. Test-only (debug builds): client `--debug-kick-me`, `--screenshot-times T1,T2,…`; in the main menu (`client/menu_test_hooks.gd`) `--lan-join NAME`, `--auto-password A,B,…`, `--dismiss-errors`.
 
 ### `server.cfg` (ConfigFile/INI)
@@ -421,7 +435,7 @@ tests/integration/run_match_loop.sh
 - `.github/workflows/build.yml`: on every push to any branch → the tests from `ci.yml` (unit + integration) and the 4 exports, side by side → if both succeeded, the branch's rolling GitHub release `build-<branch>` is replaced (master: "Latest", other branches: pre-release). The release holds the binaries plus `build.json` (build number = workflow run number, commit, SHA-256 of each binary). CI writes `common/build_info.gd` (repo, branch, build number, commit) before exporting.
 - `.github/workflows/ci.yml`: pull requests, and called by `build.yml`. One job per test, all at once: `unit` (GUT) plus every name from `tests/integration/run_all.sh --list` (longest first, new tests included). A first job, `prepare`, lists them and fills the LFS cache: on a new key it starts from the newest cache, so `git lfs pull` downloads only what changed (every LFS download, Actions included, counts against the free 10 GiB a month). Each test job then downloads the official Godot binary (no Docker image) and restores the LFS files from that cache. `delete-branch-build.yml`: deleting a branch deletes its release.
 - Auto-update (`autoload/updater.gd`, exported CI builds only): at startup, read `build.json` of the followed branch (the build's own branch, or `--branch NAME`); if it is newer or from another branch, download the matching binary, check its SHA-256, rename the running executable to `<exe>.old-<time>` (deleted at a later start), move the new one in, and restart with the same arguments. The client shows the progress (Esc skips). The server's first process only supervises: it runs the real server as a child with `--update-supervisor PID`, restarts it when it exits with code 75, and the child stops when the supervisor is gone (Godot starts children in their own session, so Ctrl+C would not reach a plain relaunch). The child checks again every 5 min while nobody is connected. `Session.game_version()` adds `+<branch>.<number>` in CI builds, so clients only join a server running the very same build.
-- `Dockerfile` (server): `debian:stable-slim`, copy the server binary, `EXPOSE 7777/udp`, `ENTRYPOINT ["./homersim_server.x86_64", "--headless", "--", "--server", "--config", "/config/server.cfg"]`.
+- Docker (`tools/docker/`): the image of the online games' launcher (`debian:stable-slim` + curl). It holds no game binary: `entrypoint.sh` downloads `homersim-server-linux-x86_64` of the followed branch into the `/data` volume on the first start, and the auto-updater keeps it up to date there, so the image never needs rebuilding. `compose.yml` publishes the games' UDP range and puts the API behind Caddy ([HOSTING.md](HOSTING.md)).
 - Windows builds are exported **from Linux** with the official export templates (no Windows machine needed; `rcedit` is optional for the .exe icon). Test them on a real Windows PC or VM before each release.
 
 ## 12. Security and robustness checklist
@@ -440,15 +454,18 @@ homersim/
                    plant_sim.gd plant_model.gd interaction_service.gd chat_service.gd role.gd
                    ability_service.gd capture_service.gd item_service.gd minigame_service.gd hit_check.gd rate_limiter.gd
                    keys.gd leave_reason.gd lan_discovery.gd awards.gd (M8) process_watch.gd
+                   server_process.gd online_api.gd (online games)
   server/          ServerMain.tscn server_main.gd hazard_director.gd movement_validator.gd heatmap_recorder.gd lan_announcer.gd
                    ai/ (M10: ai_director.gd ai_nav.gd ai_bot.gd ai_driver.gd ai_path_follower.gd ai_senses.gd
                         ai_blackboard.gd ai_scoring.gd ai_context.gd goals/)
+                   launcher/ (online games: launcher.gd Launcher.tscn http_server.gd)
                    (later server_console.gd)
   translations/    strings.csv (keys = English, en, fr)
   client/          MainMenu.tscn menu_background.gd ServerBrowser.tscn lan_browser.gd Settings.tscn HowToPlay.tscn
                    Credits.tscn HUD.tscn Chat.tscn chat_filter.gd Lobby.tscn PostMatch.tscn pause_menu.gd scoreboard.gd
                    event_feed.gd hints.gd map_overlay.gd map_view.gd SpectatorCam.tscn minigame_host.gd alarm_effects.gd
                    menu_test_hooks.gd GameSetup.tscn game_setup.gd local_server.gd (Play solo, Host a game)
+                   online_client.gd (online games)
                    sfx.gd (sound bank) vfx.gd music_director.gd stun_stars.gd
                    ui/ (theme.tres, ui.gd autoload, message_dialog.gd)
   entities/player/ Player.tscn player.gd character_visual.gd  supervisor/ rat/ LobbyVisual.tscn (role visuals)
@@ -475,8 +492,9 @@ homersim/
   tools/art/       palette.py make_palette.py   tools/audio/ make_audio.py synth.py music.py
   tools/godot/     toon_import.gd (glTF import script) bake_shells.gd make_theme.gd (UI theme)   tools/build_assets.sh (all of it)
   tools/map/       gen_plant.py (the graybox plant + its plan)   tools/heatmap.py (playtest position logs)
+  tools/docker/    Dockerfile entrypoint.sh compose.yml (the online games' launcher, docs/HOSTING.md)
   tests/           unit/ integration/ helpers/bot_client.gd helpers/pvp_bot.gd helpers/m6_bot.gd
                    helpers/{MapTour,CharacterTour,ArtGallery,HazardTour}.tscn (windowed visual checks)
-  docs/            GDD.md ARCHITECTURE.md ASSETS.md milestones/ map/ playtests/ screenshots/ art/
-  .github/workflows/ci.yml  Dockerfile  server.cfg.example  CREDITS.md  README.md
+  docs/            GDD.md ARCHITECTURE.md ASSETS.md HOSTING.md milestones/ map/ playtests/ screenshots/ art/
+  .github/workflows/ci.yml  server.cfg.example  launcher.cfg.example  CREDITS.md  README.md
 ```

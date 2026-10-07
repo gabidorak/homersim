@@ -54,6 +54,14 @@ const REJECT_DISCONNECT_DELAY_S := 0.5
 ## then a little more for packets they sent just before (unreliable, so they can trail the reply).
 const RETIRE_TIMEOUT_S := 1.0
 const RETIRE_GRACE_S := 0.1
+## public_info(): the match state as the server browsers show it.
+const PUBLIC_STATES := {
+	MatchManager.State.LOBBY: "lobby",
+	MatchManager.State.ROLE_ASSIGN: "starting",
+	MatchManager.State.COUNTDOWN: "starting",
+	MatchManager.State.PLAYING: "playing",
+	MatchManager.State.POST_MATCH: "results",
+}
 
 static var current: Session
 
@@ -184,6 +192,20 @@ func roster() -> Array[Dictionary]:
 	for info: PlayerInfo in players.values():
 		result.append(info.to_dict())
 	return result
+
+
+## Server: what the server browsers show about this game, in the LAN announcements (LanAnnouncer)
+## and in the status file an online game writes for the VPS launcher (--status-file).
+func public_info() -> Dictionary:
+	return {
+		"name": server_name,
+		"players": players.size(),
+		"max": max_players,
+		"port": Net.port,
+		"version": game_version(),
+		"state": PUBLIC_STATES.get(match_manager.state, "lobby"),
+		"locked": password != "",
+	}
 
 
 ## A joined player's name, a bot's name (from the roster), or "peer N" (for logs).

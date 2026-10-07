@@ -1,6 +1,6 @@
 extends Node
-## Entry point: self-update (exported CI builds), then dedicated server, test bot (debug builds),
-## or client.
+## Entry point: self-update (exported CI builds), then the launcher of online games (`--launcher`),
+## dedicated server, test bot (debug builds), or client.
 
 const BOT_SCENE := "res://tests/helpers/BotClient.tscn"  # not exported (tests/ is filtered out)
 
@@ -22,7 +22,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _start() -> void:
-	if Updater.is_server():
+	if Cli.has_arg("launcher"):
+		get_tree().change_scene_to_file.call_deferred("res://server/launcher/Launcher.tscn")
+	elif Updater.is_server():
 		get_tree().change_scene_to_file.call_deferred("res://server/ServerMain.tscn")
 	elif OS.is_debug_build() and Cli.has_arg("bot"):
 		get_tree().change_scene_to_file.call_deferred(BOT_SCENE)

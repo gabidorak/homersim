@@ -6,8 +6,12 @@ extends Node
 ## A player's game can start this server itself, for "Play solo" and "Host a game"
 ## (client/local_server.gd). It then passes, besides --config: --bind 127.0.0.1 (solo: nobody else can
 ## reach it), --port 0 (any free port), --ready-file PATH (written once the server listens:
-## {"port": N}, or {"error": "port", "port": N} if it can't), --owner-pid PID (stop when that game is
-## gone) and --host-token T (Session.host_token: the server closes when the host leaves).
+## {"port": N, "version": V}, or {"error": "port", "port": N} if it can't), --owner-pid PID (stop when
+## that game is gone) and --host-token T (Session.host_token: the server closes when the host leaves).
+## The VPS launcher (server/launcher/launcher.gd) starts one per online game, with no host token and
+## two more: --status-file PATH (Session.public_info() every ServerProcess.STATUS_EVERY_S, for the
+## launcher's game list) and --idle-quit S (quit after S seconds with nobody in the game, counted from
+## the start, so a game whose creator never joins goes too).
 
 const SESSION_SCENE: PackedScene = preload("res://common/Session.tscn")
 ## Extra ENet slots beyond max_players. Without them ENet itself refuses surplus clients, who then
@@ -18,6 +22,8 @@ const WINDOWED_MAX_FPS := 120  ## a windowed server draws nothing, so nothing el
 const OWNER_CHECK_S := 2.0  ## --owner-pid: how often to check that the game that started us still runs
 
 var _owner: ProcessWatch
+var _session: Session
+var _idle_s := 0.0  # --idle-quit: how long nobody has been in the game
 
 
 func _ready() -> void:
@@ -57,7 +63,7 @@ func _boot() -> void:
 	if err != OK:
 		Log.error("server", "cannot listen on UDP port %d%s: %s" % [port, "" if bind_ip == "*" else " of " + bind_ip,
 			error_string(err)])
-		_write_ready_file({"error": "port", "port": port})
+		_write_file("ready-file", {"error": "port", "port": port})
 		get_tree().quit(1)
 		return
 
@@ -72,37 +78,56 @@ func _boot() -> void:
 	Log.info("server", "'%s' listening on UDP %d%s, max %d players, version %s%s"
 		% [session.server_name, Net.port, "" if bind_ip == "*" else " of " + bind_ip, max_players,
 		Session.game_version(), ", password protected" if session.password != "" else ""])
+	_session = session
 	if Cli.has_arg("owner-pid"):
 		_watch_owner(Cli.get_int("owner-pid"))
-	_write_ready_file({"port": Net.port})
+	if Cli.get_int("idle-quit") > 0:
+		_add_timer(1.0, _check_idle)
+		Log.info("server", "quits after %d s with nobody in the game" % Cli.get_int("idle-quit"))
+	if Cli.get_str("status-file") != "":
+		_add_timer(ServerProcess.STATUS_EVERY_S, _write_status)
+		_write_status()
+	_write_file("ready-file", {"port": Net.port, "version": Session.game_version()})
 
 
-## --ready-file: tells the game that started this server that it listens (or why it can't). Written
-## under another name, then renamed, so the game never reads half a file.
-func _write_ready_file(data: Dictionary) -> void:
-	var path := Cli.get_str("ready-file")
-	if path == "":
+## --ready-file / --status-file: tells the process that started this server that it listens (or why
+## it can't), and how its game goes.
+func _write_file(flag: String, data: Dictionary) -> void:
+	var path := Cli.get_str(flag)
+	if path != "" and not ServerProcess.write_json(path, data):
+		Log.warn("server", "cannot write the %s %s" % [flag.replace("-", " "), path])
+
+
+func _write_status() -> void:
+	if is_instance_valid(_session) and _session.is_inside_tree():
+		_write_file("status-file", _session.public_info())
+
+
+## --idle-quit: an online game nobody plays in any more stops by itself.
+func _check_idle() -> void:
+	if not is_instance_valid(_session):
 		return
-	var file := FileAccess.open(path + ".part", FileAccess.WRITE)
-	if file == null:
-		Log.warn("server", "cannot write the ready file %s: %s" % [path, error_string(FileAccess.get_open_error())])
-		return
-	file.store_string(JSON.stringify(data))
-	file.close()
-	DirAccess.rename_absolute(path + ".part", path)
+	_idle_s = _idle_s + 1.0 if _session.players.is_empty() else 0.0
+	if _idle_s >= Cli.get_int("idle-quit"):
+		Log.info("server", "nobody in the game for %d s, stopping" % int(_idle_s))
+		get_tree().quit()
 
 
-## --owner-pid: a server started by a player's game stops once that game is gone, even if it crashed
-## or was killed (when it quits normally, it stops the server itself).
+## --owner-pid: a server started by a player's game (or by the VPS launcher) stops once that process
+## is gone, even if it crashed or was killed (when it quits normally, it stops the server itself).
 func _watch_owner(pid: int) -> void:
 	_owner = ProcessWatch.new(pid)
-	var timer := Timer.new()
-	timer.wait_time = OWNER_CHECK_S
-	timer.autostart = true
-	timer.timeout.connect(func() -> void:
+	_add_timer(OWNER_CHECK_S, func() -> void:
 		if not _owner.alive():
-			Log.info("server", "the game that started this server (pid %d) is gone, stopping" % pid)
+			Log.info("server", "the process that started this server (pid %d) is gone, stopping" % pid)
 			get_tree().quit())
+
+
+func _add_timer(seconds: float, callback: Callable) -> void:
+	var timer := Timer.new()
+	timer.wait_time = seconds
+	timer.autostart = true
+	timer.timeout.connect(callback)
 	add_child(timer)
 
 

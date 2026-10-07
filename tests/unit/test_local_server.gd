@@ -1,6 +1,6 @@
 extends GutTest
-## Play solo and Host a game (client/local_server.gd): what the client writes in the server's
-## server.cfg and puts on its command line, the team sizes the cards show, the LAN address the host
+## Play solo and Host a game (client/local_server.gd, common/server_process.gd): what the client
+## writes in the server's server.cfg and puts on its command line, the team sizes the cards show, the LAN address the host
 ## sees, the leave reasons, and the checks the server uses to stop once the client is gone.
 
 const CFG := "user://test_local_server.cfg"
@@ -22,7 +22,7 @@ func test_solo_config_reads_back_as_a_private_server_with_bots() -> void:
 	var options := LocalServer.solo_options()
 	options["bots"] = 5
 	options["difficulty"] = 0
-	assert_eq(LocalServer.config_for(options).save(CFG), OK)
+	assert_eq(ServerProcess.config_for(options).save(CFG), OK)
 	var server := Config.load_server_config(CFG)
 	assert_eq(int(server["port"]), 0, "any free port")
 	assert_eq(int(server["max_players"]), 1, "nobody but you")
@@ -34,7 +34,7 @@ func test_solo_config_reads_back_as_a_private_server_with_bots() -> void:
 
 
 func test_host_config_reads_back() -> void:
-	assert_eq(LocalServer.config_for(HOST_OPTIONS).save(CFG), OK)
+	assert_eq(ServerProcess.config_for(HOST_OPTIONS).save(CFG), OK)
 	var server := Config.load_server_config(CFG)
 	assert_eq(str(server["name"]), "Friday night")
 	assert_eq(str(server["password"]), "cheese")
@@ -46,11 +46,11 @@ func test_host_config_reads_back() -> void:
 
 
 func test_solo_server_args() -> void:
-	var args := LocalServer.server_args(LocalServer.solo_options(), "/tmp/s.cfg", "/tmp/r.json", "/tmp/l.log", 4242, "tok")
+	var args := ServerProcess.server_args(LocalServer.solo_options(), "/tmp/s.cfg", "/tmp/r.json", "/tmp/l.log", 4242, "tok")
 	var engine := args.slice(0, args.find("--"))
 	assert_true(engine.has("--headless"), "no window")
 	assert_eq(engine[engine.find("--log-file") + 1], "/tmp/l.log", "its own log file")
-	assert_eq(engine[engine.find("--max-fps") + 1], str(LocalServer.SERVER_MAX_FPS))
+	assert_eq(engine[engine.find("--max-fps") + 1], str(ServerProcess.MAX_FPS))
 	var user := _user_args(args)
 	assert_true(user.has("server"))
 	assert_eq(user.get("config"), "/tmp/s.cfg")
@@ -61,19 +61,41 @@ func test_solo_server_args() -> void:
 	assert_true(user.has("no-lan"), "solo: not on the LAN")
 	assert_true(user.has("no-update"), "the game already updated itself")
 	assert_true(user.has("no-heatmap"))
+	assert_false(user.has("status-file"), "only online games report their status")
+	assert_false(user.has("idle-quit"), "only online games stop by themselves")
 
 
 func test_host_server_args() -> void:
-	var user := _user_args(LocalServer.server_args(HOST_OPTIONS, "a", "b", "c", 1, "t"))
+	var user := _user_args(ServerProcess.server_args(HOST_OPTIONS, "a", "b", "c", 1, "t"))
 	assert_false(user.has("bind"), "every address")
 	assert_false(user.has("no-lan"), "on the LAN")
 	var hidden := HOST_OPTIONS.duplicate()
 	hidden["lan"] = false
-	assert_true(_user_args(LocalServer.server_args(hidden, "a", "b", "c", 1, "t")).has("no-lan"))
+	assert_true(_user_args(ServerProcess.server_args(hidden, "a", "b", "c", 1, "t")).has("no-lan"))
+
+
+func test_online_game_server_args() -> void:
+	var options := HOST_OPTIONS.duplicate()
+	options.merge({"lan": false, "status_file": "/tmp/st.json", "idle_quit_s": 180}, true)
+	var user := _user_args(ServerProcess.server_args(options, "a", "b", "c", 77, ""))
+	assert_false(user.has("host-token"), "no host: the game goes on when its creator leaves")
+	assert_eq(user.get("status-file"), "/tmp/st.json")
+	assert_eq(user.get("idle-quit"), "180")
+	assert_eq(user.get("owner-pid"), "77", "stops with the launcher")
+	assert_true(user.has("no-lan"))
+
+
+func test_json_files_round_trip() -> void:
+	var path := ProjectSettings.globalize_path("user://test_server_process.json")
+	assert_true(ServerProcess.write_json(path, {"port": 7801, "version": "1.2"}))
+	assert_false(FileAccess.file_exists(path + ".part"), "renamed into place")
+	assert_eq(ServerProcess.read_json(path), {"port": 7801.0, "version": "1.2"}, "(JSON numbers read back as floats)")
+	DirAccess.remove_absolute(path)
+	assert_eq(ServerProcess.read_json(path), {}, "no file")
 
 
 func test_command_from_source_adds_the_project_folder() -> void:
-	var cmd := LocalServer.command(PackedStringArray(["--headless", "--", "--server"]))
+	var cmd := ServerProcess.command(PackedStringArray(["--headless", "--", "--server"]))
 	assert_eq(cmd[0], Updater.exe_path, "this executable")
 	var args: PackedStringArray = cmd[1]
 	assert_false(OS.has_feature("template"), "(the tests run from source)")

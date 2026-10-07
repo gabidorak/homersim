@@ -20,6 +20,8 @@ func _format(tag: String, msg: String) -> String:
 
 
 func _side() -> String:
+	if Cli.has_arg("launcher"):
+		return "L"  # the launcher of online games (its games' servers log "S" in the same output)
 	if OS.has_feature("dedicated_server") or Cli.has_arg("server"):
 		return "S"
 	var peer: MultiplayerPeer = multiplayer.multiplayer_peer

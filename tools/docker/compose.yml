@@ -1,0 +1,45 @@
+# The launcher of online games on the VPS (docs/HOSTING.md). In this folder:
+#   cp ../../launcher.cfg.example launcher.cfg    # then set key= (openssl rand -hex 16)
+#   docker compose up -d --build
+# Caddy serves the launcher's API over HTTPS (homersim.mooo.com -> port 7790); the games' UDP ports go
+# straight to this container. The VPS provider's firewall must let UDP 7800-7809 in.
+services:
+  homersim:
+    build: .
+    image: homersim-launcher
+    container_name: homersim
+    restart: unless-stopped
+    # A small init as PID 1: it passes `docker stop` on and reaps the games' processes.
+    init: true
+    environment:
+      HOMERSIM_BRANCH: master
+    volumes:
+      - homersim-data:/data   # the game binary (auto-updated in place), logs
+      - ./launcher.cfg:/config/launcher.cfg:ro
+    ports:
+      # The games (launcher.cfg game_ports): straight from the internet.
+      - "7800-7809:7800-7809/udp"
+      # The API, for a Caddy that runs on the host (reverse_proxy localhost:7790). Only this machine
+      # reaches it. With Caddy in a container instead, see `networks` below.
+      - "127.0.0.1:7790:7790/tcp"
+    # Each game is one process: ~0.1 core and ~120 MB in a match with 5 bots (measured on a desktop
+    # CPU; count more on a VPS core). launcher.cfg max_games=4 stays well inside this, and the other
+    # projects on the VPS keep their share.
+    cpus: 2
+    mem_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    # With Caddy in a container: put both on one Docker network (Caddyfile: reverse_proxy homersim:7790).
+    # Uncomment, and set the name of the network your Caddy container is on (docker network ls).
+    # networks:
+    #   - caddy
+
+volumes:
+  homersim-data:
+
+# networks:
+#   caddy:
+#     external: true

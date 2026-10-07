@@ -7,6 +7,9 @@ extends RefCounted
 ## A game hosted from a player's game (client/local_server.gd) adds two: the host left (the server
 ## closes for everyone), and the server this game started for "Play solo" / "Host a game" didn't
 ## start (detail: "port|<port>", "exit|<log file>", "timeout|<log file>" or "spawn").
+## Online games add one more: the online server (the VPS launcher, client/online_client.gd) couldn't
+## start the game or list them (detail: an OnlineApi.ERR_* code, "unreachable|<host>" with the host).
+## New codes go at the end: they travel as numbers.
 
 enum Code {
 	NONE,  ## left on purpose: no message
@@ -22,6 +25,7 @@ enum Code {
 	BAD_ADDRESS,  ## the client couldn't parse what was typed
 	HOST_LEFT,  ## the player hosting the game left, so the server closed
 	SERVER_START,  ## our own server (solo, hosting) didn't start; detail: see above
+	ONLINE,  ## the online server refused or didn't answer; detail: see above
 }
 
 
@@ -60,11 +64,24 @@ static func log_text(code: Code, detail: String = "") -> String:
 				"timeout":
 					return "Could not start the server: it took too long (log: %s)" % (parts[1] if parts.size() > 1 else "?")
 			return "Could not start the server"
+		Code.ONLINE:
+			match parts[0]:
+				OnlineApi.ERR_UNREACHABLE:
+					return "Online server: unreachable (%s)" % (parts[1] if parts.size() > 1 else "?")
+				OnlineApi.ERR_KEY:
+					return "Online server: wrong friends key"
+				OnlineApi.ERR_FULL:
+					return "Online server: full"
+				OnlineApi.ERR_BUSY:
+					return "Online server: busy"
+				OnlineApi.ERR_START:
+					return "Online server: the game didn't start"
+			return "Online server: refused (%s)" % detail
 	return "Left the server"
 
 
-## The error box's title, in the player's language.
-static func title(code: Code) -> String:
+## The error box's title, in the player's language (`detail` matters for ONLINE).
+static func title(code: Code, detail: String = "") -> String:
 	match code:
 		Code.CANNOT_CONNECT:
 			return TranslationServer.translate("Can't connect")
@@ -87,6 +104,15 @@ static func title(code: Code) -> String:
 		Code.HOST_LEFT:
 			return TranslationServer.translate("Game closed")
 		Code.SERVER_START:
+			return TranslationServer.translate("Can't start the game")
+		Code.ONLINE:
+			match detail.get_slice("|", 0):
+				OnlineApi.ERR_UNREACHABLE:
+					return TranslationServer.translate("Can't reach the online server")
+				OnlineApi.ERR_KEY:
+					return TranslationServer.translate("Wrong friends key")
+				OnlineApi.ERR_FULL:
+					return TranslationServer.translate("Online server full")
 			return TranslationServer.translate("Can't start the game")
 	return ""
 
@@ -127,4 +153,18 @@ static func message(code: Code, detail: String = "") -> String:
 				"timeout":
 					return TranslationServer.translate("The game's server took too long to start. Its log is in %s") % more
 			return TranslationServer.translate("The game could not start its server.")
+		Code.ONLINE:
+			match parts[0]:
+				OnlineApi.ERR_UNREACHABLE:
+					return TranslationServer.translate("The online server (%s) didn't answer. Check your internet connection, or try again in a moment: it may be restarting.") \
+						% (parts[1] if parts.size() > 1 else "?")
+				OnlineApi.ERR_KEY:
+					return TranslationServer.translate("The online server refused your friends key. Ask the person who runs it for the right one, and type it in Join a game > Online.")
+				OnlineApi.ERR_FULL:
+					return TranslationServer.translate("The online server already runs as many games as it can. Join one of them, or try again once one ends.")
+				OnlineApi.ERR_BUSY:
+					return TranslationServer.translate("Many games were just started on the online server. Try again in a minute.")
+				OnlineApi.ERR_START:
+					return TranslationServer.translate("The online server could not start the game. Try again in a moment.")
+			return TranslationServer.translate("The online server didn't understand the request. Restart the game to update it.")
 	return ""

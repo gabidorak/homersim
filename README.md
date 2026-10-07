@@ -87,6 +87,11 @@ password, the most players, the bots and the UDP port (7777). Friends on your ne
 server browser. To play over the internet, they type your public address, and UDP 7777 must be forwarded to your
 computer on your router. When the host leaves, the game ends for everyone. That server's log is
 `user://logs/local_server.log` (same folder as the settings, below).
+
+**Online games** need no port forwarding: on the Host a game card, pick **Online server**. The game then runs on
+the VPS (homersim.mooo.com) instead of your computer, friends find it in **Join a game → Online**, and it keeps
+going when you leave (it stops a few minutes after the last player left). Both need the **friends key**, typed
+once (ask whoever runs the server). Running that server: [docs/HOSTING.md](docs/HOSTING.md).
 ```bash
 # dedicated server (from the editor build or an exported server binary)
 godot --headless -- --server --port 7777          # also: --max-players N, --config path, --password X, --no-lan, --debug-start [N]
