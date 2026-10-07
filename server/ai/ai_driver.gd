@@ -11,6 +11,7 @@ extends RefCounted
 ##                      hold ends (hold_state, hold_reason)
 ##   press(target)      an instant interaction ("" = done, else why not)
 ##   use(id, aim)       AbilityService.ai_use; place_trap(id, spot) ItemService.ai_place_trap
+##   eat_donut()        ItemService.ai_eat_donut (a donut the bot carries)
 ##   emote()            the squeak everyone sees (sync_anim FLAG_EMOTE)
 ##   stand_up()         CctvConsole.stand_up
 ## It also fills Player.sync_anim (AnimationController.flags_for), so bot bodies animate on clients.
@@ -189,6 +190,10 @@ func use(id: StringName, aim: Vector3) -> String:
 
 func place_trap(id: StringName, spot: Vector3) -> String:
 	return ctx.session.items.ai_place_trap(ctx.peer, id, spot)
+
+
+func eat_donut() -> String:
+	return ctx.session.items.ai_eat_donut(ctx.peer)
 
 
 ## The emote (a rat's squeak): everyone sees and hears it through sync_anim.

@@ -63,7 +63,7 @@ class World:
 	var console: CctvConsole  ## the CCTV chair
 	var coolant: ConsoleAction
 	var scram: ConsoleAction
-	var refill: Pickup  ## Storage: trap charges
+	var refills: Dictionary[StringName, Pickup] = {}  ## Storage: trap id → the box that refills it
 	var spare: Pickup  ## Storage: the spare keycard
 	var donuts: Pickup  ## Break Room
 	var dynamic: Node3D  ## World/Dynamic: traps and dropped keycards
@@ -119,8 +119,8 @@ class World:
 				scram = action
 		for pickup in pickups:
 			match pickup.item:
-				"trap_refill":
-					refill = pickup
+				"trap_refill", "lure_refill":
+					refills[Pickup.REFILLS[pickup.item]] = pickup
 				"spare_keycard":
 					spare = pickup
 				"donut":

@@ -642,6 +642,11 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 19.4, 0.2, 8)
 script = ExtResource("pickup")
 item = "trap_refill"
 
+[node name="LureRefill" type="Area3D" parent="PvP"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 19.4, 0.2, 6)
+script = ExtResource("pickup")
+item = "lure_refill"
+
 [node name="SpareKeycard" type="Area3D" parent="PvP"]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 19.4, 0.45, 10)
 script = ExtResource("pickup")

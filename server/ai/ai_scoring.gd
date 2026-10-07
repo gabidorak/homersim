@@ -133,7 +133,7 @@ static func place_trap(value: float, path_time: float, charges: int) -> float:
 	return 0.16 + 0.2 * clampf(value, 0.0, 1.0) * travel_factor(path_time, 20.0)
 
 
-## Refill the traps at Storage: only once they are all used and the plant is calm.
+## Refill a kind of trap at its box in Storage: only once it is all used and the plant is calm.
 static func refill(charges: int, calm: bool, path_time: float) -> float:
 	if charges > 0 or not calm or path_time == INF:
 		return 0.0

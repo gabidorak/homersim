@@ -104,7 +104,7 @@ Every key of `[match]` other than `rules` overrides the `MatchRules` property of
 |---|---|---|
 | Own player position, rotation, look pitch, anim state | Owning client | `BodySync` MultiplayerSynchronizer (unreliable, ~20 Hz, interpolated on others) |
 | AI bot body (M10) | Server (authority 1; the bot's id is negative and has no peer) | The same `BodySync`, sent by the server; clients treat it like any remote body |
-| Player status and items (status flags, speed factor, carry links, keycard, stolen item, trap charges) | Server | `StatusSync` MultiplayerSynchronizer, authority = 1 (reliable "on change"); it covers `StatusComponent` and `Inventory` |
+| Player status and items (status flags, speed factor, carry links, keycard, stolen item, snap trap and cheese lure charges, donuts carried) | Server | `StatusSync` MultiplayerSynchronizer, authority = 1 (reliable "on change"); it covers `StatusComponent` and `Inventory` |
 | Plant state (healths, core_temp, meltdown, alarm) | Server | `PlantSync` on PlantSim (~5 Hz, plus on change) |
 | Match state, timer, scores | Server | `MatchSync` plus `@rpc` events (`match_started`, `match_ended`) |
 | Interactable state (progress, cooldowns, door open) | Server | One synchronizer per interactable, or events |
@@ -163,7 +163,7 @@ Godot RPCs and synchronizers only work when the node exists **at the same path, 
      ├─ ChatService           (ALL / TEAM / GHOST routing, server-side)
      ├─ AbilityService        (broom and bite: request_use_ability, cosmetic on_* events, cooldowns)
      ├─ CaptureService        (grab, carry, cage, free, eliminate; server logic)
-     ├─ ItemService           (request_place_trap, steal, dropped keycards, the Dynamic spawn function)
+     ├─ ItemService           (request_place_trap, request_eat_donut, steal, dropped keycards, the Dynamic spawn function)
      ├─ MinigameService       (M6: request_minigame_start/result/cancel, on_open_minigame, on_minigame_closed)
      ├─ World (Node3D)
      │   ├─ Plant (levels/plant/Plant.tscn, added by Session._enter_tree; TestArena with --level test)
@@ -194,8 +194,9 @@ Player (CharacterBody3D, name = str(peer_id))
  ├─ MovementComponent         (reads RoleData stats + status modifiers)
  ├─ StatusComponent           (server-authoritative; rules in StatusRules, pure logic: expiry, immunity windows, speed factors, bite counting)
  ├─ InteractorComponent       (raycast/area focus, hold logic, sends intents)
- ├─ AbilityComponent          (RoleData.abilities: LMB primary, RMB trap preview + place, Q switch; cooldowns)
- ├─ Inventory                 (keycard, stolen item, trap charges, spare-keycard and donut waits; server-authoritative)
+ ├─ AbilityComponent          (RoleData.abilities: LMB primary, RMB trap preview + place; cooldowns)
+ ├─ Inventory                 (keycard, stolen item, snap trap and cheese lure charges, donuts carried, spare-keycard and donut waits; server-authoritative)
+ ├─ Hotbar                    (owner only: the selected inventory slot (1 2 3, wheel, Q for the traps); E with nothing to interact with eats a selected donut; HotbarView draws it)
  ├─ AnimationController       (M7, clients: builds the AnimationTree, see below; fills sync_anim for the owner)
  ├─ BodyFx                    (M7, windowed clients: footsteps, loops, voices, stun stars, hit-stop)
  ├─ GrabHandle / StealHandle  (added by setup(): rats get a GrabHandle, supervisors a StealHandle on their back)
@@ -206,7 +207,7 @@ Player (CharacterBody3D, name = str(peer_id))
 ```
 - Spawn flow: the server picks a spawn point and calls `MultiplayerSpawner.spawn({peer, role, pos})`. A custom `spawn_function` builds the player, sets `name = str(peer)`, and calls `set_multiplayer_authority(peer)` on the body and BodySync but **not** on StatusSync, StatusComponent or Inventory.
 - Only the local player enables `CameraRig`, input processing and HUD binding (`is_multiplayer_authority()`).
-- BodySync replicates `sync_position`, `sync_yaw`, `sync_pitch` and (M7) `sync_anim`: `AnimationController.FLAG_*` bits (airborne, rising, interacting, emoting, climbing, in a vent). Everyone's animations come from that, the body's interpolated motion (speed) and its synced statuses; one-shots come from the cosmetic RPCs (broom swing, bite) and synced changes (a donut eaten). No other traffic.
+- BodySync replicates `sync_position`, `sync_yaw`, `sync_pitch` and (M7) `sync_anim`: `AnimationController.FLAG_*` bits (airborne, rising, interacting, emoting, climbing, in a vent). Everyone's animations come from that, the body's interpolated motion (speed) and its synced statuses; one-shots come from the cosmetic RPCs (broom swing, bite) and synced changes (a donut eaten: one fewer carried). No other traffic.
 - AnimationController's tree: `loco` (BlendSpace1D on speed) → `loco_rate` (TimeScale) → `state` (Transition: ground, jump, fall, interact, climb, crawl, sit, stunned, knocked, dangle, caged) → `carry` (Blend2 filtered to the arms) → `action` (OneShot whose clip is swapped before each fire) → output. Clip names per role: `AnimationController.ROLE_CLIPS`.
 - First person (FirstPersonRig): the arms model (`fp_arms.glb`) at the camera, scaled to 35 % so it never pokes through walls, playing idle / swing / interact / carry / eat / place.
 
@@ -230,7 +231,7 @@ func _complete(p: Player) -> void             # server → emits completed
 - Facing convention: an interactable's +Z points away from its machine, toward where the player stands (`stand_position()`).
 - `CriticalLever`: set `partner_path` on one lever of a pair only. That one is the leader and runs the shared progress on the server: it advances only while both levers are held, pauses while one is, and resets when neither is.
 
-Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `RepairPoint`, `GrabHandle` and `StealHandle` (on player bodies), `Cage`, `KeycardReader` (on a keycard `Door`), `Pickup` (trap refill, donut, spare keycard, dropped keycard), `CctvCamera` (a junction box at the foot of a wall with a lens marker above; rats break it, supervisors repair it; synced `broken`), `CctvConsole` (the CCTV chair: synced `user`, the server pins the seated body, `request_stand_up`), `ConsoleAction` (M6, Control Room: `coolant` or `scram`, instant, synced `ready_at` and `cover_open_until` on the server clock; SCRAM needs two presses, cover then button). Not interactables: `Door` (a `Node3D` with a server-owned `open` and an `AnimatableBody3D` panel; normal doors open for anyone nearby), `Trap` (an `Area3D` the server watches), `VentVolume`, `Ladder` (an `Area3D`: MovementComponent climbs while inside), `OutOfBounds` (kill volumes: the owner puts its body back on the last safe spot).
+Subclasses: `SabotagePoint`, `CriticalLever` (pairs with a partner lever), `RepairPoint`, `GrabHandle` and `StealHandle` (on player bodies), `Cage`, `KeycardReader` (on a keycard `Door`), `Pickup` (trap box, cheese box, donut, spare keycard, dropped keycard), `CctvCamera` (a junction box at the foot of a wall with a lens marker above; rats break it, supervisors repair it; synced `broken`), `CctvConsole` (the CCTV chair: synced `user`, the server pins the seated body, `request_stand_up`), `ConsoleAction` (M6, Control Room: `coolant` or `scram`, instant, synced `ready_at` and `cover_open_until` on the server clock; SCRAM needs two presses, cover then button). Not interactables: `Door` (a `Node3D` with a server-owned `open` and an `AnimatableBody3D` panel; normal doors open for anyone nearby), `Trap` (an `Area3D` the server watches), `VentVolume`, `Ladder` (an `Area3D`: MovementComponent climbs while inside), `OutOfBounds` (kill volumes: the owner puts its body back on the last safe spot).
 - Nodes in the `MatchManager.RESET_GROUP` group get `reset_for_match()` on the server at every match start (cameras, the CCTV chair, console actions, repair points).
 - `RepairPoint` (M6): E opens the subsystem's minigame when the player wants minigames (`Config.minigame_repairs`, `RepairPoint.prefers_minigame`), otherwise it is the M3 hold; the server accepts both. Synced `lockout_until` (a lost or hacked minigame jams the point for 3 s) and `minigame_user`.
 
@@ -321,7 +322,7 @@ Planned in [milestones/M10-ai-bots.md](milestones/M10-ai-bots.md); the gameplay 
 - Bots go through the same server checks as players, without RPCs:
   - `InteractionService.ai_start` / `ai_heartbeat` / `ai_stop`, and the `hold_ended` signal;
   - `AbilityService.ai_use`;
-  - `ItemService.ai_place_trap`;
+  - `ItemService.ai_place_trap` and `ai_eat_donut` (a bot eats its donut as soon as it takes one);
   - `CctvConsole.stand_up`.
 - Bots never use minigames: the hold repair is always accepted.
 
@@ -387,7 +388,7 @@ data/
   roles/rat.tres
   subsystems/rods.tres …    # SubsystemData: id, display_name, heat_weight, critical, hazard_kind, icon
   abilities/broom.tres …    # AbilityData: id, kind, input_action, range, cone_deg, cooldown_s, status, status_duration, extra
-  pvp_tuning.tres           # PvpTuning: carry time, invulnerability windows, free/steal holds, spare keycard delay, donut, doors, trap charges
+  pvp_tuning.tres           # PvpTuning: carry time, invulnerability windows, free/steal holds, spare keycard delay, donut (boost, wait, how many carried), doors, snap trap and cheese lure charges
   plant_tuning.tres         # PlantTuning: the subsystem list, cooling rate, thresholds, meltdown rates, sabotage/repair amounts and hold times,
                             #   minigame amounts/lockout/min duration, control room actions (coolant, SCRAM)
   hazard_tuning.tres        # HazardTuning (M6): activation hysteresis, steam / puddle / radiation / debris / smoke numbers
@@ -418,7 +419,7 @@ The GDD tables and these files must stay in sync. A GUT test (`tests/unit/test_d
 | Integration | Shell script launching separate headless processes (`tests/integration/*.sh`) | A server on a random port (`--exit-after-match --result-file`) plus bot clients (`--bot rat\|supervisor`) that connect, pick their role and ready up (the real ready vote, `min_players=2`: `--debug-start` would start before the preferences arrive), go to a sabotage point and complete it (plus a lever-pair variant). Since M4, `pvp_*.sh` run PvP scenarios: the capture chain, bites and the swarm bonus, items and traps, and a "hacked client" sending bad `request_*` calls. The scripts assert the result JSON, the exit code, the server log, and that the logs contain no errors. Since M5 the match tests run on the plant, the PvP ones on the TestArena; `plant_cctv.sh` covers the CCTV, the ladder, the shaft and the kill volumes. Since M6, on the plant: `hazards.sh` (every hazard hits, both teams, hysteresis), `minigames.sh` (wins, a loss, a hacked instant win, walking away), `control_room.sh` (coolant, SCRAM, cooldowns, the timer penalty). |
 | Menus (M8) | `test_user_settings.gd` (clean values, save/load round trip, rebinding), `test_menus_logic.gd` (key text, LAN packets and list, awards, chat filter), `test_menu_focus.gd` (arrow keys through every screen), `test_translations.gd` (every text in the CSV, both languages, same placeholders); `tests/integration/menus_smoke.sh` (the real menus, headless: LAN discovery and join, the password prompt, kicked, lost, timeout, bad address) | Run with the other tests |
 | Assets (M7) | `tests/unit/test_assets.gd` | Every sound file, music stem, model and named part the code uses exists; the characters have every clip the AnimationController plays; no CSG left in the plant |
-| Visual (M7, windowed) | `tests/helpers/MapTour.tscn` (`--players 6 --no-vsync` for the performance numbers), `CharacterTour.tscn` (every animation state), `ArtGallery.tscn` (models under the real shaders), `HazardTour.tscn`; M8: `UiTour.tscn` (every menu and in-game screen with made-up data, `--lang fr`), `HowToShots.tscn` (the How to play illustrations) | Screenshots to look at; not run in CI |
+| Visual (M7, windowed) | `tests/helpers/MapTour.tscn` (`--players 6 --no-vsync` for the performance numbers), `CharacterTour.tscn` (every animation state), `ArtGallery.tscn` (models under the real shaders), `HazardTour.tscn`; M8: `UiTour.tscn` (every menu and in-game screen with made-up data, `--lang fr`), `HowToShots.tscn` (the How to play illustrations), `ItemIcons.tscn` (the hotbar's item icons, rendered from the models) | Screenshots to look at; not run in CI |
 | Map check | `tests/integration/map_check.sh` (`tests/helpers/MapCheck.tscn`) | Bakes a navigation mesh per role from the level's collision and checks the GDD §7 rules: reachability, walk times, two rat routes per sabotage point, supervisors kept out of the vents and the nest. `--update-docs` refreshes the table in docs/map/README.md. From M10 the bake is `AiNav`'s, the same one the bots use. |
 | AI bots (M10) | GUT: `test_bot_fill.gd`, `test_ai_scoring.gd`, `test_ai_path_follower.gd`, `test_ai_blackboard.gd`, `test_ai_senses.gd`. Integration (`ai_lib.sh` helpers, `SEED=N`): `ai_fill.sh` (one client + 5 bots; also against an exported server, `SERVER_BIN=`), `ai_target.sh` (a client cages an AI rat), `ai_nav_tour.sh`, `ai_match.sh` (a bots-only match: sabotages, repairs, distance walked, nobody stuck, no strikes or errors), `ai_lever.sh`, `ai_capture.sh`, `ai_items.sh` (traps, refill, donut), `ai_steal.sh` (keycard, spare), `ai_control.sh` (coolant, SCRAM), `ai_cctv.sh` (chair, cameras); `test_ai_hazards.gd`. Manual: `ai_soak.sh`, `ai_balance.sh` | Loop each one 5× with different seeds. Watch mode: a `--ai-only` server plus a windowed client that joins as a spectator |
 | Manual | Run Instances (editor: *Debug → Customize Run Instances*) | 1 instance with `-- --server --debug-start`, 3 instances with `-- --connect 127.0.0.1:7777`. A server started without `--headless` turns V-Sync and rendering off in its window: on Wayland a hidden window is throttled to about 1 frame/s, which slowed the whole server |

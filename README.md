@@ -111,8 +111,9 @@ In game (default keys, all rebindable in Settings → Controls; the game shows t
 WASD, mouse, Space to jump, Shift to sprint, **hold E** to sabotage (rats) or repair (supervisors), Enter to chat,
 T to chat with your team, hold Tab for the scoreboard, M for the map of the plant (a minimap in the corner shows
 the rooms around you), Esc for the menu (the game keeps running; a click in the view goes back to it). In the lobby, 1 / 2 / 3 pick the role you would like and R readies you up. Supervisors: LMB
-swings the broom, E grabs a stunned rat and cages it, hold RMB then release to place a trap (Q switches snap trap /
-cheese lure). Rats: LMB bites, hold E behind a supervisor to steal its keycard, hold E at a cage to free a friend.
+swings the broom, E grabs a stunned rat and cages it, hold RMB then release to place a trap; the inventory at the
+bottom of the screen shows what you carry: 1 / 2 / 3 or the mouse wheel select the snap trap, the cheese lure (Q
+also switches between the two) or a donut taken at the Break Room counter, which E eats. Rats: LMB bites, hold E behind a supervisor to steal its keycard, hold E at a cage to free a friend.
 Supervisors repair with a short mouse minigame (E at a repair point; Esc gives up; Settings → Controls, or
 `--hold-repairs`, uses the 6 s hold instead), and use the Control Room consoles (emergency coolant; SCRAM: press
 twice, cover then button). Broken subsystems spawn hazards that hit both teams. Eliminated rats spectate (LMB / RMB
@@ -160,6 +161,7 @@ godot tests/helpers/CharacterTour.tscn -- --out /tmp/chars   # windowed: every c
 godot tests/helpers/ArtGallery.tscn -- --files crate,lever     # windowed: models under the real shaders
 godot tests/helpers/UiTour.tscn -- --settings /tmp/tour.cfg --out /tmp/ui [--lang fr|en] [--only NAME]   # windowed: every menu and in-game screen
 godot tests/helpers/HowToShots.tscn -- --out /tmp/howto          # windowed: renders the How to play illustrations (copy to assets/ui/howto/)
+godot tests/helpers/ItemIcons.tscn -- --out res://assets/ui/items # windowed: renders the hotbar's item icons from the models
 godot --headless -s tools/godot/make_theme.gd                    # rebuilds client/ui/theme.tres (fonts, colours, buttons)
 python3 tools/heatmap.py ~/.local/share/godot/app_userdata/HomerSim/heatmap_*.csv   # playtest heatmap
 godot -- --connect 127.0.0.1:7777 --game-version 0.0.0   # debug builds only: fake an old client

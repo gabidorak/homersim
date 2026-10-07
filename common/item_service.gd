@@ -5,11 +5,12 @@ extends Node
 ##   steal / drop_stolen          a rat takes a supervisor's keycard (StealHandle); a stunned
 ##                                (or caught) rat drops it as a pickup any supervisor can take
 ##   trap_sprung                  a trap went off (Trap): SNAP for every supervisor, stats, log
+##   request_eat_donut()          a supervisor eats a donut they carry (hotbar, E): the speed boost
 ## Traps and dropped keycards live in World/Dynamic, created through the DynamicSpawner so they
 ## appear (and disappear) on every client. The spawn function runs on every peer.
 ## It lives in Session (on the server AND the clients) like the other services.
-## AI bots (M10) place traps with ai_place_trap(), hear a SNAP through snap_heard, and see a theft
-## through keycard_stolen.
+## AI bots (M10) place traps with ai_place_trap(), eat donuts with ai_eat_donut(), hear a SNAP through
+## snap_heard, and see a theft through keycard_stolen.
 
 const PLACE_TOLERANCE := 0.5  ## m added to the trap range (lag)
 const FLOOR_PROBE := 0.35  ## m above / below the requested spot to look for the floor
@@ -77,7 +78,7 @@ func _place_trap(peer: int, id: StringName, pos: Vector3) -> String:
 		return "bad position"
 	if not body.status.can_act():
 		return "can't act"
-	if body.inventory.trap_charges <= 0:
+	if body.inventory.charges(id) <= 0:
 		return "no charges"
 	if not body.abilities.server_ready(id):
 		return "cooling down"
@@ -93,13 +94,13 @@ func _place_trap(peer: int, id: StringName, pos: Vector3) -> String:
 	for child in dynamic_root.get_children():
 		if child is Trap and (child as Node3D).global_position.distance_to(floor_pos) < tuning.trap_min_spacing:
 			return "too close to another trap"
-	body.inventory.trap_charges -= 1
+	body.inventory.set_charges(id, body.inventory.charges(id) - 1)
 	body.abilities.server_start_cooldown(data)
 	if not Session.is_ai_id(peer):
 		session.abilities.on_ability_cooldown.rpc_id(peer, id, data.cooldown_s)
 	_spawn({"type": "trap", "kind": data.extra.get("trap_kind", "snap"), "pos": floor_pos, "owner": peer})
 	Log.info("item", "%s placed a %s at %s (%d left)" % [body.display_name, data.display_name,
-		floor_pos.snapped(Vector3.ONE * 0.01), body.inventory.trap_charges])
+		floor_pos.snapped(Vector3.ONE * 0.01), body.inventory.charges(id)])
 	return ""
 
 
@@ -112,6 +113,40 @@ func _floor_at(pos: Vector3) -> Variant:
 	if hit.is_empty() or (hit["normal"] as Vector3).y < MIN_FLOOR_NORMAL_Y:
 		return null
 	return hit["position"]
+
+
+@rpc("any_peer", "reliable")
+func request_eat_donut() -> void:
+	if not multiplayer.is_server():
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	if not _rate.allow(peer):
+		return
+	var reason := _eat_donut(peer)
+	if reason != "":
+		Log.info("item", "%s can't eat a donut: %s" % [session.name_of(peer), reason])
+
+
+## AI bots (M10): request_eat_donut without the RPC. "" = eaten, otherwise why not.
+func ai_eat_donut(peer: int) -> String:
+	return _eat_donut(peer)
+
+
+func _eat_donut(peer: int) -> String:
+	if session.match_manager.state != MatchManager.State.PLAYING:
+		return "the match isn't running"
+	var body := session.get_body(peer)
+	if body == null:
+		return "no body"
+	if body.inventory.donuts <= 0:
+		return "no donut"
+	if not body.status.can_act():
+		return "can't act"
+	body.inventory.eat_donut()
+	body.status.set_speed_factor(&"donut", tuning.donut_speed, tuning.donut_duration_s)
+	session.match_manager.add_stat(peer, "donuts")
+	Log.info("item", "%s ate a donut" % body.display_name)
+	return ""
 
 
 # --- Server API ----------------------------------------------------------------------------

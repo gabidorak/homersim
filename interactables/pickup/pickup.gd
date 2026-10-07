@@ -1,18 +1,24 @@
 class_name Pickup
 extends Interactable
 ## Supervisor pickups (GDD §5.1), all instant:
-##   trap_refill    Storage: trap charges back to full
+##   trap_refill    Storage, the trap box: snap traps back to full
+##   lure_refill    Storage, the cheese box: cheese lures back to full
 ##   spare_keycard  Storage: a new keycard, 30 s after losing yours
-##   donut          Break Room: +20% speed for 20 s, then a 60 s wait (per supervisor)
+##   donut          Break Room: a donut to carry (one at a time), then a 60 s wait (per supervisor);
+##                  eaten later from the hotbar (ItemService.request_eat_donut): +20% speed for 20 s
 ##   keycard        a keycard a stunned rat dropped (spawned in World/Dynamic): consumed on pickup
 ## Availability uses only replicated state (the supervisor's Inventory), so the prompt on the
 ## client and the server's check agree.
 
-@export_enum("trap_refill", "spare_keycard", "donut", "keycard") var item := "trap_refill"
+@export_enum("trap_refill", "lure_refill", "spare_keycard", "donut", "keycard") var item := "trap_refill"
+
+## A refill pickup → the trap it refills (its ability id, Inventory.charges()).
+const REFILLS := {"trap_refill": Inventory.SNAP_TRAP, "lure_refill": Inventory.CHEESE_LURE}
 
 ## item → [model (assets/generated), model scale, size of the use area, label]
 const LOOKS := {
-	"trap_refill": ["trap_refill", 1.0, Vector3(0.6, 0.4, 0.4), "TRAPS"],
+	"trap_refill": ["trap_refill", 1.0, Vector3(0.6, 0.4, 0.4), "SNAP TRAPS"],
+	"lure_refill": ["cheese_box", 1.0, Vector3(0.6, 0.4, 0.4), "CHEESE LURES"],
 	"spare_keycard": ["keycard", 2.0, Vector3(0.5, 0.9, 0.35), "SPARE KEYCARD"],
 	"donut": ["donut_box", 1.0, Vector3(0.5, 0.2, 0.5), "DONUTS"],
 	"keycard": ["keycard", 1.6, Vector3(0.25, 0.02, 0.16), ""],
@@ -37,12 +43,13 @@ func _ready() -> void:
 func is_available(player: Player) -> bool:
 	var inv := player.inventory
 	match item:
-		"trap_refill":
-			return inv.trap_charges < tuning.trap_charges
+		"trap_refill", "lure_refill":
+			return inv.charges(REFILLS[item]) < inv.max_charges(REFILLS[item])
 		"spare_keycard":
 			return not inv.keycard and (inv.spare_ready() if Net.is_server else inv.spare_wait_left == 0)
 		"donut":
-			return inv.donut_ready() if Net.is_server else inv.donut_wait_left == 0
+			return inv.can_take_donut() if Net.is_server \
+				else inv.donuts < tuning.donut_carry_max and inv.donut_wait_left == 0
 		"keycard":
 			return not inv.keycard and not _taken
 	return false
@@ -52,13 +59,17 @@ func prompt_for(player: Player) -> String:
 	var inv := player.inventory
 	match item:
 		"trap_refill":
-			return tr("Traps are full") if inv.trap_charges >= tuning.trap_charges else tr("Refill traps")
+			return tr("Snap traps are full") if not is_available(player) else tr("Refill snap traps")
+		"lure_refill":
+			return tr("Cheese lures are full") if not is_available(player) else tr("Refill cheese lures")
 		"spare_keycard":
 			if inv.keycard:
 				return tr("You have your keycard")
 			return tr("Spare keycard in %d s") % inv.spare_wait_left if inv.spare_wait_left > 0 else tr("Take the spare keycard")
 		"donut":
-			return tr("Next donut in %d s") % inv.donut_wait_left if inv.donut_wait_left > 0 else tr("Eat a donut")
+			if inv.donuts >= tuning.donut_carry_max:
+				return tr("You already have a donut")
+			return tr("Next donut in %d s") % inv.donut_wait_left if inv.donut_wait_left > 0 else tr("Take a donut")
 		"keycard":
 			return tr("You have a keycard") if inv.keycard else tr("Pick up the keycard")
 	return prompt
@@ -67,14 +78,12 @@ func prompt_for(player: Player) -> String:
 func _complete(player: Player) -> void:
 	var inv := player.inventory
 	match item:
-		"trap_refill":
-			inv.trap_charges = tuning.trap_charges
+		"trap_refill", "lure_refill":
+			inv.set_charges(REFILLS[item], inv.max_charges(REFILLS[item]))
 		"spare_keycard", "keycard":
 			inv.give_keycard()
 		"donut":
-			inv.eat_donut()
-			player.status.set_speed_factor(&"donut", tuning.donut_speed, tuning.donut_duration_s)
-			Session.current.match_manager.add_stat(player.peer_id, "donuts")
+			inv.take_donut()
 	super(player)
 	if item == "keycard":
 		_taken = true

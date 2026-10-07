@@ -33,6 +33,7 @@ const LADDER_COLOR := YELLOW
 const CAGE_COLOR := Color("c9ccd1")
 const DONUT_COLOR := Color("ff8fb8")
 const TRAP_COLOR := Color("f28c28")
+const CHEESE_COLOR := Color("ffd34d")
 const TOWER_COLOR := Color("c9ccd1")
 const NODE_REFRESH_MS := 1000  ## how often the lists of stations, cages and pickups are gathered again
 
@@ -331,7 +332,10 @@ func _draw_pickups() -> void:
 		draw_pickup(self, at, pickup.item, 0.8 if compact else 1.0)
 		var look: Array = Pickup.LOOKS.get(pickup.item, [])
 		if not compact and look.size() > 3 and look[3] != "":
-			_label(tr(look[3]), at + Vector2(0, 14), 10, OFF_WHITE)
+			# To the right of the mark: Storage's three pickups are only 2 m apart.
+			var text := tr(look[3])
+			var width := _bold.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+			_label(text, at + Vector2(10.0 + width / 2.0, 0), 10, OFF_WHITE)
 
 
 func _draw_players(session: Session) -> void:
@@ -438,7 +442,7 @@ static func draw_ladder(item: CanvasItem, at: Vector2, scale_by: float) -> void:
 			item.draw_line(at + Vector2(-w, y), at + Vector2(w, y), pass_color, width - 0.5)
 
 
-## What a supervisor can pick up: a pink donut, an orange trap box, a blue keycard.
+## What a supervisor can pick up: a pink donut, an orange trap box, a yellow cheese wedge, a blue keycard.
 static func draw_pickup(item: CanvasItem, at: Vector2, kind: String, scale_by: float) -> void:
 	match kind:
 		"donut":
@@ -447,5 +451,11 @@ static func draw_pickup(item: CanvasItem, at: Vector2, kind: String, scale_by: f
 			item.draw_circle(at, 1.8 * scale_by, INK)
 		"trap_refill":
 			draw_box(item, Rect2(at - Vector2(5, 5) * scale_by, Vector2(10, 10) * scale_by), TRAP_COLOR, 2.0, 3.0)
+		"lure_refill":
+			var wedge := PackedVector2Array([at + Vector2(-6, 4.5) * scale_by, at + Vector2(6, 4.5) * scale_by,
+				at + Vector2(-6, -4.5) * scale_by])
+			item.draw_colored_polygon(wedge, CHEESE_COLOR)
+			wedge.append(wedge[0])
+			item.draw_polyline(wedge, INK, 2.0, true)
 		_:
 			draw_box(item, Rect2(at - Vector2(6, 4.5) * scale_by, Vector2(12, 9) * scale_by), KEYCARD_COLOR, 2.0, 2.0)

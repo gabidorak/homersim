@@ -50,7 +50,7 @@ size = Vector3(4, 2.4, 1)
 size = Vector3(1.1, 1.2, 1.2)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_12"]
-size = Vector3(0.75, 0.25, 6)
+size = Vector3(0.75, 0.25, 5.8)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_13"]
 size = Vector3(1.5, 1, 1.5)
@@ -186,24 +186,30 @@ position = Vector3(45.75, 0, -11)
 scale = Vector3(1.1, 1.2, 1.2)
 
 [node name="TrapRefill" type="Area3D" parent="."]
-position = Vector3(35, 0.45, -16.5)
+position = Vector3(35, 0.45, -15.9)
 rotation = Vector3(0, 1.5708, 0)
 script = ExtResource("8_pickup")
 item = "trap_refill"
 
+[node name="LureRefill" type="Area3D" parent="."]
+position = Vector3(35, 0.45, -14)
+rotation = Vector3(0, 1.5708, 0)
+script = ExtResource("8_pickup")
+item = "lure_refill"
+
 [node name="SpareKeycard" type="Area3D" parent="."]
-position = Vector3(35, 0.7, -13.5)
+position = Vector3(35, 0.7, -12.1)
 rotation = Vector3(0, 1.5708, 0)
 script = ExtResource("8_pickup")
 item = "spare_keycard"
 
 [node name="Box7" type="CollisionShape3D" parent="PropCollision"]
-position = Vector3(34.625, 0.125, -15)
+position = Vector3(34.625, 0.125, -14)
 shape = SubResource("BoxShape3D_12")
 
 [node name="PickupTable" parent="." instance=ExtResource("9_pallet_flat")]
-position = Vector3(34.625, 0, -15)
-scale = Vector3(1, 1.6667, 3)
+position = Vector3(34.625, 0, -14)
+scale = Vector3(1, 1.6667, 2.9)
 
 [node name="Sign" type="Label3D" parent="."]
 position = Vector3(43, 3.2, -8.5)

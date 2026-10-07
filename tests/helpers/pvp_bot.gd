@@ -317,27 +317,41 @@ func _items_supervisor() -> void:
 	await face(Vector3(-4, 0, 2))
 	me().abilities.selected_trap = 0
 	me().abilities.place_trap(Vector3(-4, 0, 2.5))
-	await wait_until(func() -> bool: return me().inventory.trap_charges == 2, 2.0, "the snap trap placed")
+	await wait_until(func() -> bool: return me().inventory.snap_charges == 2, 2.0, "the snap trap placed")
 	await wait(1.2)
 	me().abilities.selected_trap = 1
 	me().abilities.place_trap(Vector3(-5, 0, 2.5))
-	await wait_until(func() -> bool: return me().inventory.trap_charges == 1, 2.0, "the lure placed")
-	Log.info("bot", "traps placed, %d charge(s) left" % me().inventory.trap_charges)
+	await wait_until(func() -> bool: return me().inventory.lure_charges == 2, 2.0, "the lure placed")
+	Log.info("bot", "traps placed, %d snap trap(s) and %d lure(s) left" % [me().inventory.snap_charges,
+		me().inventory.lure_charges])
 	await wait_until(func() -> bool: return dynamic_of(Trap).is_empty(), 20.0, "the rat to set off both traps")
 	Log.info("bot", "rat revealed: %s" % has(rat, StatusComponent.Status.REVEALED))
-	# 6. Donut and trap refill.
+	# 6. A donut (carried, then eaten from the hotbar), then the trap box and the cheese box.
 	var donuts := session.get_node("World/TestArena/PvP/Donuts") as Pickup
 	await teleport(donuts.stand_position(Role.Kind.SUPERVISOR))
 	await face(donuts.global_position)
 	await press(donuts)
+	await wait_until(func() -> bool: return me().inventory.donuts == 1, 2.0, "the donut in the hotbar")
+	Log.info("bot", "donut: carried %d, boosted before eating %s, counter available %s" % [me().inventory.donuts,
+		has(me(), StatusComponent.Status.BOOSTED), donuts.is_available(me())])
+	me().hotbar.select(me().hotbar.slots().find(Hotbar.DONUT))
+	me().hotbar.use_selected()
 	await wait_until(func() -> bool: return has(me(), StatusComponent.Status.BOOSTED), 2.0, "the donut rush")
-	Log.info("bot", "donut: boosted %s, speed x%.2f" % [has(me(), StatusComponent.Status.BOOSTED), me().status.speed_factor])
+	Log.info("bot", "donut: boosted %s, speed x%.2f, %d left" % [has(me(), StatusComponent.Status.BOOSTED),
+		me().status.speed_factor, me().inventory.donuts])
 	var refill := session.get_node("World/TestArena/PvP/TrapRefill") as Pickup
 	await teleport(refill.stand_position(Role.Kind.SUPERVISOR))
 	await face(refill.global_position)
 	await press(refill)
-	await wait_until(func() -> bool: return me().inventory.trap_charges == 3, 2.0, "the refill")
-	Log.info("bot", "traps refilled: %d" % me().inventory.trap_charges)
+	await wait_until(func() -> bool: return me().inventory.snap_charges == 3, 2.0, "the refill")
+	Log.info("bot", "snap traps refilled: %d, lures untouched: %d" % [me().inventory.snap_charges,
+		me().inventory.lure_charges])
+	var cheese := session.get_node("World/TestArena/PvP/LureRefill") as Pickup
+	await teleport(cheese.stand_position(Role.Kind.SUPERVISOR))
+	await face(cheese.global_position)
+	await press(cheese)
+	await wait_until(func() -> bool: return me().inventory.lure_charges == 3, 2.0, "the cheese refill")
+	Log.info("bot", "cheese lures refilled: %d" % me().inventory.lure_charges)
 	# 7. The spare keycard: not before 30 s, then yes.
 	var spare := session.get_node("World/TestArena/PvP/SpareKeycard") as Pickup
 	await teleport(spare.stand_position(Role.Kind.SUPERVISOR))

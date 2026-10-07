@@ -10,7 +10,7 @@ extends Node
 ## setup_solo, setup_host, setup_host_online, starting, settings_video, settings_controls,
 ## settings_audio, settings_gameplay, howto_supervisor, howto_rat, howto_controls, credits, error,
 ## error_host_left, error_online, password, lobby, scoreboard, pause, feed, minimap_supervisor,
-## minimap_rat, map_supervisor, map_rat, postmatch, hint.
+## minimap_rat, map_supervisor, map_rat, hotbar_supervisor, hotbar_rat, postmatch, hint.
 
 const MENU := "res://client/MainMenu.tscn"
 
@@ -183,7 +183,7 @@ func _close_dialogs(root: Node) -> void:
 ## The in-game screens, on an offline Session filled with made-up players.
 func _in_game() -> void:
 	if not (_wanted("lobby") or _wanted("scoreboard") or _wanted("pause") or _wanted("feed")
-			or _wanted("postmatch") or _wanted("hint") or _wanted("minimap") or _wanted("map")):
+			or _wanted("postmatch") or _wanted("hint") or _wanted("minimap") or _wanted("map") or _wanted("hotbar")):
 		return
 	get_tree().unload_current_scene()  # the menu goes; this runner lives on under root
 	await get_tree().create_timer(0.2).timeout
@@ -280,6 +280,8 @@ func _in_game() -> void:
 			await _shot("hint", 0.8)
 	if _wanted("minimap") or _wanted("map"):
 		await _map_shots(session, names, roles)
+	if _wanted("hotbar"):
+		await _hotbar_shots(session, names, roles)
 	if _wanted("postmatch"):
 		var stats: Array = []
 		for peer: int in roles:
@@ -293,6 +295,44 @@ func _in_game() -> void:
 		await _shot("postmatch", 2.0)
 	session.queue_free()
 	await get_tree().create_timer(0.3).timeout
+
+
+## The inventory at the bottom of the HUD: a supervisor in the Break Room with a donut (selected, so
+## its caption shows), one trap left and their keycard stolen; then a rat carrying that keycard.
+func _hotbar_shots(session: Session, names: Dictionary, roles: Dictionary) -> void:
+	var bodies: Array[Player] = []
+	for peer: int in [11, 13]:
+		var body := session._spawn_player({"peer": peer, "name": names[peer], "role": roles[peer],
+			"pos": Vector3(-22 - (peer - 11), 0, 12), "yaw": 0.0, "locked": false}) as Player
+		session.players_root.add_child(body)
+		bodies.append(body)
+	await get_tree().create_timer(0.3).timeout
+	var supervisor := session.get_body(11)
+	supervisor.inventory.snap_charges = 1
+	supervisor.inventory.lure_charges = 2
+	supervisor.inventory.donuts = 1
+	supervisor.inventory.keycard = false
+	supervisor.inventory.spare_wait_left = 12
+	var rat := session.get_body(13)
+	rat.inventory.stolen_item = &"keycard"
+	var camera := Camera3D.new()
+	add_child(camera)
+	camera.look_at_from_position(Vector3(-21, 1.6, 11), Vector3(-15.5, 1.0, 14.5))
+	camera.make_current()
+	session.local_peer_id = 11
+	Events.local_player_spawned.emit(supervisor)
+	await get_tree().process_frame  # (the hotbar shows a caption when the selection *changes*)
+	await get_tree().process_frame
+	supervisor.hotbar.select(supervisor.hotbar.slots().find(Hotbar.DONUT))
+	await _shot("hotbar_supervisor", 0.5)
+	session.local_peer_id = 13
+	Events.local_player_spawned.emit(rat)
+	await _shot("hotbar_rat", 0.5)
+	session.local_peer_id = 11
+	camera.queue_free()
+	for body in bodies:
+		body.queue_free()
+	await get_tree().create_timer(0.2).timeout
 
 
 ## `d` with the made-up players 15 and 16 turned into bots -1001 and -1002 (--bots).
