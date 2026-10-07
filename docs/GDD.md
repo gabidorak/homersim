@@ -110,10 +110,11 @@ Abilities:
 - **Broom swing** (LMB): 2.0 m range, 70° cone, 1.2 s cooldown, **stuns a rat for 2.0 s** (rats get 1.5 s of stun immunity after a stun ends).
 - **Grab** (E on a stunned rat): carry the rat at carry speed. It escapes on its own after **12 s** (about 38 m: the pumps, the valves and the control rods are one carry from the Reactor Hall's cage), and a single bite from another rat makes the supervisor drop it (so does getting stunned or knocked down). A dropped rat lands at the carrier's feet with **1.5 s of invulnerability**.
 - **Cage** (E at a cage while carrying): the rat is caged. See [elimination](#53-capture-and-elimination).
-- **Traps** (hold RMB to aim, release to place, Q to switch the kind; 3 charges shared by both kinds, refill at Storage; within 2 m, on the floor, at least 0.6 m apart). Only the placing supervisor sees the aiming preview:
+- **Traps** (hold RMB to aim, release to place, Q to switch the kind; 3 snap traps and 3 cheese lures, counted separately: the trap box in Storage refills the snap traps, the cheese box next to it the lures; within 2 m, on the floor, at least 0.6 m apart). Only the placing supervisor sees the aiming preview:
   - *Snap trap*: stuns the rat that steps on it for 3 s and plays a loud SNAP heard by every supervisor. A rat that can't be stunned right then (invulnerable, stun immunity) doesn't set it off.
   - *Cheese lure*: when a rat touches it, that rat is outlined through walls for supervisors for 10 s.
-- **Donut** (Break Room counter): +20% move speed for 20 s, 60 s cooldown per supervisor.
+- **Donut** (Break Room counter): the supervisor takes one and carries it (one at a time; the counter has the next one 60 s later). Selecting it in the inventory and pressing E eats it: +20% move speed for 20 s.
+- **Inventory**: a hotbar at the bottom of the screen with an icon and a count per item. Supervisors pick a slot with 1 / 2 / 3 or the mouse wheel: snap trap, cheese lure (each shows how many are left; the selected one is what RMB places), donut. The keycard sits on its own to the left (crossed out while a rat has it). A rat's stolen keycard shows there too.
 - **Keycard**: opens keycard doors (supervisor shortcuts) for **3 s**. Every supervisor spawns with one. Normal doors open by themselves for anyone nearby (rats push them).
 
 ### 5.2 Rat
@@ -222,7 +223,7 @@ One level, about **104 × 64 m** plus the sewer nest, two floors in places (catw
 | Substation | Power grid | Outdoor, fenced, in the yard (puddles in M6) |
 | Vent Roof | Ventilation | Reached by the yard ladder (everyone) or the vent shaft (rats) |
 | Break Room | Supervisor spawn, donuts | Coffee and vending machines |
-| Storage | Trap refills, spare keycards | Shelves rats can hide on |
+| Storage | Trap box and cheese box (refills), spare keycards | Shelves rats can hide on |
 | Cage Room | 2 cages, near two vent openings, far from the nest | The tension spot |
 | Locker Room | Connector with a keycard door (to the South Corridor) | Rows of lockers to hide between |
 | Main halls, South Corridor | Connectors | The nest's vent comes out in the South Corridor |

@@ -73,11 +73,56 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="Favourites" type="VBoxContainer" parent="Margin/Panel/Col/Tabs"]
+[node name="Online" type="VBoxContainer" parent="Margin/Panel/Col/Tabs"]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 10
 metadata/_tab_index = 1
+
+[node name="OnlineStatus" type="Label" parent="Margin/Panel/Col/Tabs/Online"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+autowrap_mode = 3
+
+[node name="OnlineScroll" type="ScrollContainer" parent="Margin/Panel/Col/Tabs/Online"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="OnlineList" type="VBoxContainer" parent="Margin/Panel/Col/Tabs/Online/OnlineScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="KeyRow" type="HBoxContainer" parent="Margin/Panel/Col/Tabs/Online"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="KeyLabel" type="Label" parent="Margin/Panel/Col/Tabs/Online/KeyRow"]
+layout_mode = 2
+text = "Friends key"
+
+[node name="KeyEdit" type="LineEdit" parent="Margin/Panel/Col/Tabs/Online/KeyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Ask whoever runs the server"
+max_length = 200
+secret = true
+
+[node name="KeySaveButton" type="Button" parent="Margin/Panel/Col/Tabs/Online/KeyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Save"
+
+[node name="Favourites" type="VBoxContainer" parent="Margin/Panel/Col/Tabs"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+metadata/_tab_index = 2
 
 [node name="FavStatus" type="Label" parent="Margin/Panel/Col/Tabs/Favourites"]
 unique_name_in_owner = true

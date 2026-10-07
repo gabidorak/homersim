@@ -3,8 +3,10 @@ extends Node
 ##
 ## User settings (M8) live in `user://settings.cfg` (`--settings PATH` picks another file): video,
 ## controls and key bindings, audio, gameplay, the server favourites, the first-time hints already
-## shown, and the last choices made for "Play solo" and "Host a game". The settings screen calls set_value(), which applies the change at once, saves the file
-## (a moment later, so dragging a slider doesn't write it 60 times a second) and emits `changed`.
+## shown, the last choices made for "Play solo" and "Host a game", and the friends key of the online
+## server (client/online_client.gd). The settings screen calls set_value(), which applies the change
+## at once, saves the file (a moment later, so dragging a slider doesn't write it 60 times a second)
+## and emits `changed`.
 ## Headless processes (the dedicated server, test bots) never read or write the file: they run on
 ## the defaults, so a player's settings can't change what a test does.
 ##
@@ -55,7 +57,8 @@ const SECTIONS := {
 	"last_address": "servers",
 	"solo_role": "solo", "solo_difficulty": "solo", "solo_players": "solo",
 	"host_name": "host", "host_password": "host", "host_port": "host", "host_max_players": "host",
-	"host_bots": "host", "host_difficulty": "host", "host_lan": "host",
+	"host_bots": "host", "host_difficulty": "host", "host_lan": "host", "host_online": "host",
+	"online_key": "online",
 }
 ## Host a game: the choices for the most players and the match size with bots (client/game_setup.gd).
 const HOST_MAX_PLAYERS := 16
@@ -110,6 +113,9 @@ var host_max_players := 6
 var host_bots := 6  ## bots fill each match up to this many players; 0 = no bots
 var host_difficulty := 1
 var host_lan := true  ## announce the game on the local network (the server browser's LAN list)
+var host_online := false  ## host on the online server (the VPS launcher) instead of this computer
+# --- Online games ----------------------------------------------------------------
+var online_key := ""  ## the friends key the online server asks for ("" = not typed yet)
 
 ## Server favourites: [{"name": String, "address": "host:port"}].
 var favourites: Array[Dictionary] = []
@@ -242,6 +248,8 @@ func clean_value(key: String, value: Variant) -> Variant:
 			return clampi(value, 2, HOST_MAX_PLAYERS)
 		"host_bots":
 			return 0 if value < 2 else mini(value, BOT_FILL_MAX)
+		"online_key":
+			return str(value).strip_edges().substr(0, 200)
 	if key.begins_with("volume_"):
 		return clampf(value, 0.0, 1.0)
 	return value

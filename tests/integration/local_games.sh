@@ -74,7 +74,7 @@ expect Joiner "error box: The host left"                                  "frien
 expect Busy "cannot listen on UDP port $PORT2"                            "busy port: the server couldn't listen"
 expect Busy "error box: Could not start the server: UDP port $PORT2 is in use" "busy port: an error box says so"
 expect Crash "joined as Crash"                                            "crash: joined its own server"
-expect Crash "the game that started this server \(pid [0-9]+\) is gone, stopping" "crash: the server noticed"
+expect Crash "the process that started this server \(pid [0-9]+\) is gone, stopping" "crash: the server noticed"
 # (Busy's log has the expected "can't listen" errors.)
 if grep -lE "SCRIPT ERROR|^ERROR|leaked at exit" "$LOGS"/{Solo,Hosty,Joiner,Crash,blocker}.log; then
 	echo "FAIL - errors in the logs above"; FAIL=1

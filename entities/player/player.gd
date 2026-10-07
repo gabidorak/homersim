@@ -62,6 +62,7 @@ var validator_grace_until_ms := 0
 @onready var interactor: InteractorComponent = $InteractorComponent
 @onready var abilities: AbilityComponent = $AbilityComponent
 @onready var inventory: Inventory = $Inventory
+@onready var hotbar: Hotbar = $Hotbar
 @onready var status_tag: Label3D = $StatusTag
 
 var _revealed_shown := false

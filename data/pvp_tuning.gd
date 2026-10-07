@@ -20,7 +20,8 @@ const PATH := "res://data/pvp_tuning.tres"
 @export_group("Pickups and doors")
 @export var donut_speed := 1.2
 @export var donut_duration_s := 20.0
-@export var donut_cooldown_s := 60.0  ## per supervisor
+@export var donut_cooldown_s := 60.0  ## per supervisor, from taking one at the counter
+@export var donut_carry_max := 1  ## donuts a supervisor can carry (eaten later from the hotbar)
 @export var keycard_door_open_s := 3.0
 
 @export_group("CCTV")
@@ -28,7 +29,8 @@ const PATH := "res://data/pvp_tuning.tres"
 @export var cctv_repair_hold_s := 3.0  ## supervisor hold to repair it
 
 @export_group("Traps")
-@export var trap_charges := 3
+@export var snap_trap_charges := 3  ## snap traps a supervisor carries (the trap box in Storage refills them)
+@export var cheese_lure_charges := 3  ## cheese lures a supervisor carries (the cheese box in Storage refills them)
 @export var trap_min_spacing := 0.6  ## m between two traps
 
 

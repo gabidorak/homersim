@@ -24,6 +24,8 @@ mono_crash.*.json
 
 # Local config
 server.cfg
+# (launcher.cfg holds the friends key of online games)
+launcher.cfg
 user_settings.cfg
 
 # OS / editors

@@ -9,6 +9,8 @@ extends Control
 ## time it added under the timer, and a short flash of the edge tint whenever the alarm gets worse.
 ## M8: every text is translated and names the player's own keys (Keys.label); the long key list moved
 ## to How to play and the first-time hints, so the corner only keeps a short reminder.
+## The inventory (keycard, traps, donut, a rat's loot) is the HotbarView at the bottom during a match,
+## with the stamina bar and the statuses lifted above it; the corner text keeps the alerts.
 
 const ALARM_COLORS := {
 	PlantModel.Alarm.NORMAL: Color(0.35, 0.8, 0.4),
@@ -18,6 +20,7 @@ const ALARM_COLORS := {
 const BEEP_RATE := 22050
 const BANNER_S := 2.5
 const ALARM_FLASH_S := 0.6
+const ABOVE_HOTBAR := 10.0  ## px between the hotbar and the stamina bar
 
 var _player: Player
 var _icons: Array[SubsystemIcon] = []
@@ -27,6 +30,10 @@ var _beep: AudioStreamPlayer
 var _last_alarm := PlantModel.Alarm.NORMAL
 var _banner_until_ms := 0
 var _flash_until_ms := 0
+var _hotbar: HotbarView
+var _lifted := false
+var _stamina_offsets := Vector2.ZERO  # the scene's offset_top / offset_bottom (no hotbar)
+var _status_offsets := Vector2.ZERO
 
 @onready var info_label: Label = %InfoLabel
 @onready var stamina_bar: ProgressBar = %StaminaBar
@@ -70,6 +77,12 @@ func _ready() -> void:
 	_beep = AudioStreamPlayer.new()
 	_beep.stream = _make_beep()
 	add_child(_beep)
+	_hotbar = HotbarView.new()
+	_hotbar.name = "Hotbar"
+	_hotbar.visible = false
+	add_child(_hotbar)
+	_stamina_offsets = Vector2(stamina_bar.offset_top, stamina_bar.offset_bottom)
+	_status_offsets = Vector2(status_label.offset_top, status_label.offset_bottom)
 
 
 func _process(_delta: float) -> void:
@@ -126,6 +139,10 @@ func show_banner(text: String) -> void:
 func _update_player() -> void:
 	var alive := is_instance_valid(_player) and _player.is_inside_tree()
 	stamina_bar.visible = alive
+	var in_match := Session.current.match_manager.state in [MatchManager.State.COUNTDOWN, MatchManager.State.PLAYING]
+	_hotbar.player = _player if alive and in_match else null
+	_hotbar.visible = _hotbar.wanted()
+	_lift_above_hotbar(_hotbar.visible)
 	crosshair.visible = alive and _player.role_data.camera_kind == RoleData.CameraKind.FIRST_PERSON \
 		and _player.seated_console() == null
 	if Time.get_ticks_msec() > _banner_until_ms:
@@ -167,23 +184,30 @@ func _ability_text() -> String:
 	var primary := abilities.primary()
 	if primary != null:
 		lines.append("%s %s: %s" % [Keys.label(&"primary"), tr(primary.display_name), _cooldown_text(primary.id)])
-	var trap := abilities.selected_trap_ability()
-	if trap != null:
-		lines.append(tr("%s (hold, release) %s: %s · %d left · %s switch") % [Keys.label(&"secondary"),
-			tr(trap.display_name), _cooldown_text(trap.id), _player.inventory.trap_charges, Keys.label(&"next_trap")])
 	var inv := _player.inventory
 	if _player.role == Role.Kind.SUPERVISOR:
-		if inv.keycard:
-			lines.append(tr("Keycard: yes"))
-		elif inv.spare_wait_left > 0:
-			lines.append(tr("Keycard: STOLEN · spare in Storage in %d s") % inv.spare_wait_left)
-		else:
-			lines.append(tr("Keycard: STOLEN · a spare is waiting in Storage"))
+		if not inv.keycard:  # (the hotbar shows the keycard; this says where to get a spare)
+			lines.append(tr("Keycard: STOLEN · spare in Storage in %d s") % inv.spare_wait_left if inv.spare_wait_left > 0
+				else tr("Keycard: STOLEN · a spare is waiting in Storage"))
 		if _player.status.carrying != 0:
 			lines.append(tr("Carrying %s: get to a cage!") % Session.current.name_of(_player.status.carrying))
 	elif inv.stolen_item != &"":
 		lines.append(tr("You carry a %s (a bit slower; a stun drops it)") % tr(String(inv.stolen_item)))
 	return "\n".join(lines)
+
+
+## The stamina bar and the statuses sit above the hotbar while it shows, at the bottom otherwise.
+func _lift_above_hotbar(lifted: bool) -> void:
+	if lifted == _lifted:
+		return
+	_lifted = lifted
+	var lift := HotbarView.height() + ABOVE_HOTBAR + _stamina_offsets.y if lifted else 0.0
+	stamina_bar.offset_top = _stamina_offsets.x - lift
+	stamina_bar.offset_bottom = _stamina_offsets.y - lift
+	status_label.offset_top = _status_offsets.x - lift
+	status_label.offset_bottom = _status_offsets.y - lift
+	# The item caption goes above the statuses.
+	_hotbar.caption_lift = ABOVE_HOTBAR + (_stamina_offsets.y - _status_offsets.x) + 6.0
 
 
 func _cooldown_text(id: StringName) -> String:

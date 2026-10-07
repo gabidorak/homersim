@@ -3,8 +3,10 @@ extends Control
 ## starts itself (client/local_server.gd). Every change is saved at once (Config.solo_* / host_*), so
 ## the card opens with the last choices. Start emits start_requested; the main menu does the rest.
 ##   Solo: the role you'd like, the bots' difficulty, the match size (you + bots).
-##   Host: the game's name, a password, the most players, the bots (off or fill up to N players) and
-##   their difficulty, the UDP port, and whether the game shows on the local network.
+##   Host: where (this computer, or the online server: the launcher on the VPS, OnlineClient), the
+##   game's name, a password, the most players, the bots (off or fill up to N players) and their
+##   difficulty; on this computer the UDP port and whether the game shows on the local network, online
+##   the friends key.
 
 signal closed
 signal start_requested(mode: LocalServer.Mode, options: Dictionary)
@@ -19,6 +21,9 @@ var _difficulty_buttons: Array[Button] = []
 var _teams_label: Label
 var _port_edit: LineEdit
 var _note: Label
+var _local_rows: Array[Control] = []  # host: the rows only hosting on this computer has
+var _key_row: Control  # host: the friends key, online only
+var _key_edit: LineEdit
 var _first: Control  # focused when the card opens
 
 @onready var rows: VBoxContainer = %Rows
@@ -66,8 +71,8 @@ func _build_solo() -> void:
 
 func _build_host() -> void:
 	(%Title as Label).text = tr("Host a game")
-	(%Intro as Label).text = tr("Your computer runs the game and you play in it. When you leave, the game ends for everyone.")
 	start_button.text = tr("Host")
+	_choices(tr("Where"), "host_online", [[false, tr("This computer")], [true, tr("Online server")]])
 	var default_name := LocalServer.default_host_name(MainMenu.player_name())
 	var name_edit := _line_edit(Config.host_name if Config.host_name != "" else default_name, LanDiscovery.MAX_NAME)
 	name_edit.text_changed.connect(func(text: String) -> void:
@@ -91,17 +96,25 @@ func _build_host() -> void:
 	_teams_label = _muted(rows)
 	_port_edit = _line_edit(str(Config.host_port), 5)
 	_port_edit.text_changed.connect(func(_t: String) -> void: _refresh())
-	_row(tr("UDP port"), _port_edit)
+	_local_rows.append(_row(tr("UDP port"), _port_edit))
 	var lan := CheckButton.new()
 	lan.button_pressed = Config.host_lan
 	lan.toggled.connect(func(on: bool) -> void: Config.set_value("host_lan", on))
 	var lan_row := _row(tr("Show it on the local network"), lan)
+	_local_rows.append(lan_row)
 	lan.custom_minimum_size = Vector2.ZERO
 	lan.size_flags_horizontal = Control.SIZE_SHRINK_END
 	lan_row.get_child(0).mouse_filter = Control.MOUSE_FILTER_STOP
 	(lan_row.get_child(0) as Control).gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			lan.button_pressed = not lan.button_pressed)  # clicking the label flips it too
+	_key_edit = _line_edit(OnlineClient.key(), 200)
+	_key_edit.secret = true
+	_key_edit.placeholder_text = tr("Ask whoever runs the server")
+	_key_edit.text_changed.connect(func(text: String) -> void:
+		Config.set_value("online_key", text)
+		_refresh())
+	_key_row = _row(tr("Friends key"), _key_edit)
 	_note = _muted(%Col)
 	%Col.move_child(_note, start_button.get_index())
 	_refresh()
@@ -123,6 +136,17 @@ func _refresh() -> void:
 			button.disabled = fill == 0
 		_teams_label.visible = fill > 0
 		_teams_label.text = tr("Bots take the empty seats: %s and %s in all.") % _teams_text(fill, rules)
+		var online := Config.host_online
+		for row in _local_rows:
+			row.visible = not online
+		_key_row.visible = online
+		if online:
+			(%Intro as Label).text = tr("The online server (%s) runs the game and you play in it. It keeps going when you leave, and stops a few minutes after the last player left.") \
+				% OnlineClient.host_label()
+			start_button.disabled = _key_edit.text.strip_edges() == ""
+			_note.text = tr("Friends find it in Join a game > Online. They need the same friends key.")
+			return
+		(%Intro as Label).text = tr("Your computer runs the game and you play in it. When you leave, the game ends for everyone.")
 		var port := _typed_port()
 		if port > 0:
 			_port_edit.remove_theme_color_override("font_color")
@@ -143,7 +167,15 @@ func _teams_text(players: int, rules: MatchRules) -> Array:
 
 
 func _start() -> void:
-	if hosting:
+	if hosting and Config.host_online:
+		if _key_edit.text.strip_edges() == "":
+			Ui.play("ui_error")
+			_key_edit.grab_focus()
+			return
+		var options := LocalServer.host_options(MainMenu.player_name())
+		options["online"] = true
+		start_requested.emit(LocalServer.Mode.HOST, options)
+	elif hosting:
 		var port := _typed_port()
 		if port == 0:
 			Ui.play("ui_error")

@@ -9,19 +9,25 @@ extends Node
 ##   --solo [any|supervisor|rat]  open the Play solo card (with that role) and press Start
 ##   --host-game NAME [--host-port N] [--host-bots N]  open the Host a game card with these choices
 ##                            and press Host
+##   --host-online NAME [--host-bots N]  the same with "Online server" chosen (the friends key and the
+##                            launcher's address come from --online-key / --online-url)
+##   --online-join NAME       open the server browser's Online tab and press Join on the game called
+##                            NAME as soon as it shows up
 ## (Headless clients don't save their settings, so the choices made here don't stick.)
 
 static var _lan_join_used := false  # once per run: not again when the menu comes back after a session
-static var _local_used := false  # --solo / --host-game: once per run too
+static var _local_used := false  # --solo / --host-game / --host-online: once per run too
+static var _online_join_used := false
 
 var _menu: MainMenu
 var _passwords: PackedStringArray = []
 var _lan_target := ""
+var _online_target := ""
 
 
 static func wanted() -> bool:
 	return OS.is_debug_build() and (Cli.has_arg("lan-join") or Cli.has_arg("auto-password") or Cli.has_arg("dismiss-errors")
-		or Cli.has_arg("solo") or Cli.has_arg("host-game"))
+		or Cli.has_arg("solo") or Cli.has_arg("host-game") or Cli.has_arg("host-online") or Cli.has_arg("online-join"))
 
 
 func _ready() -> void:
@@ -31,17 +37,24 @@ func _ready() -> void:
 		_lan_join_used = true
 		_lan_target = Cli.get_str("lan-join")
 	_menu.child_entered_tree.connect(_on_menu_child)
+	if not _online_join_used:
+		_online_join_used = true
+		_online_target = Cli.get_str("online-join")
 	if _lan_target != "":
 		_open_browser.call_deferred()
-	if not _local_used and (Cli.has_arg("solo") or Cli.has_arg("host-game")):
+	elif _online_target != "":
+		_open_online.call_deferred()
+	if not _local_used and (Cli.has_arg("solo") or Cli.has_arg("host-game") or Cli.has_arg("host-online")):
 		_local_used = true
 		_start_local.call_deferred()
 
 
 func _start_local() -> void:
-	var hosting := Cli.has_arg("host-game")
+	var online := Cli.has_arg("host-online")
+	var hosting := Cli.has_arg("host-game") or online
+	Config.set_value("host_online", online)
 	if hosting:
-		Config.set_value("host_name", Cli.get_str("host-game"))
+		Config.set_value("host_name", Cli.get_str("host-online" if online else "host-game"))
 		Config.set_value("host_port", Cli.get_int("host-port", Net.DEFAULT_PORT))
 		if Cli.has_arg("host-bots"):
 			Config.set_value("host_bots", Cli.get_int("host-bots"))
@@ -51,7 +64,7 @@ func _start_local() -> void:
 	_menu._open(MainMenu.SETUP_SCENE, opener, {"hosting": hosting})
 	await get_tree().process_frame
 	Log.info("test", "pressing %s on the %s card" % [(_menu._screen.get_node("%StartButton") as Button).text,
-		"host" if hosting else "solo"])
+		"online host" if online else "host" if hosting else "solo"])
 	(_menu._screen.get_node("%StartButton") as Button).pressed.emit()
 
 
@@ -61,6 +74,25 @@ func _open_browser() -> void:
 	var lan := _menu._screen.get_node("LanBrowser") as LanBrowser
 	Log.info("test", "browsing the LAN for '%s' (listening on UDP %d)" % [_lan_target, lan.port])
 	lan.changed.connect(_check_lan.bind(lan))
+
+
+func _open_online() -> void:
+	_menu._open(MainMenu.BROWSER_SCENE, _menu.play_button)
+	(_menu._screen.get_node("%Tabs") as TabContainer).current_tab = ServerBrowser.TAB_ONLINE
+	var online := _menu._screen.get_node("OnlineClient") as OnlineClient
+	Log.info("test", "looking for '%s' on the online server %s" % [_online_target, OnlineClient.url()])
+	online.listed.connect(_check_online)
+
+
+func _check_online(games: Array[Dictionary]) -> void:
+	for game in games:
+		if game["name"] == _online_target:
+			Log.info("test", "found '%s' online on port %d (%d/%d), joining" % [game["name"], game["port"], game["players"], game["max"]])
+			(_menu._screen.get_node("OnlineClient") as OnlineClient).listed.disconnect(_check_online)
+			_online_target = ""
+			var row: Control = (_menu._screen.get("_online_rows") as Dictionary)[game["id"]]  # (the browser built it first)
+			(row.get_child(0).get_node("Join") as Button).pressed.emit()
+			return
 
 
 func _check_lan(lan: LanBrowser) -> void:

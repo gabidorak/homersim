@@ -6,10 +6,11 @@ extends Node
 ## --bots (M10): the server fills its matches with AI bots, and two of the made-up rats are bots.
 ## --local: the made-up game is one this game started (LocalServer): the solo or the host's lobby and menu.
 ## Always pass --settings with a throwaway file: the tour changes settings (name, favourites…).
-## Shots: menu, welcome, browser_lan, browser_fav, setup_solo, setup_host, starting, settings_video,
-## settings_controls, settings_audio, settings_gameplay, howto_supervisor, howto_rat, howto_controls,
-## credits, error, error_host_left, password, lobby, scoreboard, pause, feed, minimap_supervisor,
-## minimap_rat, map_supervisor, map_rat, postmatch, hint.
+## Shots: menu, welcome, browser_lan, browser_online_key, browser_online, browser_online_error, browser_fav,
+## setup_solo, setup_host, setup_host_online, starting, settings_video, settings_controls,
+## settings_audio, settings_gameplay, howto_supervisor, howto_rat, howto_controls, credits, error,
+## error_host_left, error_online, password, lobby, scoreboard, pause, feed, minimap_supervisor,
+## minimap_rat, map_supervisor, map_rat, hotbar_supervisor, hotbar_rat, postmatch, hint.
 
 const MENU := "res://client/MainMenu.tscn"
 
@@ -79,15 +80,20 @@ func _menus() -> void:
 			lan.list.heard(fake[i], ips[i], 50000 + i, now + 1000.0)
 			lan.list.got_pong(fake[i]["id"], [0.012, 0.085, 0.2, 0.03][i])
 		browser.call("_refresh_lan")
+		var tabs := browser.get_node("%Tabs") as TabContainer
+		tabs.current_tab = ServerBrowser.TAB_LAN
 		await _shot("browser_lan")
-		(browser.get_node("%Tabs") as TabContainer).current_tab = 1
+		await _online_shots(browser, tabs)
+		tabs.current_tab = ServerBrowser.TAB_FAVOURITES
 		await _shot("browser_fav")
 		menu._close_screen()
 	if _wanted("setup"):
-		for hosting in [false, true]:
-			menu._open(MainMenu.SETUP_SCENE, menu.play_button, {"hosting": hosting})
-			await _shot("setup_host" if hosting else "setup_solo")
+		for card: String in ["setup_solo", "setup_host", "setup_host_online"]:
+			Config.set_value("host_online", card == "setup_host_online")
+			menu._open(MainMenu.SETUP_SCENE, menu.play_button, {"hosting": card != "setup_solo"})
+			await _shot(card)
 			menu._close_screen()
+		Config.set_value("host_online", false)
 	if _wanted("starting"):
 		MessageDialog.inform(menu, tr("Starting..."), tr("Getting the plant ready..."), tr("Cancel"))
 		await _shot("starting")
@@ -123,12 +129,49 @@ func _menus() -> void:
 		menu._show_error(LeaveReason.Code.HOST_LEFT, "")
 		await _shot("error_host_left")
 		_close_dialogs(menu)
+		menu._show_error(LeaveReason.Code.ONLINE, OnlineApi.ERR_KEY)
+		await _shot("error_online")
+		_close_dialogs(menu)
 	if _wanted("password"):
 		MainMenu.last_address = "192.168.1.31:7777"
 		MainMenu.last_server_name = "Night shift"
 		menu._ask_password(MainMenu.last_address, MainMenu.last_server_name, true)
 		await _shot("password")
 		_close_dialogs(menu)
+
+
+## The Online tab with no key, with made-up games, and when the server can't be reached. Its
+## OnlineClient is cut off first, so the tour never asks a real server.
+func _online_shots(browser: Control, tabs: TabContainer) -> void:
+	Config.set_value("online_key", "")
+	tabs.current_tab = ServerBrowser.TAB_ONLINE
+	await _shot("browser_online_key")
+	var online := browser.get_node("OnlineClient") as OnlineClient
+	for signal_name: StringName in [&"listed", &"failed"]:
+		for connection: Dictionary in online.get_signal_connection_list(signal_name):
+			online.disconnect(signal_name, connection["callable"])
+	for child in browser.get_children():
+		if child is Timer:
+			(child as Timer).stop()
+	Config.set_value("online_key", "tour-key")
+	(browser.get_node("%KeyEdit") as LineEdit).text = "tour-key"
+	browser.set("_online_answered", true)
+	browser.set("_online_games", [
+		OnlineApi.game_entry({"name": "Gabriel's plant", "players": 3, "max": 6, "state": "playing", "locked": false,
+			"version": Session.game_version()}, 7800),
+		OnlineApi.game_entry({"name": "Late shift", "players": 1, "max": 4, "state": "lobby", "locked": true,
+			"version": Session.game_version()}, 7801),
+		OnlineApi.game_entry({"name": "Old build game", "players": 2, "max": 6, "state": "lobby", "locked": false,
+			"version": "0.0.9"}, 7802),
+	] as Array[Dictionary])
+	browser.call("_show_online")
+	await _shot("browser_online")
+	browser.set("_online_error", LeaveReason.message(LeaveReason.Code.ONLINE, "%s|%s" % [OnlineApi.ERR_UNREACHABLE,
+		OnlineClient.host_label()]))
+	browser.set("_online_games", [] as Array[Dictionary])
+	browser.call("_show_online")
+	await _shot("browser_online_error")
+	Config.set_value("online_key", "")
 
 
 func _close_dialogs(root: Node) -> void:
@@ -140,7 +183,7 @@ func _close_dialogs(root: Node) -> void:
 ## The in-game screens, on an offline Session filled with made-up players.
 func _in_game() -> void:
 	if not (_wanted("lobby") or _wanted("scoreboard") or _wanted("pause") or _wanted("feed")
-			or _wanted("postmatch") or _wanted("hint") or _wanted("minimap") or _wanted("map")):
+			or _wanted("postmatch") or _wanted("hint") or _wanted("minimap") or _wanted("map") or _wanted("hotbar")):
 		return
 	get_tree().unload_current_scene()  # the menu goes; this runner lives on under root
 	await get_tree().create_timer(0.2).timeout
@@ -237,6 +280,8 @@ func _in_game() -> void:
 			await _shot("hint", 0.8)
 	if _wanted("minimap") or _wanted("map"):
 		await _map_shots(session, names, roles)
+	if _wanted("hotbar"):
+		await _hotbar_shots(session, names, roles)
 	if _wanted("postmatch"):
 		var stats: Array = []
 		for peer: int in roles:
@@ -250,6 +295,44 @@ func _in_game() -> void:
 		await _shot("postmatch", 2.0)
 	session.queue_free()
 	await get_tree().create_timer(0.3).timeout
+
+
+## The inventory at the bottom of the HUD: a supervisor in the Break Room with a donut (selected, so
+## its caption shows), one trap left and their keycard stolen; then a rat carrying that keycard.
+func _hotbar_shots(session: Session, names: Dictionary, roles: Dictionary) -> void:
+	var bodies: Array[Player] = []
+	for peer: int in [11, 13]:
+		var body := session._spawn_player({"peer": peer, "name": names[peer], "role": roles[peer],
+			"pos": Vector3(-22 - (peer - 11), 0, 12), "yaw": 0.0, "locked": false}) as Player
+		session.players_root.add_child(body)
+		bodies.append(body)
+	await get_tree().create_timer(0.3).timeout
+	var supervisor := session.get_body(11)
+	supervisor.inventory.snap_charges = 1
+	supervisor.inventory.lure_charges = 2
+	supervisor.inventory.donuts = 1
+	supervisor.inventory.keycard = false
+	supervisor.inventory.spare_wait_left = 12
+	var rat := session.get_body(13)
+	rat.inventory.stolen_item = &"keycard"
+	var camera := Camera3D.new()
+	add_child(camera)
+	camera.look_at_from_position(Vector3(-21, 1.6, 11), Vector3(-15.5, 1.0, 14.5))
+	camera.make_current()
+	session.local_peer_id = 11
+	Events.local_player_spawned.emit(supervisor)
+	await get_tree().process_frame  # (the hotbar shows a caption when the selection *changes*)
+	await get_tree().process_frame
+	supervisor.hotbar.select(supervisor.hotbar.slots().find(Hotbar.DONUT))
+	await _shot("hotbar_supervisor", 0.5)
+	session.local_peer_id = 13
+	Events.local_player_spawned.emit(rat)
+	await _shot("hotbar_rat", 0.5)
+	session.local_peer_id = 11
+	camera.queue_free()
+	for body in bodies:
+		body.queue_free()
+	await get_tree().create_timer(0.2).timeout
 
 
 ## `d` with the made-up players 15 and 16 turned into bots -1001 and -1002 (--bots).

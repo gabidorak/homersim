@@ -70,7 +70,7 @@ godot tests/helpers/ArtGallery.tscn -- --files crate,lever [--anim idle]   # the
 | `crate.py` | Crate (the level stretches it to each crate box) |
 | `machines.py` | The six station machines (`machine_<subsystem>`, a 2 × 2 m footprint with flat spots for the repair panel and the junction boxes), generator, pump, transformer; shared helpers (flanges, gauges, hazard stripes, valve wheels, louvres, icons) |
 | `plant.py` | Reactor core (rods `Rod1..6`), turbine (`Shaft`), tanks, `pipe_2m`, elbow, `valve_rack_4m` (`Wheel1..4`), roof fan (`Fan`), exhaust stack, vent grille, cooling tower, ladder, floodlight, insulator post |
-| `interactables.py` | Sabotage box (+ broken), repair panel, critical lever (`Handle`), cage (`Door`), door panels, keycard reader, CCTV box/conduit/head (+ broken), CCTV chair, alarm beacon (`Reflector`), mousetrap, cheese, trap refill, keycard, console buttons (`Button`, `Cover`) |
+| `interactables.py` | Sabotage box (+ broken), repair panel, critical lever (`Handle`), cage (`Door`), door panels, keycard reader, CCTV box/conduit/head (+ broken), CCTV chair, alarm beacon (`Reflector`), mousetrap, cheese, trap refill (taped box), cheese box (open crate of wedges), keycard, console buttons (`Button`, `Cover`) |
 | `furniture.py` | Control desks, break-room table and chairs, bench, lockers, vending machine, coffee station, donut counter, shelves, pallet, water cooler, whiteboard, office desk, donut, donut box |
 | `dressing.py` | Barrels, junk piles, trash bags, rat beds, cones, signs, mop bucket, fire extinguisher, toolbox, cable spool, papers, clocks, pipe bundles, vial crates |
 | `kenney.py` | Kenney CC0 models recoloured onto the palette and rescaled (`k_*`) |

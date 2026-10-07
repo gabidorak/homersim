@@ -54,7 +54,8 @@ Navigation meshes baked in 1.1 s (level: plant).
 | KeycardDoor ReaderFront | 43 m | 10.6 s |  |
 | ReactorHall CageWest | 39 m | 9.7 s |  |
 | Storage SpareKeycard | 47 m | 11.8 s |  |
-| Storage TrapRefill | 50 m | 12.5 s |  |
+| Storage LureRefill | 49 m | 12.3 s |  |
+| Storage TrapRefill | 51 m | 12.8 s |  |
 | grid RepairPoint | 70 m | 17.5 s | ≤ 25 s ok |
 | pumps RepairPoint | 54 m | 13.4 s | ≤ 25 s ok |
 | rods RepairPoint | 29 m | 7.3 s | ≤ 25 s ok |

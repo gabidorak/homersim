@@ -68,7 +68,7 @@ Watching,Watching,Spectateur
 Keep the plant alive,Keep the plant alive,Garder la centrale en vie
 Damaged machines heat up the core. Press %s at a machine's repair panel and win the short minigame to fix it. Keep the meltdown meter (top of the screen) away from 100%% until the shift timer runs out. The Control Room has emergency coolant and a SCRAM button for bad moments.,Damaged machines heat up the core. Press %s at a machine's repair panel and win the short minigame to fix it. Keep the meltdown meter (top of the screen) away from 100%% until the shift timer runs out. The Control Room has emergency coolant and a SCRAM button for bad moments.,Les machines abîmées font chauffer le cœur. Appuyez sur %s devant le panneau de réparation d'une machine et réussissez le petit mini-jeu pour la réparer. Gardez la jauge de fusion (en haut de l'écran) loin des 100 %% jusqu'à la fin du service. La salle de contrôle a un refroidissement d'urgence et un bouton SCRAM pour les coups durs.
 "Bonk, carry, cage","Bonk, carry, cage","Assommer, porter, enfermer"
-"Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A rat caught twice is out for the match. Hold %s, then release, to place a trap. Donuts in the Break Room make you faster.","Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A rat caught twice is out for the match. Hold %s, then release, to place a trap. Donuts in the Break Room make you faster.","Donnez un coup de balai avec %s pour assommer un rat, appuyez sur %s pour le ramasser et portez-le jusqu'à une cage de la salle des cages ou du hall du réacteur (%s devant la cage). Un rat attrapé deux fois est éliminé pour la partie. Maintenez %s puis relâchez pour poser un piège. Les donuts de la salle de pause vous rendent plus rapide."
+"Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A rat caught twice is out for the match. Hold %s, then release, to place a trap: a snap trap stuns a rat, a cheese lure shows it through walls and on your map. Grab a donut in the Break Room and eat it when you need a burst of speed (select it, then %s).","Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A rat caught twice is out for the match. Hold %s, then release, to place a trap: a snap trap stuns a rat, a cheese lure shows it through walls and on your map. Grab a donut in the Break Room and eat it when you need a burst of speed (select it, then %s).","Donnez un coup de balai avec %s pour assommer un rat, appuyez sur %s pour le ramasser et portez-le jusqu'à une cage de la salle des cages ou du hall du réacteur (%s devant la cage). Un rat attrapé deux fois est éliminé pour la partie. Maintenez %s puis relâchez pour poser un piège : une tapette assomme un rat, un appât au fromage le montre à travers les murs et sur votre carte. Prenez un donut dans la salle de pause et mangez-le quand il vous faut un coup de vitesse (sélectionnez-le, puis %s)."
 Sabotage!,Sabotage!,Sabotage !
 "Sneak through the vents to the machines and hold %s at their red junction boxes. The critical machines (control rods, turbine) need two rats pulling their levers at the same time. Each broken machine pushes the meltdown meter up: reach 100%% and the rats win.","Sneak through the vents to the machines and hold %s at their red junction boxes. The critical machines (control rods, turbine) need two rats pulling their levers at the same time. Each broken machine pushes the meltdown meter up: reach 100%% and the rats win.","Faufilez-vous par les conduits jusqu'aux machines et maintenez %s devant leurs boîtiers électriques rouges. Les machines critiques (barres de contrôle, turbine) demandent deux rats qui tirent leurs leviers en même temps. Chaque machine cassée fait monter la jauge de fusion : à 100 %%, les rats gagnent."
 "Bite, steal, rescue","Bite, steal, rescue","Mordre, voler, libérer"
@@ -88,8 +88,6 @@ frozen,frozen,figé
 %s scores,%s scores,%s scores
 Esc menu,Esc menu,Échap menu
 You're caged! A free rat can let you out (hold %s at the cage),You're caged! A free rat can let you out (hold %s at the cage),Vous êtes en cage ! Un rat libre peut vous sortir (en maintenant %s devant la cage)
-"%s (hold, release) %s: %s · %d left · %s switch","%s (hold, release) %s: %s · %d left · %s switch","%s (maintenir, relâcher) %s : %s · %d restants · %s pour changer"
-Keycard: yes,Keycard: yes,Badge : oui
 Keycard: STOLEN · spare in Storage in %d s,Keycard: STOLEN · spare in Storage in %d s,Badge : VOLÉ · badge de secours dans la Réserve dans %d s
 Keycard: STOLEN · a spare is waiting in Storage,Keycard: STOLEN · a spare is waiting in Storage,Badge : VOLÉ · un badge de secours attend dans la Réserve
 Carrying %s: get to a cage!,Carrying %s: get to a cage!,Vous portez %s : direction une cage !
@@ -281,13 +279,10 @@ Pull the %s lever,Pull the %s lever,Tirer le levier %s
 Open,Open,Ouvrir
 Keycard needed,Keycard needed,Badge nécessaire
 Open (keycard),Open (keycard),Ouvrir (badge)
-Traps are full,Traps are full,Pièges au complet
-Refill traps,Refill traps,Recharger les pièges
 You have your keycard,You have your keycard,Vous avez votre badge
 Spare keycard in %d s,Spare keycard in %d s,Badge de secours dans %d s
 Take the spare keycard,Take the spare keycard,Prendre le badge de secours
 Next donut in %d s,Next donut in %d s,Prochain donut dans %d s
-Eat a donut,Eat a donut,Manger un donut
 You have a keycard,You have a keycard,Vous avez un badge
 Pick up the keycard,Pick up the keycard,Ramasser le badge
 %s jammed: %d s,%s jammed: %d s,"%s : bloqué, %d s"
@@ -431,7 +426,6 @@ Results,Results,Résultats
 Tighten the bolts,Tighten the bolts,Serrez les boulons
 Reset the breakers,Reset the breakers,Réarmez les disjoncteurs
 Turn the valve,Turn the valve,Tournez la vanne
-TRAPS,TRAPS,PIÈGES
 SPARE KEYCARD,SPARE KEYCARD,BADGE DE SECOURS
 DONUTS,DONUTS,DONUTS
 Bite,Bite,Morsure
@@ -565,3 +559,48 @@ Can't start the game,Can't start the game,Impossible de lancer la partie
 The game's server stopped while starting. Its log is in %s,The game's server stopped while starting. Its log is in %s,Le serveur de la partie s'est arrêté pendant son démarrage. Son journal est dans %s
 The game's server took too long to start. Its log is in %s,The game's server took too long to start. Its log is in %s,Le serveur de la partie a mis trop de temps à démarrer. Son journal est dans %s
 The game could not start its server.,The game could not start its server.,Le jeu n'a pas pu lancer son serveur.
+Friends key,Friends key,Clé des amis
+Ask whoever runs the server,Ask whoever runs the server,Demandez-la au gérant du serveur
+Where,Where,Où
+This computer,This computer,Cet ordinateur
+Online server,Online server,Serveur en ligne
+"The online server (%s) runs the game and you play in it. It keeps going when you leave, and stops a few minutes after the last player left.","The online server (%s) runs the game and you play in it. It keeps going when you leave, and stops a few minutes after the last player left.","Le serveur en ligne (%s) fait tourner la partie et vous y jouez. Elle continue quand vous partez, et s'arrête quelques minutes après le départ du dernier joueur."
+Friends find it in Join a game > Online. They need the same friends key.,Friends find it in Join a game > Online. They need the same friends key.,Vos amis la trouvent dans Rejoindre une partie > En ligne. Il leur faut la même clé des amis.
+Getting the plant ready on %s...,Getting the plant ready on %s...,On prépare la centrale sur %s...
+Online,Online,En ligne
+Games on the online server (%s). Type the friends key below: ask the person who runs the server for it.,Games on the online server (%s). Type the friends key below: ask the person who runs the server for it.,Parties du serveur en ligne (%s). Tapez la clé des amis ci-dessous : demandez-la à la personne qui gère le serveur.
+Asking the online server (%s)...,Asking the online server (%s)...,On interroge le serveur en ligne (%s)...
+"No games on the online server right now. Start one: Host a game, then Online server.","No games on the online server right now. Start one: Host a game, then Online server.","Aucune partie sur le serveur en ligne pour l'instant. Lancez-en une : Héberger une partie, puis Serveur en ligne."
+Games on the online server (%s). They refresh by themselves.,Games on the online server (%s). They refresh by themselves.,Parties du serveur en ligne (%s). La liste se met à jour toute seule.
+Can't reach the online server,Can't reach the online server,Serveur en ligne injoignable
+Wrong friends key,Wrong friends key,Mauvaise clé des amis
+Online server full,Online server full,Serveur en ligne complet
+"The online server (%s) didn't answer. Check your internet connection, or try again in a moment: it may be restarting.","The online server (%s) didn't answer. Check your internet connection, or try again in a moment: it may be restarting.","Le serveur en ligne (%s) n'a pas répondu. Vérifiez votre connexion internet, ou réessayez dans un moment : il redémarre peut-être."
+"The online server refused your friends key. Ask the person who runs it for the right one, and type it in Join a game > Online.","The online server refused your friends key. Ask the person who runs it for the right one, and type it in Join a game > Online.","Le serveur en ligne a refusé votre clé des amis. Demandez la bonne à la personne qui le gère, et tapez-la dans Rejoindre une partie > En ligne."
+"The online server already runs as many games as it can. Join one of them, or try again once one ends.","The online server already runs as many games as it can. Join one of them, or try again once one ends.","Le serveur en ligne fait déjà tourner autant de parties qu'il peut. Rejoignez-en une, ou réessayez quand l'une d'elles sera finie."
+Many games were just started on the online server. Try again in a minute.,Many games were just started on the online server. Try again in a minute.,Beaucoup de parties viennent d'être lancées sur le serveur en ligne. Réessayez dans une minute.
+The online server could not start the game. Try again in a moment.,The online server could not start the game. Try again in a moment.,Le serveur en ligne n'a pas pu lancer la partie. Réessayez dans un moment.
+The online server didn't understand the request. Restart the game to update it.,The online server didn't understand the request. Restart the game to update it.,Le serveur en ligne n'a pas compris la demande. Relancez le jeu pour le mettre à jour.
+Donut,Donut,Donut
+take one at the Break Room counter,take one at the Break Room counter,prenez-en un au comptoir de la salle de pause
+%s to eat it,%s to eat it,%s pour le manger
+"%s, then %s to eat it","%s, then %s to eat it","%s, puis %s pour le manger"
+none left: refill in Storage,none left: refill in Storage,plus aucun : rechargez dans la Réserve
+"hold %s, release to place","hold %s, release to place","maintenez %s, relâchez pour poser"
+Eat your donut,Eat your donut,Manger votre donut
+You already have a donut,You already have a donut,Vous avez déjà un donut
+Take a donut,Take a donut,Prendre un donut
+Inventory slot 1,Inventory slot 1,Case 1 de l'inventaire
+Inventory slot 2,Inventory slot 2,Case 2 de l'inventaire
+Inventory slot 3,Inventory slot 3,Case 3 de l'inventaire
+Next inventory slot,Next inventory slot,Case suivante de l'inventaire
+Previous inventory slot,Previous inventory slot,Case précédente de l'inventaire
+Eating it makes you %d%% faster for %d s,Eating it makes you %d%% faster for %d s,Le manger vous rend %d %% plus rapide pendant %d s
+"Stuns a rat for %d s, and every supervisor hears the SNAP","Stuns a rat for %d s, and every supervisor hears the SNAP",Assomme un rat %d s ; les superviseurs entendent le CLAC
+A rat that touches it glows through walls for %d s,A rat that touches it glows through walls for %d s,Un rat qui le touche brille à travers les murs pendant %d s
+Snap traps are full,Snap traps are full,Tapettes au complet
+Refill snap traps,Refill snap traps,Recharger les tapettes
+Cheese lures are full,Cheese lures are full,Appâts au complet
+Refill cheese lures,Refill cheese lures,Recharger les appâts
+SNAP TRAPS,SNAP TRAPS,TAPETTES
+CHEESE LURES,CHEESE LURES,APPÂTS AU FROMAGE

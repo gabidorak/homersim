@@ -21,7 +21,7 @@ import machines as M  # noqa: E402
 
 KINDS = ["sabotage_box", "sabotage_box_broken", "repair_panel", "lever", "cage", "door_panel", "door_panel_keycard",
          "keycard_reader", "cctv_box", "cctv_conduit", "cctv_head", "cctv_head_broken", "cctv_chair", "alarm_beacon",
-         "snap_trap", "cheese_lure", "trap_refill", "keycard", "console_coolant", "console_scram"]
+         "snap_trap", "cheese_lure", "trap_refill", "cheese_box", "keycard", "console_coolant", "console_scram"]
 ASSETS = [(k, {"kind": k}) for k in KINDS]
 
 
@@ -258,6 +258,29 @@ def _trap_refill():
     return b.finish()
 
 
+def _cheese_box():
+    """Storage: cheese lures to refill. An open crate of cheese wedges, so it doesn't look like the
+    taped box of snap traps next to it."""
+    b = C.Builder("CheeseBox")
+    w, d, h, t = 0.5, 0.36, 0.16, 0.02
+    b.box((w, d, t), (0, 0, 0), "cardboard", base=True)  # floor
+    for y in (-d / 2 + t / 2, d / 2 - t / 2):
+        b.box((w, t, h), (0, y, 0), "cardboard", base=True, bevel=0.004)
+    for x in (-w / 2 + t / 2, w / 2 - t / 2):
+        b.box((t, d - 2 * t, h), (x, 0, 0), "cardboard", base=True, bevel=0.004)
+    # Wedges heaped inside, their tops above the rim.
+    tri = [(-0.08, -0.05), (0.08, -0.05), (-0.08, 0.06)]
+    for x, y, z, rx, rz in ((-0.12, -0.07, 0.07, 8, 15), (0.09, -0.06, 0.08, -10, 160), (-0.1, 0.07, 0.08, 12, -70),
+                            (0.12, 0.08, 0.06, -6, 110), (0.0, 0.0, 0.11, 14, 40)):
+        b.prism(tri, 0.09, (x, y, z), "cheese", rot=(rx, 0, rz), bevel=0.008)
+    for x, y, z in ((-0.15, -0.08, 0.165), (0.07, -0.05, 0.175), (0.0, 0.02, 0.205), (-0.12, 0.09, 0.175)):
+        b.sphere(0.012, (x, y, z), "yellow_dark", scale=(1, 1, 0.4), segments=8, rings=4)
+    # A label on the front: a yellow wedge on a dark card.
+    b.box((0.2, 0.004, 0.09), (0, -d / 2 - 0.002, 0.035), "black", base=True)
+    b.prism([(-0.06, 0.0), (0.06, 0.0), (-0.06, 0.06)], 0.004, (0.0, -d / 2 - 0.004, 0.05), "cheese", rot=(90, 0, 0))
+    return b.finish()
+
+
 def _keycard():
     b = C.Builder("Keycard")
     b.box((0.12, 0.08, 0.008), (0, 0, 0), "safety_yellow", base=True, bevel=0.002)
@@ -301,7 +324,8 @@ BUILDERS = {
     "lever": _lever, "cage": _cage, "door_panel": _door_panel, "door_panel_keycard": lambda: _door_panel(True),
     "keycard_reader": _keycard_reader, "cctv_box": _cctv_box, "cctv_conduit": _cctv_conduit, "cctv_head": _cctv_head,
     "cctv_head_broken": lambda: _cctv_head(True), "cctv_chair": _cctv_chair, "alarm_beacon": _alarm_beacon,
-    "snap_trap": _snap_trap, "cheese_lure": _cheese_lure, "trap_refill": _trap_refill, "keycard": _keycard,
+    "snap_trap": _snap_trap, "cheese_lure": _cheese_lure, "trap_refill": _trap_refill, "cheese_box": _cheese_box,
+    "keycard": _keycard,
     "console_coolant": _console, "console_scram": lambda: _console(True),
 }
 

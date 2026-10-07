@@ -6,7 +6,7 @@ extends GutTest
 const MODELS: Array[String] = [
 	"supervisor", "rat", "fp_arms", "broom", "alarm_beacon", "sabotage_box", "sabotage_box_broken", "repair_panel",
 	"lever", "cage", "door_panel", "door_panel_keycard", "keycard_reader", "cctv_box", "cctv_conduit", "cctv_head",
-	"cctv_head_broken", "cctv_chair", "snap_trap", "cheese_lure", "trap_refill", "keycard", "donut_box",
+	"cctv_head_broken", "cctv_chair", "snap_trap", "cheese_lure", "trap_refill", "cheese_box", "keycard", "donut_box",
 	"console_coolant", "console_scram", "pipe_2m",
 ]
 ## model → parts code looks up by name

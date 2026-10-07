@@ -14,6 +14,10 @@ extends Node
 ## it runs the real server as a child (`--update-supervisor PID`) and starts it again whenever it
 ## exits with EXIT_RESTART. The child quits when the supervisor is gone. While nobody is connected,
 ## the child checks for an update every UPDATE_INTERVAL_S.
+## The launcher of online games (server/launcher/launcher.gd, `--launcher`) is a server too, with one
+## difference: it installs new builds even while games run (they keep running from the old file), so
+## new games start on the newest build, and it restarts only once no game runs. It also checks at once
+## when a player with another build asks for a game (install_update()).
 ##
 ## Flags: --branch NAME, --no-update, --update-url URL (test server instead of GitHub releases),
 ## --update-interval S.
@@ -34,6 +38,8 @@ var exe_path := OS.get_executable_path()
 var _cancelled := false
 var _busy := false
 var _restart_pending := false  # server child: new binary installed, restart once the server is empty
+var _installed := 0  # the build number this process installed (not running yet), 0 = none
+var _newest_logged := -1  # "up to date" is logged once per newest build, not at every check
 var _worker_pid := -1  # supervisor: the server child
 var _supervisor: ProcessWatch  # server child: the supervisor process
 
@@ -55,7 +61,7 @@ static func is_enabled() -> bool:
 
 
 static func is_server() -> bool:
-	return OS.has_feature("dedicated_server") or Cli.has_arg("server")
+	return OS.has_feature("dedicated_server") or Cli.has_arg("server") or Cli.has_arg("launcher")
 
 
 ## True in the server child that a supervisor started.
@@ -92,6 +98,18 @@ func update() -> bool:
 	_cancelled = false
 	var installed := await _update()
 	_busy = false
+	return installed
+
+
+## Server child: installs the newest build if there is one (waiting for a check already under way),
+## and restarts on it once the server is empty (the launcher: once no game runs). Returns true if it
+## installed one.
+func install_update() -> bool:
+	while _busy:
+		await get_tree().create_timer(0.5).timeout
+	var installed := await update()
+	if installed:
+		_restart_pending = true
 	return installed
 
 
@@ -132,8 +150,10 @@ func _update() -> bool:
 		Log.warn("update", "unreadable %s for branch '%s'" % [MANIFEST, channel()])
 		return false
 	var number := int(manifest.get("number", 0))
-	if tag == tag_for(BuildInfo.BRANCH) and number <= BuildInfo.NUMBER:
-		Log.info("update", "up to date (newest build of '%s' is %d)" % [channel(), number])
+	if (tag == tag_for(BuildInfo.BRANCH) and number <= BuildInfo.NUMBER) or (_installed > 0 and number <= _installed):
+		if number != _newest_logged:
+			_newest_logged = number
+			Log.info("update", "up to date (newest build of '%s' is %d)" % [channel(), number])
 		return false
 	var assets: Dictionary = manifest.get("assets", {})
 	var sha := str(assets.get(asset_name(), {}).get("sha256", ""))
@@ -155,6 +175,7 @@ func _update() -> bool:
 		return false
 	if not _swap(exe, download):
 		return false
+	_installed = number
 	Log.info("update", "installed build %d of '%s'" % [number, channel()])
 	_set_status(tr("Starting the new version..."))
 	return true
@@ -279,7 +300,7 @@ func _watch() -> void:
 		get_tree().quit()
 		return
 	if _restart_pending and _server_empty():
-		Log.info("update", "server is empty, restarting on the new build")
+		Log.info("update", "%s, restarting on the new build" % ("no game runs" if Launcher.current != null else "server is empty"))
 		get_tree().quit(EXIT_RESTART)
 
 
@@ -289,13 +310,18 @@ func _exit_tree() -> void:
 
 
 func _check_while_idle() -> void:
-	if _restart_pending or not _server_empty() or not Net.is_server:
+	var launcher := Launcher.current != null
+	if not Net.is_server and not launcher:
 		return
-	if await update():
-		_restart_pending = true  # _watch restarts once nobody is connected
+	if not launcher and (_restart_pending or not _server_empty()):
+		return  # (a game server installs only while nobody plays: it restarts right after)
+	await install_update()  # _watch restarts once nobody is connected (the launcher: no game runs)
 
 
+## True if nobody plays on this server (the launcher: no game runs).
 func _server_empty() -> bool:
+	if Launcher.current != null:
+		return Launcher.current.games.is_empty()
 	var session := get_node_or_null("/root/Session") as Session
 	return session == null or session.players.is_empty()
 

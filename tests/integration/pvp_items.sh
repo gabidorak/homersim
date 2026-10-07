@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # M4 items: steal → locked out of the keycard door → a stun drops the keycard → pick it up and
-# open the door → steal again → snap trap, cheese lure → donut, trap refill → spare keycard
+# open the door → steal again → snap trap, cheese lure → donut, trap box, cheese box → spare keycard
 # after 30 s. One supervisor bot, one rat bot.
 # Usage: tests/integration/pvp_items.sh   (GODOT=/path/to/godot to override the binary)
 source "$(dirname "$0")/pvp_lib.sh"
@@ -23,8 +23,13 @@ expect "$LOGS/server.log" "RatBot stepped on a snap trap"               "server:
 expect "$LOGS/supervisor.log" "SNAP! A trap went off"                   "supervisor: heard the SNAP"
 refute "$LOGS/rat.log" "SNAP! A trap went off"                          "rat: the SNAP is for supervisors only"
 expect "$LOGS/rat.log" "lured: revealed true"                           "rat: revealed by the lure"
-expect "$LOGS/supervisor.log" "donut: boosted true, speed x1.20"        "supervisor: donut rush"
-expect "$LOGS/supervisor.log" "traps refilled: 3"                       "supervisor: trap refill"
+expect "$LOGS/supervisor.log" "donut: carried 1, boosted before eating false, counter available false" \
+                                                                        "supervisor: donut carried, not eaten yet"
+expect "$LOGS/supervisor.log" "donut: boosted true, speed x1.20, 0 left" "supervisor: donut eaten, donut rush"
+expect "$LOGS/server.log" "SupervisorBot ate a donut"                   "server: the donut was eaten"
+expect "$LOGS/supervisor.log" "traps placed, 2 snap trap\(s\) and 2 lure\(s\) left" "supervisor: each trap kind has its own charges"
+expect "$LOGS/supervisor.log" "snap traps refilled: 3, lures untouched: 2" "supervisor: the trap box refills snap traps only"
+expect "$LOGS/supervisor.log" "cheese lures refilled: 3"                "supervisor: the cheese box refills lures"
 expect "$LOGS/server.log" "refused .*SpareKeycard: not available"       "server: no spare keycard before 30 s"
 expect "$LOGS/supervisor.log" "spare keycard taken: true"               "supervisor: spare keycard after 30 s"
 expect "$RESULT" '"steals": 2'                                          "result: 2 steals"

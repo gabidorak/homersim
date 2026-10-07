@@ -962,7 +962,7 @@ def build_props():
     beacon(p, -45, 3.7, 20)
     p.label("VALVE CORRIDOR", -45, 3.2, 10, 90)
 
-    # --- Storage: shelves (crates next to them let rats hop up), trap refill, spare keycard.
+    # --- Storage: shelves (crates next to them let rats hop up), trap and cheese refills, spare keycard.
     p = poi("Storage")
     for k, sz in enumerate((-16.0, -11.0)):
         solid(p, 39.0, 0, sz - 0.5, 45.0, 2.4, sz + 0.5)
@@ -971,9 +971,11 @@ def build_props():
             model(p, "Shelf", "shelf_2m_" + "ab"[(i + k) % 2], (sx, 0, sz), 0 if k == 0 else 180, fallback=(2.0, 2.4, 1.0))
         crate(p, 45.2, 0, sz - 0.6, 46.3, 1.2, sz + 0.6)
     # Pickup heights: the pallet top (0.25) + half the use area (interactables/pickup/pickup.gd LOOKS).
-    pickup(p, "TrapRefill", "trap_refill", 35.0, 0.45, -16.5, 90)
-    pickup(p, "SpareKeycard", "spare_keycard", 35.0, 0.7, -13.5, 90)
-    fill(p, "PickupTable", "pallet_flat", 34.25, 0, -18.0, 35.0, 0.25, -12.0)
+    # (Far enough from the north wall that the map's pickup labels clear the room's name.)
+    pickup(p, "TrapRefill", "trap_refill", 35.0, 0.45, -15.9, 90)
+    pickup(p, "LureRefill", "lure_refill", 35.0, 0.45, -14.0, 90)
+    pickup(p, "SpareKeycard", "spare_keycard", 35.0, 0.7, -12.1, 90)
+    fill(p, "PickupTable", "pallet_flat", 34.25, 0, -16.9, 35.0, 0.25, -11.1)
     p.label("STORAGE", 43, 3.2, -8.5, 90)
 
     # --- Cage Room: two cages, crates for cover.
@@ -1742,7 +1744,7 @@ def draw_plan():
         a, b = P(x, z)
         d.ellipse([a - 6, b - 6, a + 6, b + 6], fill=mark_col[t], outline=(0, 0, 0))
         d.text((a, b), t, fill=(0, 0, 0), font=small, anchor="mm")
-    for (x, z), t in (((37.2, 2.0), "CAGE"), ((47.2, 10.0), "CAGE"), ((-35.3, -5.0), "CAGE"), ((35.0, -15.0), "traps +\nkeycard"),
+    for (x, z), t in (((37.2, 2.0), "CAGE"), ((47.2, 10.0), "CAGE"), ((-35.3, -5.0), "CAGE"), ((35.0, -14.0), "traps, cheese\n+ keycard"),
                       ((-15.2, 14.0), "donuts"), ((-1.0, 15.6), "CCTV\nchair"), ((-13.7, 12.0), "status\nboard")):
         a, b = P(x, z)
         d.rectangle([a - 4, b - 4, a + 4, b + 4], fill=(255, 255, 255))

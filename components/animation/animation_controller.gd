@@ -69,7 +69,7 @@ var _air_time := 0.0
 var _min_vy := 0.0
 var _emote_until := 0.0  # owner: Time in seconds
 var _last_flags := 0
-var _last_donut_wait := 0
+var _last_donuts := 0
 var _vent_check := 0.0
 var _in_vent := false
 var _walk_speed := 1.0
@@ -99,7 +99,7 @@ func _ready() -> void:
 		abilities.bitten.connect(func(attacker: int, _victim: int, _result: int) -> void:
 			if attacker == body.peer_id and not body.is_local():
 				play_one_shot("bite"))
-	_last_donut_wait = body.inventory.donut_wait_left
+	_last_donuts = body.inventory.donuts
 
 
 func has_clip(clip: String) -> bool:
@@ -246,12 +246,12 @@ func _check_flag_edges(flags: int) -> void:
 		play_one_shot(clips.get("emote", "emote"))
 
 
-## A supervisor that just ate a donut (the synced donut wait jumped up).
+## A supervisor that just ate a donut (one fewer carried: eating is the only way to lose one).
 func _check_donut() -> void:
-	var wait := body.inventory.donut_wait_left
-	if wait > _last_donut_wait + 1:
+	var donuts := body.inventory.donuts
+	if donuts < _last_donuts:
 		play_one_shot("eat")
-	_last_donut_wait = wait
+	_last_donuts = donuts
 
 
 func _minigame_open() -> bool:

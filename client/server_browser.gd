@@ -1,12 +1,19 @@
+class_name ServerBrowser
 extends Control
 ## The server browser (M8): servers found on the LAN (LanBrowser: name, players, state, ping), the
-## saved favourites (Config.favourites: join, rename, remove), and a field to type any address.
+## games on the online server (OnlineClient: the VPS launcher's list, refreshed every ONLINE_REFRESH_S
+## while that tab is open; it needs the friends key, typed in that tab), the saved favourites
+## (Config.favourites: join, rename, remove), and a field to type any address.
 ## It never connects itself: it emits join_requested and the main menu does the joining.
 
 signal closed
 signal join_requested(address: String, server_name: String, locked: bool)
 
 const ICONS := "res://assets/third_party/kenney_game-icons/%s.png"
+const TAB_LAN := 0
+const TAB_ONLINE := 1
+const TAB_FAVOURITES := 2
+const ONLINE_REFRESH_S := 3.0
 const STATE_TEXT := {
 	"lobby": "In the lobby",
 	"starting": "Starting",
@@ -14,18 +21,29 @@ const STATE_TEXT := {
 	"results": "Results",
 }
 
+## The tab open when the browser last closed (this run), -1 = none yet.
+static var last_tab := -1
+
 var _lan: LanBrowser
 var _lan_rows: Dictionary = {}  # server id -> row Control
+var _online: OnlineClient
+var _online_rows: Dictionary = {}  # game id -> row Control
+var _online_games: Array[Dictionary] = []
+var _online_answered := false  # the online server answered at least once
+var _online_error := ""  # what went wrong with the last list, "" = nothing
 
 @onready var tabs: TabContainer = %Tabs
 @onready var lan_list: VBoxContainer = %LanList
+@onready var online_list: VBoxContainer = %OnlineList
+@onready var key_edit: LineEdit = %KeyEdit
 @onready var fav_list: VBoxContainer = %FavList
 @onready var address_edit: LineEdit = %AddressEdit
 
 
 func _ready() -> void:
-	tabs.set_tab_title(0, tr("On your network"))
-	tabs.set_tab_title(1, tr("Favourites"))
+	tabs.set_tab_title(TAB_LAN, tr("On your network"))
+	tabs.set_tab_title(TAB_ONLINE, tr("Online"))
+	tabs.set_tab_title(TAB_FAVOURITES, tr("Favourites"))
 	%BackButton.pressed.connect(func() -> void: closed.emit())
 	%JoinButton.pressed.connect(_join_typed)
 	%SaveButton.pressed.connect(_save_typed)
@@ -39,8 +57,10 @@ func _ready() -> void:
 	_lan.changed.connect(_refresh_lan)
 	_refresh_lan()
 	_refresh_favourites()
-	if Config.favourites.size() > 0 and _lan.list.servers.is_empty():
-		tabs.current_tab = 0
+	_setup_online()
+	tabs.current_tab = last_tab if last_tab >= 0 else (TAB_ONLINE if OnlineClient.key() != "" else TAB_LAN)
+	tabs.tab_changed.connect(_on_tab_changed)
+	_on_tab_changed(tabs.current_tab)
 	tabs.get_tab_bar().grab_focus()
 
 
@@ -73,7 +93,7 @@ func _save_typed() -> void:
 			LeaveReason.message(LeaveReason.Code.BAD_ADDRESS, text))
 		return
 	Config.add_favourite(text, text)
-	tabs.current_tab = 1
+	tabs.current_tab = TAB_FAVOURITES
 
 
 # --- LAN -----------------------------------------------------------------------
@@ -86,27 +106,116 @@ func _refresh_lan() -> void:
 		status.text = tr("Looking for servers on your network... Nothing yet? The server may be on another network (type its address below), or a firewall blocks it: on Windows, allow HomerSim on private networks.")
 	else:
 		status.text = tr("Servers on your network. They refresh by themselves.")
-	var entries := _lan.list.sorted()
-	var ids: Array = []
-	for entry in entries:
-		ids.append(entry["id"])
-	for id: int in _lan_rows.keys():
-		if not ids.has(id):
-			(_lan_rows[id] as Control).queue_free()
-			_lan_rows.erase(id)
-	for i in entries.size():
-		var entry := entries[i]
-		var row: Control = _lan_rows.get(entry["id"])
-		if row == null:
-			row = _make_lan_row(entry)
-			lan_list.add_child(row)
-			_lan_rows[entry["id"]] = row
-		lan_list.move_child(row, i)
-		_update_lan_row(row, entry)
+	_sync_rows(lan_list, _lan_rows, _lan.list.sorted(), false)
 	_refresh_favourites_status()
 
 
-func _make_lan_row(entry: Dictionary) -> Control:
+# --- Online --------------------------------------------------------------------
+
+func _setup_online() -> void:
+	key_edit.text = OnlineClient.key()
+	key_edit.text_submitted.connect(func(_t: String) -> void: _save_key())
+	%KeySaveButton.pressed.connect(_save_key)
+	_online = OnlineClient.new()
+	_online.name = "OnlineClient"
+	add_child(_online)
+	_online.listed.connect(func(games: Array[Dictionary]) -> void:
+		_online_games = games
+		_online_answered = true
+		_online_error = ""
+		_show_online())
+	_online.failed.connect(func(code: LeaveReason.Code, detail: String) -> void:
+		_online_games = []
+		_online_error = LeaveReason.message(code, detail)
+		_show_online())
+	var timer := Timer.new()
+	timer.wait_time = ONLINE_REFRESH_S
+	timer.autostart = true
+	timer.timeout.connect(_refresh_online)
+	add_child(timer)
+	_show_online()
+
+
+func _on_tab_changed(tab: int) -> void:
+	last_tab = tab
+	if tab == TAB_ONLINE:
+		_refresh_online()
+
+
+## Asks the online server for its games, while the Online tab is open.
+func _refresh_online() -> void:
+	if tabs.current_tab == TAB_ONLINE and OnlineClient.key() != "" and not _online.is_busy():
+		_online.list()
+
+
+func _save_key() -> void:
+	Config.set_value("online_key", key_edit.text)
+	Ui.play("ui_confirm")
+	_online_answered = false
+	_online_error = ""
+	_show_online()
+	_refresh_online()
+
+
+func _show_online() -> void:
+	var status: Label = %OnlineStatus
+	var host := OnlineClient.host_label()
+	if OnlineClient.key() == "":
+		status.text = tr("Games on the online server (%s). Type the friends key below: ask the person who runs the server for it.") % host
+	elif _online_error != "":
+		status.text = _online_error
+	elif not _online_answered:
+		status.text = tr("Asking the online server (%s)...") % host
+	elif _online_games.is_empty():
+		status.text = tr("No games on the online server right now. Start one: Host a game, then Online server.")
+	else:
+		status.text = tr("Games on the online server (%s). They refresh by themselves.") % host
+	var entries := _online_games.duplicate()
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a["name"]).naturalnocasecmp_to(str(b["name"])) < 0)
+	_sync_rows(online_list, _online_rows, entries, true)
+
+
+# --- Server rows (LAN and online) ----------------------------------------------------
+
+## Makes `list` show `entries` (in that order), reusing the rows of `rows` (id -> row).
+func _sync_rows(list: VBoxContainer, rows: Dictionary, entries: Array, online: bool) -> void:
+	var ids: Array = []
+	for entry: Dictionary in entries:
+		ids.append(entry["id"])
+	for id: int in rows.keys():
+		if not ids.has(id):
+			(rows[id] as Control).queue_free()
+			rows.erase(id)
+	for i in entries.size():
+		var entry: Dictionary = entries[i]
+		var row: Control = rows.get(entry["id"])
+		if row == null:
+			row = _make_server_row(entry["id"], online)
+			list.add_child(row)
+			rows[entry["id"]] = row
+		list.move_child(row, i)
+		_update_server_row(row, entry)
+
+
+## The newest numbers of server `id` ({} if it is gone).
+func _entry_for(id: int, online: bool) -> Dictionary:
+	if not online:
+		return _lan.list.servers.get(id, {})
+	for game in _online_games:
+		if game["id"] == id:
+			return game
+	return {}
+
+
+## The address to join server `entry` at.
+func _address_of(entry: Dictionary, online: bool) -> String:
+	if online:
+		return OnlineApi.game_address({"host": _online.launcher_host, "port": entry["port"]}, OnlineClient.url())
+	return LanDiscovery.address_of(entry)
+
+
+## A server's row: lock, name, players, state, then (LAN) ping and a favourite star, and Join.
+func _make_server_row(id: int, online: bool) -> Control:
 	var card := PanelContainer.new()
 	card.theme_type_variation = &"CardPanel"
 	var row := HBoxContainer.new()
@@ -116,31 +225,35 @@ func _make_lan_row(entry: Dictionary) -> Control:
 	row.add_child(_label("Name", "", true))
 	row.add_child(_label("Players", "", false, 70))
 	row.add_child(_label("State", "", false, 150))
-	var ping := HBoxContainer.new()
-	ping.name = "Ping"
-	ping.custom_minimum_size = Vector2(96, 0)
-	ping.add_child(_icon("signal3", "Bars", Color.WHITE))
-	ping.add_child(_label("Ms", "", false))
-	row.add_child(ping)
-	var star := _icon_button("star", tr("Save to favourites"))
-	star.name = "Star"
-	star.pressed.connect(func() -> void:
-		Config.add_favourite(entry["name"], LanDiscovery.address_of(_lan.list.servers.get(entry["id"], entry)))
-		Ui.play("ui_confirm"))
-	row.add_child(star)
+	if not online:  # (online games come and go: no favourites, and one ping would be the VPS's anyway)
+		var ping := HBoxContainer.new()
+		ping.name = "Ping"
+		ping.custom_minimum_size = Vector2(96, 0)
+		ping.add_child(_icon("signal3", "Bars", Color.WHITE))
+		ping.add_child(_label("Ms", "", false))
+		row.add_child(ping)
+		var star := _icon_button("star", tr("Save to favourites"))
+		star.name = "Star"
+		star.pressed.connect(func() -> void:
+			var current := _entry_for(id, false)
+			if not current.is_empty():
+				Config.add_favourite(current["name"], LanDiscovery.address_of(current))
+				Ui.play("ui_confirm"))
+		row.add_child(star)
 	var join := Button.new()
 	join.name = "Join"
 	join.text = tr("Join")
 	join.theme_type_variation = &"AccentButton"
 	join.custom_minimum_size = Vector2(110, 0)
 	join.pressed.connect(func() -> void:
-		var current: Dictionary = _lan.list.servers.get(entry["id"], entry)
-		join_requested.emit(LanDiscovery.address_of(current), current["name"], current["locked"]))
+		var current := _entry_for(id, online)
+		if not current.is_empty():
+			join_requested.emit(_address_of(current, online), current["name"], current["locked"]))
 	row.add_child(join)
 	return card
 
 
-func _update_lan_row(card: Control, entry: Dictionary) -> void:
+func _update_server_row(card: Control, entry: Dictionary) -> void:
 	var row := card.get_child(0)
 	(row.get_node("Lock") as Control).modulate.a = 1.0 if entry["locked"] else 0.0
 	(row.get_node("Lock") as Control).tooltip_text = tr("Needs a password") if entry["locked"] else ""
@@ -159,12 +272,13 @@ func _update_lan_row(card: Control, entry: Dictionary) -> void:
 		state.text = tr(STATE_TEXT.get(entry["state"], "In the lobby"))
 		state.tooltip_text = tr("You can join during a match: you watch until the next one.") if entry["state"] != "lobby" else ""
 		state.modulate = Color(0.6, 1, 0.65) if entry["state"] == "lobby" else Color(1, 0.85, 0.5)
-	var ping_ms: int = entry["ping_ms"]
-	var bars := row.get_node("Ping/Bars") as TextureRect
-	bars.texture = load(ICONS % ("signal3" if ping_ms < 60 else "signal2" if ping_ms < 150 else "signal1"))
-	bars.modulate = Color(0.6, 1, 0.65) if ping_ms < 60 else Color(1, 0.85, 0.5) if ping_ms < 150 else Color(1, 0.55, 0.5)
-	bars.modulate.a = 1.0 if ping_ms >= 0 else 0.25
-	(row.get_node("Ping/Ms") as Label).text = tr("%d ms") % ping_ms if ping_ms >= 0 else "..."
+	if row.has_node("Ping"):
+		var ping_ms: int = entry["ping_ms"]
+		var bars := row.get_node("Ping/Bars") as TextureRect
+		bars.texture = load(ICONS % ("signal3" if ping_ms < 60 else "signal2" if ping_ms < 150 else "signal1"))
+		bars.modulate = Color(0.6, 1, 0.65) if ping_ms < 60 else Color(1, 0.85, 0.5) if ping_ms < 150 else Color(1, 0.55, 0.5)
+		bars.modulate.a = 1.0 if ping_ms >= 0 else 0.25
+		(row.get_node("Ping/Ms") as Label).text = tr("%d ms") % ping_ms if ping_ms >= 0 else "..."
 	var join := row.get_node("Join") as Button
 	join.disabled = not same_version or full
 	join.tooltip_text = tr("Server full") if full else ""
@@ -180,7 +294,7 @@ func _refresh_favourites() -> void:
 	for i in Config.favourites.size():
 		fav_list.add_child(_make_fav_row(i, Config.favourites[i]))
 	_refresh_favourites_status()
-	if get_viewport().gui_get_focus_owner() == null or tabs.current_tab == 1:
+	if get_viewport().gui_get_focus_owner() == null or tabs.current_tab == TAB_FAVOURITES:
 		_focus_favourites.call_deferred()
 
 

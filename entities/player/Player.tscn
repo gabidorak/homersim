@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://entities/player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://components/movement/movement_component.gd" id="2_move"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://components/interactor/interactor_component.gd" id="4_interactor"]
 [ext_resource type="Script" path="res://components/abilities/ability_component.gd" id="5_abilities"]
 [ext_resource type="Script" path="res://components/inventory/inventory.gd" id="6_inventory"]
+[ext_resource type="Script" path="res://components/inventory/hotbar.gd" id="7_hotbar"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_body"]
 properties/0/path = NodePath(".:sync_position")
@@ -40,7 +41,7 @@ properties/4/replication_mode = 2
 properties/5/path = NodePath("Inventory:stolen_item")
 properties/5/spawn = true
 properties/5/replication_mode = 2
-properties/6/path = NodePath("Inventory:trap_charges")
+properties/6/path = NodePath("Inventory:snap_charges")
 properties/6/spawn = true
 properties/6/replication_mode = 2
 properties/7/path = NodePath("Inventory:spare_wait_left")
@@ -49,6 +50,12 @@ properties/7/replication_mode = 2
 properties/8/path = NodePath("Inventory:donut_wait_left")
 properties/8/spawn = true
 properties/8/replication_mode = 2
+properties/9/path = NodePath("Inventory:donuts")
+properties/9/spawn = true
+properties/9/replication_mode = 2
+properties/10/path = NodePath("Inventory:lure_charges")
+properties/10/spawn = true
+properties/10/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
@@ -72,6 +79,9 @@ script = ExtResource("5_abilities")
 
 [node name="Inventory" type="Node" parent="."]
 script = ExtResource("6_inventory")
+
+[node name="Hotbar" type="Node" parent="."]
+script = ExtResource("7_hotbar")
 
 [node name="NameTag" type="Label3D" parent="."]
 auto_translate_mode = 2

@@ -1,0 +1,21 @@
+; Launcher of online games (docs/HOSTING.md): the always-on process on the VPS that starts one
+; dedicated server per online game. Copy to launcher.cfg (next to the server binary, or the project
+; root when running from source) or pass --config path, then start the server binary with
+;   homersim-server-linux-x86_64 --headless -- --launcher --config launcher.cfg
+[launcher]
+; TCP port of the launcher's HTTP API. On the VPS, Caddy serves it over HTTPS (homersim.mooo.com).
+port=7790
+; "*" = every address (needed in Docker, so Caddy's container reaches it); 127.0.0.1 = this machine only
+bind="*"
+; The friends key: required. Players type it once in the game (Join a game > Online). Make one with
+;   openssl rand -hex 16
+key=""
+; The most games running at once (each one is a server process: ~1/3 of a core idle, more in a match)
+max_games=4
+; UDP ports for the games' servers (one per game). Must be reachable from the internet (Docker: publish
+; them; the VPS provider's firewall: allow them). Keep a few more than max_games.
+game_ports="7800-7809"
+; A game stops once nobody has been in it for this long (seconds), also when its creator never joined
+idle_quit_s=180
+; The address players join the games at. "" = the one they reached the launcher at (homersim.mooo.com)
+game_host=""

@@ -5,7 +5,9 @@ extends Control
 ## connect_to() creates the Session, connects, and shows "Connecting…" with a Cancel button; the menu
 ## frees itself once the server accepts us.
 ## Play solo and Host a game open a card of choices (GameSetup), then start_local() starts a server on
-## this computer (LocalServer), waits for it ("Starting…" with Cancel), and joins it.
+## this computer (LocalServer), waits for it ("Starting…" with Cancel), and joins it. Host a game on
+## the online server goes through start_online() instead: the launcher on the VPS starts the game
+## (OnlineClient), and the menu joins it there.
 ## When a session ends (refused, kicked, connection lost, the player left), Session sets leave_code and
 ## comes back here, and the menu explains what happened in a box, or asks for the password and tries
 ## again.
@@ -144,7 +146,11 @@ func _on_join_requested(address: String, server_name: String, locked: bool) -> v
 
 
 ## Starts a server on this computer (Play solo, Host a game; `options` from LocalServer), then joins it.
+## Options with "online" set go to the online server (start_online).
 func start_local(mode: LocalServer.Mode, options: Dictionary) -> void:
+	if options.get("online", false):
+		start_online(options)
+		return
 	if Session.current != null or is_instance_valid(_connecting):
 		return  # already joining
 	if player_name() == "":
@@ -167,6 +173,37 @@ func start_local(mode: LocalServer.Mode, options: Dictionary) -> void:
 		_connecting = null
 		Log.info("menu", "start cancelled")
 		server.stop())
+
+
+## Asks the online server for a game with `options` (LocalServer.host_options()), then joins it.
+## Cancel only stops waiting: a game nobody joins stops by itself on the server.
+func start_online(options: Dictionary) -> void:
+	if Session.current != null or is_instance_valid(_connecting):
+		return  # already joining
+	if player_name() == "":
+		Config.set_value("player_name", JoinRules.DEFAULT_NAME)
+	var online := OnlineClient.new()
+	online.name = "OnlineClient"
+	add_child(online)
+	online.created.connect(func(address: String) -> void:
+		online.queue_free()
+		_close_connecting()
+		Log.info("menu", "the online server started '%s' at %s" % [options["name"], address])
+		connect_to(address, str(options["password"]), str(options["name"])))
+	online.failed.connect(func(code: LeaveReason.Code, detail: String) -> void:
+		online.queue_free()
+		_close_connecting()
+		_show_error(code, detail))
+	Log.info("menu", "asking %s for a game" % OnlineClient.url())
+	online.create(options)
+	_connecting = MessageDialog.inform(self, tr("Starting..."), tr("Getting the plant ready on %s...") % OnlineClient.host_label(),
+		tr("Cancel"))
+	_connecting.ok_button.theme_type_variation = &""
+	_connecting.closed.connect(func(_ok: bool, _t: String) -> void:
+		_connecting = null
+		Log.info("menu", "start cancelled")
+		if is_instance_valid(online):
+			online.queue_free())
 
 
 func _close_connecting() -> void:
@@ -234,7 +271,7 @@ func show_leave_reason() -> bool:
 func _show_error(code: LeaveReason.Code, detail: String) -> void:
 	Log.info("menu", "error box: %s" % LeaveReason.log_text(code, detail))
 	Ui.play("ui_error")
-	MessageDialog.inform(self, LeaveReason.title(code), LeaveReason.message(code, detail), tr("Back to menu"))
+	MessageDialog.inform(self, LeaveReason.title(code, detail), LeaveReason.message(code, detail), tr("Back to menu"))
 
 
 func _ask_password(address: String, server_name: String, wrong: bool) -> void:

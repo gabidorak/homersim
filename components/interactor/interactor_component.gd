@@ -10,6 +10,8 @@ extends Node
 ## opens the minigame overlay (MinigameHost), which takes the mouse until it closes. The server decides everything
 ## else and reports the end of every hold through server_ended_hold(). After a hold ends on the
 ## server's side, E must be released before a new hold starts.
+## A fresh press of E with nothing to interact with uses the Hotbar's selected item (eats the donut);
+## the prompt says so. (Only a fresh press: looking away from a hold with E still down eats nothing.)
 ## Runs only on the owning client (not for an AI bot's body on the server: the AI calls
 ## InteractionService.ai_start directly). HUD reads `target`, `holding` and prompt_text().
 
@@ -27,6 +29,7 @@ var bot_hold: Interactable
 var _since_heartbeat := 0.0
 var _held_s := 0.0  # local estimate, for holds whose interactable has no synced progress
 var _needs_release := false
+var _key_was_down := false
 
 @onready var body: Player = get_parent()
 
@@ -46,11 +49,15 @@ func _physics_process(delta: float) -> void:
 	if not key_down:
 		_needs_release = false
 	var wants := key_down and not _needs_release
+	var pressed := key_down and not _key_was_down
+	_key_was_down = key_down
 
 	if holding != null and (not wants or target != holding or not is_instance_valid(holding)):
 		_stop()
 	if holding == null and wants and target != null and target.is_available(body) and body.status.can_act():
 		_start(target)
+	elif holding == null and wants and pressed and target == null and body.hotbar.use_selected():
+		_needs_release = true  # one press, one donut
 	if holding != null:
 		_held_s += delta
 		_since_heartbeat += delta
@@ -59,10 +66,12 @@ func _physics_process(delta: float) -> void:
 			_service().request_interact_heartbeat.rpc_id(1)
 
 
-## The line for the HUD: "[E] Sabotage Coolant pumps", or why E won't work.
+## The line for the HUD: "[E] Sabotage Coolant pumps", or why E won't work; with nothing to
+## interact with, what E does with the selected hotbar item ("[E] Eat your donut").
 func prompt_text() -> String:
 	if target == null:
-		return ""
+		var use := body.hotbar.use_prompt()
+		return "[E] %s" % use if use != "" else ""
 	var text := target.prompt_for(body)
 	if holding != null or not target.is_available(body):
 		return text

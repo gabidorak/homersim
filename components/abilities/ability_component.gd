@@ -3,15 +3,15 @@ extends Node
 ## The player's abilities (RoleData.abilities: broom / bite / traps).
 ##   Owning client: LMB uses the primary ability (request_use_ability with the aim direction).
 ##     Supervisors hold RMB to see where the selected trap would go (a preview only this client
-##     ever draws, so rats never see it), release to place it (request_place_trap); Q switches
-##     between snap trap and cheese lure. Cooldowns start locally on use and are corrected by the
-##     server (AbilityService.on_ability_cooldown); the HUD reads cooldown_left().
+##     ever draws, so rats never see it), release to place it (request_place_trap). The Hotbar
+##     picks which trap (selected_trap: 1 2 3, the wheel, Q). Cooldowns start locally on use and are
+##     corrected by the server (AbilityService.on_ability_cooldown); the HUD reads cooldown_left().
 ##   Server: the authoritative cooldowns (server_ready / server_start_cooldown).
 
 const PREVIEW_RAY := 3.5  ## m from the camera
 const COOLDOWN_SLACK := 0.1  ## s: the server forgives jitter between two requests
 
-var selected_trap := 0  ## index into trap_abilities()
+var selected_trap := 0  ## index into trap_abilities() (the Hotbar sets it)
 
 var _cooldown_left: Dictionary[StringName, float] = {}  # owner: seconds left, for the HUD
 var _ready_at: Dictionary[StringName, float] = {}  # server: server clock
@@ -70,7 +70,7 @@ func use(id: StringName, aim: Vector3 = Vector3.ZERO) -> bool:
 ## Owner: place the selected trap at `pos` (also the bots' entry point).
 func place_trap(pos: Vector3) -> bool:
 	var data := selected_trap_ability()
-	if data == null or cooldown_left(data.id) > 0.0 or body.inventory.trap_charges <= 0 or not _playing():
+	if data == null or cooldown_left(data.id) > 0.0 or body.inventory.charges(data.id) <= 0 or not _playing():
 		return false
 	_cooldown_left[data.id] = data.cooldown_s
 	Session.current.items.request_place_trap.rpc_id(1, data.id, pos)
@@ -90,8 +90,6 @@ func _process(delta: float) -> void:
 	var control := PlayerInput.has_control() and _playing() and body.seated_console() == null
 	if control and Input.is_action_just_pressed("primary") and primary() != null:
 		use(primary().id)
-	if control and Input.is_action_just_pressed("next_trap") and not trap_abilities().is_empty():
-		selected_trap = (selected_trap + 1) % trap_abilities().size()
 	var wants_preview := control and Input.is_action_pressed("secondary") and selected_trap_ability() != null
 	if _placing and not wants_preview:
 		if control and _preview_pos != null:

@@ -22,6 +22,7 @@
 - [ ] Set the version in project settings (`application/config/version = "1.0.0"`). It's used by the join handshake.
 - [ ] Exports: `Linux` (x86_64, `.x86_64` + `.pck` zipped), `Windows Desktop` (x86_64 `.exe`, embedded pck, icon via rcedit optional), `Linux Server` (dedicated server mode).
 - [ ] `Dockerfile` (see ARCHITECTURE §11) + `docker-compose.yml` example (UDP port mapping, config volume). Document `docker run -p 7777:7777/udp -v ./config:/config homersim-server`.
+  - Partly done for friends (2026-10-07): online games on a VPS through the launcher (`tools/docker/`, [HOSTING.md](../HOSTING.md)). Still open for strangers: an image (or entrypoint mode) for one plain dedicated server, and the port-forwarding guide below.
 - [ ] `docs/HOSTING.md`: running the server binary or Docker, opening and forwarding **UDP 7777**, the `server.cfg` reference, console commands, running several servers on different ports.
 - [ ] `.github/workflows/release.yml`: on tag `v*` → unit + integration tests → exports → GitHub Release with the 3 zips + checksums → optional itch.io upload via **butler** (`butler push build/linux user/homersim:linux`).
 - [ ] Test the Windows build on a real Windows 10/11 machine (firewall prompt, fullscreen, controller-free input, paths with spaces).
