@@ -134,9 +134,11 @@ func start_emote() -> void:
 	_emote_until = now + EMOTE_S
 
 
-## Owner: what this body is doing, packed into Player.sync_anim.
+## Owner: what this body is doing, packed into Player.sync_anim. (A rat gliding into place at a
+## sabotage box scurries there first, then gnaws.)
 func local_flags() -> int:
-	return flags_for(body, body.interactor.holding != null or _minigame_open(),
+	var interacting := body.interactor.holding != null and not body.movement.gliding()
+	return flags_for(body, interacting or _minigame_open(),
 		Time.get_ticks_msec() / 1000.0 < _emote_until, _in_vent)
 
 

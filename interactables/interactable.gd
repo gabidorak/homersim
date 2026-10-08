@@ -27,6 +27,13 @@ signal completed(player: Player)  ## server
 ## False for interactables that don't need a synced progress ring (instant ones, the handles on
 ## player bodies). Set it in _init.
 var needs_sync := true
+## m in front of the origin where players stand to use it (stand_position()); 0 = half the role's
+## reach. Set it in _init.
+var stand_distance := 0.0
+## True: a player who starts holding this glides to stand_position() and turns to face it (a rat
+## settling in at a sabotage point). Third-person roles only: it would yank a first-person view. Set
+## it in _init.
+var glides_holder := false
 
 # --- Replicated by the Sync child (server → clients) ------------------------------------
 var progress := 0.0  ## 0..1
@@ -98,7 +105,8 @@ func role_allowed(player: Player) -> bool:
 func stand_position(role: Role.Kind) -> Vector3:
 	var out := global_basis.z
 	out.y = 0.0
-	var spot := global_position + out.normalized() * reach_for(role) * 0.5
+	var distance := stand_distance if stand_distance > 0.0 else reach_for(role) * 0.5
+	var spot := global_position + out.normalized() * distance
 	spot.y = _floor_below(spot)
 	return spot
 

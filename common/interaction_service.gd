@@ -8,6 +8,8 @@ extends Node
 ## heartbeats stop, the player moves more than MAX_MOVE, loses the ability to act, leaves the
 ## reach / line of sight, disconnects, or the match stops. The client hears about every end of a
 ## hold (completed, cancelled, rejected) through on_hold_ended.
+## A holder that glides into place (Interactable.glides_holder: a rat at a sabotage point) may move
+## along the way from where it started to its stand spot: MAX_MOVE is measured from that segment.
 ## It lives in Session (on the server AND the clients), which RPCs require.
 ## AI bots (M10) go through the same checks without RPCs: ai_start / ai_heartbeat / ai_stop, and
 ## hear how their holds end through the hold_ended signal.
@@ -17,19 +19,25 @@ signal hold_ended(peer: int, path: NodePath, reason: String)
 
 const HEARTBEAT_S := 0.25  ## client send interval
 const HEARTBEAT_TIMEOUT_S := 1.0  ## about four missed heartbeats
-const MAX_MOVE := 0.5  ## m away from where the hold started
+const MAX_MOVE := 0.5  ## m away from where the hold started (or the way to its stand spot)
 const MAX_REQUESTS_PER_S := 20
 
 ## A hold in progress (server).
 class Hold:
 	var target: Interactable
 	var start_position: Vector3
+	var stand_spot: Vector3  ## where a gliding holder heads; start_position for the others
 	var last_beat_ms: int
 
-	func _init(p_target: Interactable, p_start: Vector3, now_ms: int) -> void:
+	func _init(p_target: Interactable, p_start: Vector3, p_stand: Vector3, now_ms: int) -> void:
 		target = p_target
 		start_position = p_start
+		stand_spot = p_stand
 		last_beat_ms = now_ms
+
+	## Moved further than MAX_MOVE from the way between start_position and stand_spot.
+	func strayed(pos: Vector3) -> bool:
+		return pos.distance_to(Geometry3D.get_closest_point_to_segment(pos, start_position, stand_spot)) > MAX_MOVE
 
 
 var _holds: Dictionary[int, Hold] = {}  # server: peer → its hold (one at a time)
@@ -130,7 +138,9 @@ func _start(peer: int, target_path: NodePath) -> String:
 	if _holds.has(peer):
 		_end(peer, "switched target", true, false)
 	if target.kind_for(player) == "hold":
-		_holds[peer] = Hold.new(target, player.global_position, Time.get_ticks_msec())
+		var start := player.global_position
+		var stand := target.stand_position(player.role) if target.glides_holder else start
+		_holds[peer] = Hold.new(target, start, stand, Time.get_ticks_msec())
 		Log.info("interact", "%s started %s" % [player.display_name, short_path(target.get_path())])
 	target.begin(player)
 	return ""
@@ -154,7 +164,7 @@ func _physics_process(delta: float) -> void:
 			reason = "gone"
 		elif now - hold.last_beat_ms > HEARTBEAT_TIMEOUT_S * 1000.0:
 			reason = "heartbeat timeout"
-		elif player.global_position.distance_to(hold.start_position) > MAX_MOVE:
+		elif hold.strayed(player.global_position):
 			reason = "moved"
 		else:
 			reason = hold.target.can_interact(player)

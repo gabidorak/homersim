@@ -11,6 +11,9 @@ extends Node
 ## hanging from a carrier's hand); for a bot it calls their do_* halves directly. Speed = role speed × status (slows, donut) × inventory (a
 ## stolen item); a supervisor carrying a rat walks at the role's carry speed and can't sprint.
 ##
+## Gliding (glide_to(), owner): the body slides into a spot and turns to a yaw, eased in and out, unless
+## the player moves (a rat settling in front of the sabotage box it started on).
+##
 ## Ladders (Ladder volumes): pushing toward the ladder climbs, pushing away in the air climbs down,
 ## no input hangs on, jump lets go. Out of bounds (an OutOfBounds volume, or below KILL_Y): back to
 ## the last spot we stood on safely (sampled every SAFE_SAMPLE_S while on the floor).
@@ -24,6 +27,8 @@ const LADDER_GRAB_DOT := 0.3  ## how directly you must push toward / away from a
 const LADDER_SIDE_FACTOR := 0.5  ## horizontal speed while climbing, as a fraction of walking
 const LADDER_JUMP_OFF := Vector3(0, 2.0, 0)  ## plus 3 m/s away from the ladder
 const LADDER_REGRAB_S := 0.4  ## after jumping off, ignore ladders this long
+const GLIDE_S := 0.35  ## a glide takes this long (longer if walking speed couldn't keep up)
+const GLIDE_GIVE_UP_S := 0.3  ## blocked on the way: stop where we are this long after the end
 
 @export var ground_accel := 12.0  ## how quickly velocity reaches the target speed
 @export var air_accel := 3.0
@@ -45,6 +50,12 @@ var climbing := false  ## on a ladder right now (HUD, camera)
 var _anchor: Node3D  # set by attach_to(): we are carried, the body follows this node
 var _debug_speed := 1.0  # test-only: --debug-speed N (a fake speed hack for the validator)
 var _debug_auto_move := false  # test-only: --auto-move (walk forward without input)
+var _glide_from := Vector3.ZERO
+var _glide_to := Vector3.INF  # INF = not gliding
+var _glide_from_yaw := 0.0
+var _glide_yaw := 0.0
+var _glide_s := 0.0  # how long this glide takes
+var _glide_t := 0.0  # seconds into it
 
 @onready var body: Player = get_parent()
 @onready var status: StatusComponent = $"../StatusComponent"
@@ -115,6 +126,8 @@ func _physics_process(delta: float) -> void:
 	var base := data.carry_speed if carrying else (data.sprint_speed if sprinting else data.walk_speed)
 	var speed := base * status.speed_multiplier() * body.inventory.speed_multiplier() * _debug_speed
 	var target := dir * speed
+	if gliding() and (dir.length_squared() > 0.0001 or not free):
+		stop_glide()  # the player takes over (or a stun stops it)
 
 	_since_jump_off += delta
 	var ladder := Ladder.find(body) if free and _since_jump_off > LADDER_REGRAB_S else null
@@ -132,6 +145,8 @@ func _physics_process(delta: float) -> void:
 
 	var accel := ground_accel if on_floor or climbing else air_accel
 	var horizontal := Vector3(body.velocity.x, 0.0, body.velocity.z).lerp(target, 1.0 - exp(-accel * delta))
+	if gliding():
+		horizontal = _glide_step(speed, delta)
 	body.velocity.x = horizontal.x
 	body.velocity.z = horizontal.z
 	if ai:
@@ -140,6 +155,44 @@ func _physics_process(delta: float) -> void:
 		body.rotation.y = lerp_angle(body.rotation.y, atan2(-dir.x, -dir.z), 1.0 - exp(-TURN_RATE * delta))
 	body.move_and_slide()
 	_check_bounds(delta)
+
+
+## Owner: slide the body to `spot` and turn it to `yaw` (radians), eased in and out over about GLIDE_S.
+## Moving, or being stunned or locked, ends it early.
+func glide_to(spot: Vector3, yaw: float) -> void:
+	_glide_from = body.global_position
+	_glide_to = spot
+	_glide_from_yaw = body.rotation.y
+	_glide_yaw = yaw
+	# Smoothstep peaks at 1.5× the average speed: never faster than walking (the validator watches).
+	var walk := body.role_data.walk_speed * status.speed_multiplier() * body.inventory.speed_multiplier()
+	_glide_s = maxf(GLIDE_S, 1.5 * _flat(spot - _glide_from).length() / maxf(walk, 0.1))
+	_glide_t = 0.0
+
+
+func stop_glide() -> void:
+	_glide_to = Vector3.INF
+
+
+func gliding() -> bool:
+	return _glide_to != Vector3.INF
+
+
+## This tick's horizontal velocity along the glide (and the body's turn). Collisions still apply
+## (move_and_slide): a body held back catches up at up to `speed`, or gives up after GLIDE_GIVE_UP_S.
+func _glide_step(speed: float, delta: float) -> Vector3:
+	_glide_t += delta
+	var w := smoothstep(0.0, 1.0, _glide_t / _glide_s)
+	body.rotation.y = lerp_angle(_glide_from_yaw, _glide_yaw, w)
+	var to := _flat(_glide_from.lerp(_glide_to, w) - body.global_position)
+	if (w >= 1.0 and to.length() < 0.01) or _glide_t > _glide_s + GLIDE_GIVE_UP_S:
+		stop_glide()
+		return Vector3.ZERO
+	return (to / delta).limit_length(speed)
+
+
+static func _flat(v: Vector3) -> Vector3:
+	return Vector3(v.x, 0.0, v.z)
 
 
 ## AI bots: turn toward intent.face_yaw, or toward where the body moves, at the bot's turn rate.

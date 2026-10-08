@@ -2,10 +2,13 @@ class_name InteractorComponent
 extends Node
 ## The local player's side of interactions. Every physics tick it picks the best target:
 ##   first person (supervisor): what the camera looks at, via a ray from the screen centre
-##   third person (rat): the nearest interactable within reach, in front of the body or camera
+##   third person (rat): the nearest interactable within reach, in front of the body or camera (or
+##   right under its nose: pressed against a machine, the rat is already past the point's origin)
 ## Holding E on an available target sends request_interact_start, then a heartbeat every 0.25 s;
-## releasing E (or losing the target) sends request_interact_stop. An instant target (grab, cage,
-## pickups, keycard readers) only gets the start request, and E must be released before the next.
+## releasing E (or losing the target) sends request_interact_stop. A target that glides its holder
+## into place (a sabotage point) also starts MovementComponent.glide_to(); the end of the hold stops
+## it. An instant target (grab, cage, pickups, keycard readers) only gets the start request, and E
+## must be released before the next.
 ## A repair point (when the player wants minigames) gets request_minigame_start instead: the server
 ## opens the minigame overlay (MinigameHost), which takes the mouse until it closes. The server decides everything
 ## else and reports the end of every hold through server_ended_hold(). After a hold ends on the
@@ -19,6 +22,7 @@ signal hold_ended(reason: String)
 
 const LOOK_RAY_LENGTH := 3.0  ## m from the camera
 const FRONT_CONE_COS := 0.34  ## rats: within about 70° of facing
+const CLOSE_RANGE := 0.4  ## m, flat: rats can use what is this close whichever way they face
 
 var target: Interactable  ## what E would use now (may be unavailable, see prompt_text())
 var holding: Interactable  ## the hold we asked the server for
@@ -93,6 +97,7 @@ func server_ended_hold(target_path: NodePath, reason: String) -> void:
 	if holding == null or not is_instance_valid(holding) or holding.get_path() != target_path:
 		return  # we had already let go, or this is about an older hold
 	holding = null
+	body.movement.stop_glide()
 	_needs_release = true
 	Log.info("interact", "hold ended: %s" % reason)
 	hold_ended.emit(reason)
@@ -111,10 +116,15 @@ func _start(t: Interactable) -> void:
 	holding = t
 	_since_heartbeat = 0.0
 	_held_s = 0.0
+	if t.glides_holder:
+		var spot := t.stand_position(body.role)
+		var to := t.global_position - spot
+		body.movement.glide_to(spot, atan2(-to.x, -to.z))
 
 
 func _stop() -> void:
 	holding = null
+	body.movement.stop_glide()
 	_service().request_interact_stop.rpc_id(1)
 
 
@@ -160,9 +170,12 @@ func _nearby_target() -> Interactable:
 		var distance := candidate.distance_to_player(body)
 		if distance > candidate.reach_for(body.role) or distance >= best_distance:
 			continue
-		var to := _flat(candidate.global_position - origin)
-		if to != Vector3.ZERO and maxf(to.dot(body_forward), to.dot(camera_forward)) < FRONT_CONE_COS:
-			continue
+		var offset := candidate.global_position - origin
+		offset.y = 0.0
+		if offset.length() > CLOSE_RANGE:
+			var to := offset.normalized()
+			if maxf(to.dot(body_forward), to.dot(camera_forward)) < FRONT_CONE_COS:
+				continue
 		best = candidate
 		best_distance = distance
 	return best
