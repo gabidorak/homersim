@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # M3 full-loop test: a headless server and two headless bot clients (separate processes) on a
 # random local port. The rat bot sabotages the coolant pumps (after an early release and a step
-# aside, which the server must both cancel; the last hold starts pressed against the machine and
-# glides into place), the supervisor bot repairs them, the 25 s timer runs out, supervisors win.
+# aside, which the server must both cancel; the last hold starts pressed against the machine), the
+# supervisor bot repairs them, the 25 s timer runs out, supervisors win.
 # Checks the server's exit code, its result JSON and that no log has errors.
 # Usage: tests/integration/run_match_loop.sh   (GODOT=/path/to/godot to override the binary)
 set -u
@@ -57,7 +57,6 @@ expect "$LOGS/server.log" "RatBot completed CoolantPumps/SabotageA"   "server: s
 expect "$LOGS/server.log" "SupervisorBot completed CoolantPumps/RepairPoint" "server: repair completed"
 expect "$LOGS/rat.log" "the interactor found CoolantPumps/SabotageA by itself" "rat: front-cone targeting"
 expect "$LOGS/rat.log" "the interactor found CoolantPumps/SabotageA pressed against the machine" "rat: targeting pressed against the machine"
-expect "$LOGS/rat.log" "glided into place in front of CoolantPumps/SabotageA" "rat: glided into place for the sabotage"
 expect "$LOGS/supervisor.log" "the interactor found CoolantPumps/RepairPoint by itself" "supervisor: look-ray targeting"
 expect "$LOGS/rat.log" "state: POST_MATCH"                             "rat: saw the end of the match"
 if grep -qE "strike [0-9]+ for" "$LOGS/server.log"; then echo "FAIL - validator flagged a bot"; FAIL=1; fi

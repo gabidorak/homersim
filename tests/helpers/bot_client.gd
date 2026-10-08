@@ -9,7 +9,7 @@ extends Node
 ##               again and steps 0.8 m aside (the server must cancel both), then holds until the
 ##               sabotage completes, starting where a player who drives straight in ends up: pressed
 ##               against the machine beside the box, facing the machine (it must target the box from
-##               there, glide to its stand spot and turn to face it).
+##               there).
 ##               Critical subsystem: lever --bot-lever (A or B), held until the pair completes.
 ##   supervisor: waits until the target is damaged, teleports to its repair point and holds
 ##               until it is back to full health (a reboot first if needed).
@@ -141,11 +141,7 @@ func _run_rat() -> void:
 	interactor.bot_hold = null
 	Log.info("bot", "stepped aside, hold ended: %s" % moved_reason)
 	await _press_against(point)
-	interactor.bot_hold = point
-	await _wait(0.8)
-	_check_glide(point)
-	var reason: String = await interactor.hold_ended
-	interactor.bot_hold = null
+	var reason := await _hold(point)
 	Log.info("bot", "sabotage hold ended: %s" % reason)
 
 
@@ -164,19 +160,6 @@ func _press_against(point: Interactable) -> void:
 		Log.info("bot", "the interactor found %s pressed against the machine" % InteractionService.short_path(point.get_path()))
 	else:
 		Log.warn("bot", "pressed against the machine, the interactor targets %s" % body.interactor.target)
-
-
-## Mid-hold: the body should stand on `point`'s stand spot, facing it.
-func _check_glide(point: Interactable) -> void:
-	var body := _body()
-	var stand := point.stand_position(_role)
-	var off := Vector2(body.global_position.x - stand.x, body.global_position.z - stand.z).length()
-	var to := point.global_position - stand
-	var turn := absf(angle_difference(body.rotation.y, atan2(-to.x, -to.z)))
-	if off < 0.05 and turn < 0.1:
-		Log.info("bot", "glided into place in front of %s" % InteractionService.short_path(point.get_path()))
-	else:
-		Log.warn("bot", "after the glide: %.2f m from the stand spot, turned %.2f rad off" % [off, turn])
 
 
 func _run_supervisor() -> void:

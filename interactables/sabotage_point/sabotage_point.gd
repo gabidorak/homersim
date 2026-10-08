@@ -1,7 +1,6 @@
 class_name SabotagePoint
 extends Interactable
-## A normal sabotage point (GDD §4.3): a rat holds E for 4 s, the subsystem loses 50 health. The rat
-## glides into place in front of the box first (stand_distance, glides_holder).
+## A normal sabotage point (GDD §4.3): a rat holds E for 4 s, the subsystem loses 50 health.
 ## While the subsystem is on its sabotage cooldown the point is disabled: red light and sparks.
 
 @export var subsystem_id: StringName = &"pumps"
@@ -21,10 +20,6 @@ var _spark_in := 0.0
 func _init() -> void:
 	allowed_roles = [Role.Kind.RAT]
 	prompt = "Sabotage"
-	# The box's face is 0.16 m behind the origin and a gnawing rat's nose 0.45 m ahead of its feet:
-	# from here it chews the box without poking into it.
-	stand_distance = 0.3
-	glides_holder = true
 
 
 func _ready() -> void:
