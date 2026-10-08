@@ -4,8 +4,8 @@ extends CanvasLayer
 ## is in and the map key under it, and the full map of the level on that key (M; press it again to
 ## close). Both are MapViews of the level's plan (MapInfo → LevelMap); a level without a plan has neither.
 ## The minimap follows the player and turns with the camera (Settings → Gameplay: hide it, or keep north
-## up). It steps aside while the full map is open, at the CCTV chair, in the lobby (whose panel takes that
-## corner) and after the match. The full map doesn't pause anything or free the mouse: players keep
+## up). It steps aside while the full map is open, while the scoreboard (Tab, with its own map) is
+## shown, at the CCTV chair, in the lobby (whose panel takes that corner) and after the match. The full map doesn't pause anything or free the mouse: players keep
 ## moving while they read it. Frames, keycaps and cards use the UI theme's look.
 
 const MINIMAP_SIZE := 190.0
@@ -104,6 +104,9 @@ func _minimap_wanted() -> bool:
 	var session := Session.current
 	var mm := session.match_manager
 	if mm.state in [MatchManager.State.LOBBY, MatchManager.State.POST_MATCH]:
+		return false
+	var board := session.client_only.get_node_or_null("Scoreboard") as Scoreboard
+	if board != null and board.is_shown():
 		return false
 	var body := session.get_body(session.local_peer_id)
 	if body != null:

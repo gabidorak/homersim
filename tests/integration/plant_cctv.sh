@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # M5 plant test, on the real map: a supervisor sits at the CCTV chair, a rat breaks camera 1, the
-# supervisor stands up and repairs it, then climbs the yard ladder to the vent roof and gets
+# supervisor stands up and repairs it, takes the CCTV tablet out and puts it away, then climbs the yard ladder to the vent roof and gets
 # teleported out of bounds (the kill volume must put it back by itself); the rat climbs the vent
 # shaft to the roof. No validator strikes, no errors.
 # Usage: tests/integration/plant_cctv.sh   (GODOT=/path/to/godot to override the binary)
@@ -19,6 +19,11 @@ expect "$LOGS/server.log" "SupervisorBot left the CCTV: stood up"   "server: the
 expect "$LOGS/server.log" "SupervisorBot repaired camera 1"         "server: camera 1 repaired"
 expect "$LOGS/sup.log" "watching the cameras"                       "supervisor: the CCTV view opened"
 expect "$LOGS/sup.log" "the CCTV shows camera 1 broken"             "supervisor: saw the camera break"
+expect "$LOGS/server.log" "SupervisorBot took out the CCTV tablet" "server: the supervisor took the tablet out"
+expect "$LOGS/server.log" "SupervisorBot put away the CCTV tablet: asked" "server: and put it away"
+expect "$LOGS/sup.log" "watching the cameras on the tablet"        "supervisor: the tablet view opened"
+expect "$LOGS/sup.log" "holding the CCTV tablet, free to move"     "supervisor: can move while holding the tablet"
+expect "$LOGS/sup.log" "put the tablet away"                       "supervisor: put the tablet away"
 expect "$LOGS/sup.log" "climbed the ladder to the vent roof"        "supervisor: climbed the ladder"
 expect "$LOGS/sup.log" "out of bounds at"                           "supervisor: the kill volume caught it"
 expect "$LOGS/sup.log" "back in bounds"                             "supervisor: back where it stood"

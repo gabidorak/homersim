@@ -5,6 +5,8 @@
 ## 1. Pitch
 It's the night shift at the **"Sunny Acres" Nuclear Plant** (placeholder name; all names and characters are original, nothing borrowed from existing shows). A few underpaid, donut-loving **Supervisors** only have to keep the reactor stable until the shift ends. Meanwhile a gang of **Rats** has moved into the sewers and has *ideas*.
 
+**Backstory** (the intro cinematic the game opens with, `client/intro/`): the rats used to be the supervisors' pet hamsters, kept in open cages on their desk in the Control Room and fed donuts. Then a new supervisor carrying a yellow bottle of radioactive goo tripped over the wet floor sign, the goo rained on the cages and POOF: rats, crazy ones. They bit, wrecked the desk, chewed through the wiring and escaped into the vents, the supervisors on their tails. The "days without an incident" board has read 0 ever since.
+
 - Genre: asymmetric team PvP, 2–6 players, rounds of 8–10 minutes.
 - Feel: slapstick, readable, chaotic. Think Hello Neighbor's look, Chained Together's goofiness, and Dead by Daylight's asymmetry, without the horror.
 - Platforms: Windows and Linux. Each match runs on a dedicated server. The game can start one on the player's own computer: **Play solo** (a match against bots that nobody else can join) and **Host a game** (friends join it; the game ends when the host leaves).
@@ -91,7 +93,7 @@ Worked check: three systems fully broken (rods + pumps + valves) gives +6 units/
 |---|---|---|---|
 | Emergency coolant | `core_temp −150` | 90 s | Power grid health ≥ 25 |
 | Partial SCRAM | `heat_in × 0.5` for 30 s | 120 s | Costs **+30 s** on the match timer (the shift gets longer). A big red button under a flip cover: the 1st press lifts the cover (it drops after 5 s), the 2nd fires |
-| CCTV | View 8 cameras (cycle with Q/E), while the body stays vulnerable in the chair | – | The camera must not be broken |
+| CCTV | View 8 cameras (cycle with Q/E), while the body stays vulnerable in the chair. Also anywhere on the **CCTV tablet** (C): the supervisor lowers the broom and pulls it up in the left hand, and can still walk and look around but has full hands (no broom, items or interacting), and can't hold it while carrying a rat | – | The camera must not be broken |
 | Plant status board | Always visible in the room: per-subsystem health and alarm lights, the actions' cooldowns and SCRAM time | – | – |
 
 Each action's console has its own screen with its cooldown. The HUD shows the SCRAM time left and the seconds SCRAM added to the shift under the timer.
@@ -109,7 +111,7 @@ Each action's console has its own screen with its cooldown. The HUD shows the SC
 Abilities:
 - **Broom swing** (LMB): 2.0 m range, 70° cone, 1.2 s cooldown, **stuns a rat for 2.0 s** (rats get 1.5 s of stun immunity after a stun ends).
 - **Grab** (E on a stunned rat): carry the rat at carry speed. It escapes on its own after **12 s** (about 38 m: the pumps, the valves and the control rods are one carry from the Reactor Hall's cage), and a single bite from another rat makes the supervisor drop it (so does getting stunned or knocked down). A dropped rat lands at the carrier's feet with **1.5 s of invulnerability**.
-- **Cage** (E at a cage while carrying): the rat is caged. See [elimination](#53-capture-and-elimination).
+- **Cage** (E at a cage while carrying): the rat is caged. See [capture](#53-capture).
 - **Traps** (hold RMB to aim, release to place, Q to switch the kind; 3 snap traps and 3 cheese lures, counted separately: the trap box in Storage refills the snap traps, the cheese box next to it the lures; within 2 m, on the floor, at least 0.6 m apart). Only the placing supervisor sees the aiming preview:
   - *Snap trap*: stuns the rat that steps on it for 3 s and plays a loud SNAP heard by every supervisor. A rat that can't be stunned right then (invulnerable, stun immunity) doesn't set it off.
   - *Cheese lure*: when a rat touches it, that rat is outlined through walls for supervisors for 10 s.
@@ -133,11 +135,11 @@ Abilities:
 - **Break a CCTV camera** (hold E for 2 s). A supervisor fixes it with a 3 s hold.
 - **Squeak emote** (Z): purely for fun.
 
-### 5.3 Capture and elimination
-- 1st capture: the rat is **caged**. Rats in a cage can't act but can chat and spectate through the cage's camera.
+### 5.3 Capture
+- Every capture (the 1st, the 2nd, the 3rd…): the rat is **caged**. Rats in a cage can't act but can chat and spectate through the cage's camera.
 - Freed rats leave the cage with **3 s of invulnerability**.
-- 2nd capture: the rat is **eliminated** and becomes a free-cam spectator with access to the **ghost chat** (only eliminated players read it).
-- If every rat that isn't eliminated is caged, **supervisors win immediately**.
+- Rats are never eliminated by captures. (The tuning `captures_to_eliminate` can bring back elimination on the Nth capture: the rat then becomes a free-cam spectator with access to the **ghost chat**. It is 0, off.)
+- If every rat is caged at the same time, **supervisors win immediately**.
 - Supervisors are never eliminated. A knockdown is their worst state.
 
 ### 5.4 Status effects (shared system)
@@ -148,7 +150,7 @@ Abilities:
 | Knocked down | 3 bites, debris | Ragdoll-ish fall, no actions |
 | Carried | Grabbed by a supervisor | The rat's position follows the carrier's hand |
 | Caged | Cage | Locked in the cage |
-| Eliminated | 2nd capture | Spectator |
+| Eliminated | Nth capture, only if `captures_to_eliminate` > 0 (off) | Spectator |
 | Invulnerable | Freed from cage, dropped by a carrier | Ignores stun/bite/knockdown (supervisors get 3 s of knockdown immunity instead; bites during it slow but don't count) |
 | Revealed | Cheese lure, radiation | Outline visible to the enemy team through walls |
 
@@ -247,12 +249,13 @@ player's keyboard. Esc can't be rebound (it always opens the menu).
 | Secondary (trap / –) | RMB |
 | Interact (hold) | E |
 | Chat / team chat | Enter / T |
-| Scoreboard (hold) | Tab |
-| Map (press again to close) | M |
+| Scoreboard and map of the plant (hold) | Tab |
+| Big map with legend (press again to close) | M |
 | Menu (frees the mouse; the game keeps running) | Esc |
 | Lobby: role preference any / supervisor / rat, ready | 1 / 2 / 3, R |
 | Emote | Z |
-| CCTV chair: previous / next camera, stand up | Q / E, Space |
+| CCTV tablet (supervisors): take out / put away | C |
+| CCTV chair or tablet: previous / next camera, stand up (chair) | Q / E, Space |
 | Repair minigames: play / give up | Mouse / Esc |
 | Playtest tools: debug overlay, stopwatch | F3, F4 |
 

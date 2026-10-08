@@ -51,7 +51,7 @@ func _build() -> void:
 		["supervisor_repair", tr("Keep the plant alive"),
 			tr("Damaged machines heat up the core. Press %s at a machine's repair panel and win the short minigame to fix it. Keep the meltdown meter (top of the screen) away from 100%% until the shift timer runs out. The Control Room has emergency coolant and a SCRAM button for bad moments.") % interact],
 		["supervisor_catch", tr("Bonk, carry, cage"),
-			tr("Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A rat caught twice is out for the match. Hold %s, then release, to place a trap: a snap trap stuns a rat, a cheese lure shows it through walls and on your map. Grab a donut in the Break Room and eat it when you need a burst of speed (select it, then %s).") % [primary, interact, interact, secondary, interact]],
+			tr("Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A caged rat stays there until another rat frees it, however many times it was caught. Hold %s, then release, to place a trap: a snap trap stuns a rat, a cheese lure shows it through walls and on your map. Grab a donut in the Break Room and eat it when you need a burst of speed (select it, then %s).") % [primary, interact, interact, secondary, interact]],
 	])
 	_role_tab(tr("Rat"), [
 		["rat_sabotage", tr("Sabotage!"),

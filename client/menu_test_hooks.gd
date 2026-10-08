@@ -15,6 +15,9 @@ extends Node
 ##                            NAME as soon as it shows up
 ## (Headless clients don't save their settings, so the choices made here don't stick.)
 
+const FLAGS: Array[String] = ["lan-join", "auto-password", "dismiss-errors", "solo", "host-game", "host-online",
+	"online-join"]
+
 static var _lan_join_used := false  # once per run: not again when the menu comes back after a session
 static var _local_used := false  # --solo / --host-game / --host-online: once per run too
 static var _online_join_used := false
@@ -26,8 +29,7 @@ var _online_target := ""
 
 
 static func wanted() -> bool:
-	return OS.is_debug_build() and (Cli.has_arg("lan-join") or Cli.has_arg("auto-password") or Cli.has_arg("dismiss-errors")
-		or Cli.has_arg("solo") or Cli.has_arg("host-game") or Cli.has_arg("host-online") or Cli.has_arg("online-join"))
+	return OS.is_debug_build() and FLAGS.any(Cli.has_arg)
 
 
 func _ready() -> void:

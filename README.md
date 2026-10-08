@@ -8,7 +8,7 @@ A goofy, cartoon-style **asymmetric multiplayer** game set in a nuclear power pl
 
 Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows**.
 
-> Status: **M8 implemented** (M3–M8 still waiting for a playtest). M8 is everything around the gameplay: a main menu over a little 3D diorama, a server browser (LAN discovery with ping, favourites, direct connect, server passwords), settings (video, controls with key rebinding, audio, gameplay, all saved), a polished lobby (player cards, pings, server info), an Esc menu, a Tab scoreboard, an event feed, a post-match screen with awards, How to play with illustrations, first-time hints, a clear message for every way a connection can fail, a cartoon UI theme, and the whole game in English and French. Screenshots in [docs/screenshots/](docs/screenshots/). Earlier: M3 plant simulation, sabotage and repairs, meltdown meter, HUD; M4 PvP (broom, bites, carry and cage, keycards, traps, donuts); M5 the plant layout; M6 hazards, repair minigames, Control Room consoles; M7 the art and audio pass. Next: playtest with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), including someone who has never seen the game (M8's last check) and a run at 100 ms of simulated latency, then [M9](docs/milestones/M9-ship-v1.md).
+> Status: **M8 implemented** (M3–M8 still waiting for a playtest). M8 is everything around the gameplay: an intro cinematic at startup (how the supervisors' pet hamsters became the rats; a click skips it), a main menu over a little 3D diorama, a server browser (LAN discovery with ping, favourites, direct connect, server passwords), settings (video, controls with key rebinding, audio, gameplay, all saved), a polished lobby (player cards, pings, server info), an Esc menu, a Tab scoreboard, an event feed, a post-match screen with awards, How to play with illustrations, first-time hints, a clear message for every way a connection can fail, a cartoon UI theme, and the whole game in English and French. Screenshots in [docs/screenshots/](docs/screenshots/). Earlier: M3 plant simulation, sabotage and repairs, meltdown meter, HUD; M4 PvP (broom, bites, carry and cage, keycards, traps, donuts); M5 the plant layout; M6 hazards, repair minigames, Control Room consoles; M7 the art and audio pass. Next: playtest with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), including someone who has never seen the game (M8's last check) and a run at 100 ms of simulated latency, then [M9](docs/milestones/M9-ship-v1.md).
 
 ## Documents
 | Doc | What's inside |
@@ -76,7 +76,8 @@ any text missing from the CSV), and `godot --headless --import` to rebuild the `
 language is one more column plus an entry in `Config.LANGUAGES`.
 
 ## Running
-Start the game with no arguments: the menu asks for a name the first time, then **Join a game** opens the server
+Start the game with no arguments: a short intro tells how the rats came to the plant (a click, a key or a gamepad
+button skips it; `--no-intro` leaves it out), then the menu asks for a name the first time, and **Join a game** opens the server
 browser. Servers on your network show up by themselves (with their ping); others are joined by typing their
 address, and can be saved as favourites. Settings and How to play are in the menu, and in game behind Esc.
 
@@ -109,14 +110,14 @@ still works if UDP 7777 is open). User settings are saved in `user://settings.cf
 `--settings PATH` uses another file. The language follows the system (English or French) or the Gameplay setting.
 In game (default keys, all rebindable in Settings → Controls; the game shows them as printed on your keyboard):
 WASD, mouse, Space to jump, Shift to sprint, **hold E** to sabotage (rats) or repair (supervisors), Enter to chat,
-T to chat with your team, hold Tab for the scoreboard, M for the map of the plant (a minimap in the corner shows
+T to chat with your team, hold Tab for the scoreboard and the map of the plant (M opens a bigger map with a legend; a minimap in the corner shows
 the rooms around you), Esc for the menu (the game keeps running; a click in the view goes back to it). In the lobby, 1 / 2 / 3 pick the role you would like and R readies you up. Supervisors: LMB
 swings the broom, E grabs a stunned rat and cages it, hold RMB then release to place a trap; the inventory at the
 bottom of the screen shows what you carry: 1 / 2 / 3 or the mouse wheel select the snap trap, the cheese lure (Q
 also switches between the two) or a donut taken at the Break Room counter, which E eats. Rats: LMB bites, hold E behind a supervisor to steal its keycard, hold E at a cage to free a friend.
 Supervisors repair with a short mouse minigame (E at a repair point; Esc gives up; Settings → Controls, or
 `--hold-repairs`, uses the 6 s hold instead), and use the Control Room consoles (emergency coolant; SCRAM: press
-twice, cover then button). Broken subsystems spawn hazards that hit both teams. Eliminated rats spectate (LMB / RMB
+twice, cover then button). Broken subsystems spawn hazards that hit both teams. Late joiners spectate (LMB / RMB
 cycle players, WASD flies). Z emotes (a whistle, a squeak); camera shake can be turned off in the settings
 (or `--no-shake`). Rats win when the meltdown meter hits 100%; supervisors win when the shift timer runs out first.
 The match starts when at least 3 players are in and more than half of them are ready; `--debug-start N` on the
@@ -131,7 +132,7 @@ tests/integration/join_smoke.sh       # headless server + clients: join, full, v
 tests/integration/lobby_smoke.sh      # lobby: prefs, ready vote, roles, countdown, chat, validator, team left
 tests/integration/run_match_loop.sh   # full match with 2 bots: sabotage, cancels, repair, timer, winner, result JSON
 tests/integration/critical_lever.sh   # 2 rat bots on a lever pair, then reboot + repairs
-tests/integration/pvp_capture.sh      # broom, grab, carry, cage, free, eliminate, ghost and team chat (3 bots)
+tests/integration/pvp_capture.sh      # broom, grab, carry, cage, free, cage again, team chat (3 bots)
 tests/integration/pvp_swarm.sh        # bite makes a carrier drop, 3 rats knock down a supervisor, swarm bonus (4 bots)
 tests/integration/pvp_items.sh        # steal, keycard door lockout, dropped keycard, traps, donut, spare keycard (~1 min)
 tests/integration/pvp_hack.sh         # a "hacked client" sends ~25 bad requests; the server must refuse them all
@@ -162,6 +163,7 @@ godot tests/helpers/ArtGallery.tscn -- --files crate,lever     # windowed: model
 godot tests/helpers/UiTour.tscn -- --settings /tmp/tour.cfg --out /tmp/ui [--lang fr|en] [--only NAME]   # windowed: every menu and in-game screen
 godot tests/helpers/HowToShots.tscn -- --out /tmp/howto          # windowed: renders the How to play illustrations (copy to assets/ui/howto/)
 godot tests/helpers/ItemIcons.tscn -- --out res://assets/ui/items # windowed: renders the hotbar's item icons from the models
+godot --write-movie /tmp/intro.avi --fixed-fps 30 --quit-after 570 res://client/intro/Intro.tscn -- --settings /tmp/intro.cfg   # the intro, frame by frame, with its sound
 godot --headless -s tools/godot/make_theme.gd                    # rebuilds client/ui/theme.tres (fonts, colours, buttons)
 python3 tools/heatmap.py ~/.local/share/godot/app_userdata/HomerSim/heatmap_*.csv   # playtest heatmap
 godot -- --connect 127.0.0.1:7777 --game-version 0.0.0   # debug builds only: fake an old client

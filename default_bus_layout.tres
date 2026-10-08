@@ -1,4 +1,4 @@
-[gd_resource type="AudioBusLayout" load_steps=3 format=3]
+[gd_resource type="AudioBusLayout" format=3 uid="uid://cad7h34qkd2wx"]
 
 [sub_resource type="AudioEffectHardLimiter" id="AudioEffectHardLimiter_master"]
 ceiling_db = -0.5
@@ -6,7 +6,6 @@ ceiling_db = -0.5
 [sub_resource type="AudioEffectReverb" id="AudioEffectReverb_hall"]
 room_size = 0.85
 damping = 0.35
-spread = 1.0
 hipass = 0.1
 dry = 0.0
 wet = 0.6

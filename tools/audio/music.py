@@ -1,5 +1,5 @@
-"""The music (M7): a sneaky match theme in three synced layers, a lounge loop for the lobby, and
-win/lose stingers. All synthesized (tools/audio/synth.py).
+"""The music (M7): a sneaky match theme in three synced layers, a lounge loop for the lobby, win/lose
+stingers, and the score of the intro cinematic. All synthesized (tools/audio/synth.py).
 
 Match layers (client/music_director.gd plays them together and fades them with the plant alarm):
   match_calm      pizzicato walking bass, marimba melody, a ticking clock: always on in a match
@@ -219,6 +219,230 @@ def stinger_lose():
     return buf
 
 
+# --- Intro: the cinematic before the menu (client/intro/intro.gd) ----------------------------------------
+# Written to the intro's clock, in seconds: each section starts on a cue of intro.gd's timeline (the
+# trip, the splash, the POOFs, the alarm, the BONK). Move a cue there, move it here too.
+
+INTRO_S = 18.6
+INTRO_TRIP = 5.9  # the record scratch
+INTRO_SPLASH = 7.55
+INTRO_POOFS = 9.2  # three POOFs, 0.25 s apart (sound effects): the riser ends on the reveal
+INTRO_REVEAL = 9.95  # "DUN-DUN-DUNNN": three rats
+INTRO_CHASE = 10.45  # EEK: the chase starts, 160 BPM...
+INTRO_CHASE_BEAT = 60.0 / 160.0
+INTRO_ALARM = INTRO_CHASE + 8 * INTRO_CHASE_BEAT  # ...the alarm on the 3rd bar's downbeat (13.45 s)
+INTRO_BONK = INTRO_CHASE + 14.5 * INTRO_CHASE_BEAT  # ...and everything stops on the BONK (15.89 s)
+INTRO_CODA = 16.2  # "wah, wah, wah, waaah"
+
+
+class Score(Track):
+    """A track that plays once: positions in seconds, nothing wraps around (notes, reverb tail)."""
+
+    def __init__(self, seconds):
+        super().__init__(seconds, 1.0)
+
+    def add(self, x, at, gain=1.0, p=0.0):
+        st = pan(x * gain, p)
+        for ch in range(2):
+            S.mix_at(self.buf[:, ch], st[:, ch], samples(at))
+
+    def reverb(self, wet=0.18, decay=0.9, seed=7):
+        rng = np.random.default_rng(seed)
+        n_ir = samples(decay * 1.5)
+        t = np.arange(n_ir) / SR
+        size = 1 << int(np.ceil(np.log2(self.n + n_ir)))
+        out = self.buf.copy()
+        for ch in range(2):
+            ir = rng.uniform(-1, 1, n_ir) * np.exp(-t / (decay / 3))
+            ir[:samples(0.01)] = 0
+            ir /= np.sqrt(np.sum(ir ** 2))
+            spec = np.fft.rfft(self.buf[:, ch], size) * np.fft.rfft(ir, size)
+            out[:, ch] += wet * np.fft.irfft(spec, size)[:self.n]
+        self.buf = out
+        return self
+
+
+def _strings(notes, dur, vel=1.0, attack=0.25, cutoff=1600):
+    """A soft string section holding a chord (detuned saws, slow bow)."""
+    x = sum(S.saw(S.midi(n) * d, dur) for n in notes for d in (0.997, 1.003))
+    x = S.lowpass(x, cutoff, 2)
+    return x * S.env_adsr(dur, attack, 0.1, 0.9, min(0.3, dur * 0.3)) * vel * 0.1
+
+
+def _tremolo(freq, dur, vel=1.0, rate=13.0):
+    """Bowed tremolo on one note (`freq` may be an array: a glissando)."""
+    t = np.arange(samples(dur)) / SR
+    x = S.lowpass(S.saw(freq, dur) + S.saw(np.asarray(freq) * 1.004, dur), 2600, 2)
+    bow = S.lowpass(0.55 + 0.45 * np.sign(np.sin(2 * np.pi * rate * t)), 90, 1)
+    return x * bow * S.env_adsr(dur, 0.05, 0.1, 0.9, 0.08) * vel * 0.16
+
+
+def _choir(note, dur, vel=1.0, vowel=(730, 1090, 2440)):
+    """An "aaah" voice (a buzz through vowel formants, with vibrato)."""
+    t = np.arange(samples(dur)) / SR
+    f = S.midi(note) * (1 + 0.012 * np.sin(2 * np.pi * 5.2 * t + note))
+    y = S.resonator(S.lowpass(S.saw(f, dur), 3500, 1), list(vowel), [80, 90, 120])
+    return S.normalize(y, 1.0) * S.env_adsr(dur, 0.35, 0.2, 0.85, 0.15) * vel * 0.3
+
+
+def _timpani(note, dur=1.2, vel=1.0, rng=None):
+    t = np.arange(samples(dur)) / SR
+    f = S.midi(note) * (1 + 0.12 * np.exp(-t / 0.04))
+    x = np.sin(S.phase(f, len(t))) * np.exp(-t / 0.45)
+    x += 0.35 * S.bandpass(S.noise(dur, rng), 80, 900) * np.exp(-t / 0.03)
+    return x * vel
+
+
+def _scratch(dur=0.32, rng=None):
+    """A record scratch: the needle dragged back and forth ("wikka")."""
+    t = np.arange(samples(dur)) / SR
+    hand = np.sin(np.pi * 3.0 * t / dur) ** 2
+    f = 220 + 1300 * hand
+    x = 0.5 * S.saw(f, dur) + 0.6 * S.noise(dur, rng)
+    x = S.sweep_filter(x, lambda u: 300 + 900 * np.sin(np.pi * 3.0 * u) ** 2, lambda u: 2500 + 3500 * u)
+    return x * S.env_adsr(dur, 0.005, 0.05, 0.8, 0.06)
+
+
+def intro():
+    sc = Score(INTRO_S)
+    rng = np.random.default_rng(11)
+
+    # A. The good old days (0 - 4.35 s): a music box tune in F, pizzicato, a ukulele-ish strum, soft
+    #    strings and a shaker. 120 BPM.
+    b = 0.5
+    chords = [(0, 4, [53, 57, 60]), (4, 2, [53, 58, 62]), (6, 2, [52, 55, 58, 60]), (8, 0.8, [53, 57, 60])]
+    for b0, nb, tones in chords:
+        sc.add(_strings(tones, nb * b + 0.35, 0.9, attack=0.3), b0 * b, 1.0)
+    for k, n in enumerate([41, 48, 45, 48, 46, 41, 48, 52, 41]):
+        sc.add(S.pluck(S.midi(n), b * 1.1, 0.35, 0.995, rng), k * b, 0.9, -0.1)
+    for k in range(8):
+        tones = chords[0][2] if k < 4 else (chords[1][2] if k < 6 else chords[2][2])
+        strum = sum(S.pluck(S.midi(n + 12), b * 0.45, 0.6, 0.99, rng) for n in tones)
+        sc.add(strum, (k + 0.5) * b + 0.01, 0.22, 0.3)
+    melody = [(0, 84, .5), (.5, 81, .5), (1, 77, .5), (1.5, 81, .5), (2, 84, 1), (3, 86, .5), (3.5, 84, .5),
+              (4, 82, .5), (4.5, 86, .5), (5, 89, 1), (6, 88, .5), (6.5, 86, .5), (7, 84, .5), (7.5, 82, .5),
+              (8, 81, 1.4)]
+    for beat, n, length in melody:
+        sc.add(S.glockenspiel(S.midi(n), max(0.7, length * b * 2.5), 0.5), beat * b, 0.42, -0.25)
+    for k in range(9):
+        sc.add(S.hat(0.1 if k % 2 else 0.06, rng=rng), (k + 0.5) * b, 1.0, 0.35)
+
+    # B. The new guy (4.35 - 5.9 s), whistling (a sound effect): a creeping chromatic walk-up on
+    #    pizzicato and tuba, the tick-tock of the match theme's clock, strings holding their breath.
+    for k in range(4):
+        at = 4.35 + k * 0.38
+        sc.add(S.pluck(S.midi(41 + k), 0.4, 0.3, 0.99, rng), at, 0.9)
+        sc.add(S.tuba(S.midi(41 + k), 0.2, 0.7), at, 0.45)
+        sc.add(S.woodblock(1250 if k % 2 == 0 else 950, 0.5), at, 0.9, 0.35)
+    sc.add(_strings([72, 77], 1.55, 0.7, attack=1.0, cutoff=2400), 4.38, 0.8, 0.2)
+
+    # C. The trip: a record scratch, and a beat of silence.
+    sc.add(_scratch(0.32, rng), INTRO_TRIP - 0.02, 0.75)
+
+    # D. Slow motion (6.05 - 7.55 s): a choir swelling, high tremolo creeping up, a soft boom; the
+    #    splash hits with a crash and a timpani.
+    d = INTRO_SPLASH - 6.02
+    for n in (57, 64, 69, 72):
+        sc.add(_choir(n, d + 0.1) * np.linspace(0.45, 1.0, samples(d + 0.1)), 6.02, 0.8, (n - 64) / 20)
+    t = np.arange(samples(d)) / SR
+    sc.add(_tremolo(S.midi(88) * 2 ** (t / d / 12), d), 6.02, 0.7, 0.4)
+    sc.add(_tremolo(S.midi(89) * 2 ** (t / d / 12), d), 6.02, 0.5, -0.4)
+    sc.add(_timpani(33, 1.4, 0.6, rng), 6.02, 1.0)
+    sc.add(S.cymbal(1.8, 0.7, rng), INTRO_SPLASH, 0.9, 0.2)
+    sc.add(_timpani(33, 1.6, 1.0, rng), INTRO_SPLASH, 1.0)
+
+    # E. Something is happening (7.6 - 9.95 s): a dark organ cluster, a radioactive wobble speeding up,
+    #    a heartbeat on the timpani, tremolo strings climbing, a riser into the reveal.
+    dur = INTRO_REVEAL - 7.6
+    t = np.arange(samples(dur)) / SR
+    sc.add((S.organ(S.midi(33), dur, 0.7) + S.organ(S.midi(34), dur, 0.45)) * np.linspace(0.6, 1.0, len(t)), 7.6,
+           0.8)
+    rate = 2.0 + 7.0 * (t / dur) ** 1.5
+    wobble = S.lowpass(S.saw(S.midi(45), dur) + S.saw(S.midi(45) * 1.006, dur), 900, 2)
+    wobble *= 0.5 + 0.5 * np.sin(S.phase(rate, len(t)))
+    sc.add(wobble * np.linspace(0.3, 1.0, len(t)) * 0.25, 7.6, 1.0, -0.2)
+    for at in (7.95, 8.45, 8.85, 9.12):
+        sc.add(_timpani(36, 0.5, 0.7, rng), at, 1.0)
+        sc.add(_timpani(36, 0.5, 0.45, rng), at + 0.13, 1.0)
+    climb = S.midi(76) * 2 ** (3 * (t / dur) / 12)
+    sc.add(_tremolo(climb, dur, 1.0) * np.linspace(0.3, 1.0, len(t)), 7.6, 0.7, 0.35)
+    sc.add(_tremolo(climb * 2 ** (1 / 12), dur, 1.0) * np.linspace(0.3, 1.0, len(t)), 7.6, 0.6, -0.35)
+    rise = INTRO_REVEAL - 8.9
+    tr = np.arange(samples(rise)) / SR
+    riser = S.sweep_filter(S.noise(rise, rng), lambda u: 300 + 3000 * u ** 2, lambda u: 1500 + 7000 * u ** 2)
+    riser += 0.4 * S.sine(200 * 2 ** (3 * tr / rise), rise)
+    sc.add(riser * (tr / rise) ** 2 * 0.35, 8.9, 1.0)
+
+    # F. The reveal (9.95 s): DUN - DUN - DUNNN, low brass and timpani.
+    for k, (notes, length) in enumerate((([45, 52, 57, 60], 0.15), ([46, 53, 58, 62], 0.15), ([45, 52, 57, 60], 0.5))):
+        at = INTRO_REVEAL + k * 0.17
+        stab = sum(S.brass(S.midi(n), length, 0.9, 1800) for n in notes)
+        sc.add(stab, at, 0.9)
+        sc.add(_timpani(33 if k != 1 else 34, 0.6, 1.0, rng), at, 0.9)
+    sc.add(S.cymbal(1.2, 0.6, rng), INTRO_REVEAL + 0.34, 0.7, 0.2)
+
+    # G. The chase (10.45 - 15.89 s), 160 BPM in A minor: drums, an octave-jumping bass, the match
+    #    theme's sneaky motif on xylophone; at the alarm the critical layer's siren lead comes in;
+    #    everything stops dead on the BONK.
+    cb = INTRO_CHASE_BEAT
+
+    def at(beat):
+        return INTRO_CHASE + beat * cb
+
+    for k in range(15):
+        if at(k) >= INTRO_BONK:
+            break
+        sc.add(S.kick(1.0 if k % 2 == 0 else 0.7), at(k), 0.9)
+        if k % 2 == 1:
+            sc.add(S.snare(0.7, rng), at(k), 0.9, 0.1)
+    for k in range(29):  # hats: eighths, sixteenths from the alarm on
+        sub = 2 if at(k / 2) < INTRO_ALARM else 4
+        for j in range(sub // 2):
+            when = at(k / 2 + j / sub)
+            if when < INTRO_BONK:
+                sc.add(S.hat(0.35 if (k + j) % 2 else 0.2, rng=rng), when, 1.0, 0.45)
+    for j in range(8):  # a snare roll into the alarm
+        sc.add(S.snare(0.25 + 0.06 * j, rng), at(7 + j / 8), 0.8, 0.1)
+    walk = [45, 57, 45, 57, 43, 55, 44, 56]
+    for k in range(29):
+        when = at(k / 2)
+        if when >= INTRO_BONK:
+            break
+        sc.add(S.pluck(S.midi(walk[k % 8]), cb * 0.6, 0.45, 0.99, rng), when, 0.85, -0.05)
+        if k % 2 == 0:
+            sc.add(S.tuba(S.midi(walk[k % 8]), cb * 0.4, 0.6), when, 0.35)
+    motif = [(0, 69, .5), (1, 72, .5), (1.5, 76, .5), (2.5, 75, .25), (2.75, 76, .75), (4.5, 72, .5), (5, 69, .5),
+             (6, 64, 1.0)]
+    for beat, n, length in motif:
+        sc.add(S.xylophone(S.midi(n + 12), 0.35), at(beat), 0.55, -0.3)
+        sc.add(S.marimba(S.midi(n), max(0.25, length * cb * 1.5), 0.6), at(beat), 0.5, -0.2)
+    for beat in (5.5, 7.5, 9.5, 11.5, 13.5):  # brass stabs on the off-beats
+        stab = sum(S.brass(S.midi(n), cb * 0.4, 0.7, 2000) for n in (57, 60, 64))
+        sc.add(stab, at(beat), 0.55, -0.35)
+    siren_d = INTRO_BONK - INTRO_ALARM
+    ts = np.arange(samples(siren_d)) / SR
+    hi, lo = S.midi(76), S.midi(69)
+    f = lo + (hi - lo) * (0.5 - 0.5 * np.cos(2 * np.pi * ts / (cb * 4)))
+    siren = (S.sine(f, siren_d) + 0.3 * S.sine(f * 2, siren_d)) * S.env_adsr(siren_d, 0.05, 0.1, 0.9, 0.02)
+    sc.add(siren, INTRO_ALARM, 0.2, 0.3)
+    sc.add(sum(_tremolo(S.midi(n), siren_d, 0.8) for n in (69, 72, 76)), INTRO_ALARM, 0.6, -0.4)
+    hit = sum(S.brass(S.midi(n), 0.35, 1.0, 2400) for n in (45, 57, 60, 64))
+    sc.add(hit, INTRO_BONK, 0.9)
+    sc.add(S.cymbal(0.5, 0.8, rng) * S.env_exp(0.5, 0.08), INTRO_BONK, 0.9, 0.2)
+
+    # H. The coda (16.2 s): the game's cartoon fail, "wah, wah, wah, waaah", on a muted trombone.
+    for k, (note, length) in enumerate(((55, 0.4), (54, 0.4), (53, 0.4), (52, 1.05))):
+        tl = np.arange(samples(length)) / SR
+        vib = 1 + (0.012 * np.sin(2 * np.pi * 5.5 * tl) * np.clip((tl - 0.3) / 0.3, 0, 1) if length > 1 else 0)
+        x = S.saw(S.midi(note) * vib, length) + 0.6 * S.saw(S.midi(note) * 1.004 * vib, length)
+        x = S.sweep_filter(x, lambda u: 80, lambda u, ln=length: 500 + 1400 * np.sin(np.pi * min(1.0, u * (1.6 if ln < 1 else 1.0))))
+        x *= S.env_adsr(length, 0.04, 0.1, 0.85, 0.15)
+        sc.add(x, INTRO_CODA + k * 0.42, 0.55)
+    buf = sc.reverb(0.16, 1.1).buf
+    buf[-samples(0.3):] *= np.linspace(1, 0, samples(0.3))[:, None]
+    return buf
+
+
 def _master(stems, level=0.85):
     """Scales stems together so their sum peaks at `level` (keeps the layers' balance)."""
     total = sum(stems)
@@ -226,11 +450,16 @@ def _master(stems, level=0.85):
     return [s * (level / m) for s in stems]
 
 
-def render_all():
-    calm, warning, critical = _master([match_calm(), match_warning(), match_critical()])
-    yield "match_calm", calm
-    yield "match_warning", warning
-    yield "match_critical", critical
-    yield "lobby", S.normalize(lobby(), 0.75)
-    yield "stinger_win", S.normalize(stinger_win(), 0.85)
-    yield "stinger_lose", S.normalize(stinger_lose(), 0.85)
+def render_all(only=()):
+    """(name, stereo buffer) for each piece; `only`: name prefixes to render (none = everything)."""
+    def wanted(name):
+        return not only or any(name.startswith(p) for p in only)
+    if any(wanted(n) for n in ("match_calm", "match_warning", "match_critical")):
+        stems = _master([match_calm(), match_warning(), match_critical()])
+        for name, x in zip(("match_calm", "match_warning", "match_critical"), stems):
+            if wanted(name):
+                yield name, x
+    for name, fn, level in (("lobby", lobby, 0.75), ("stinger_win", stinger_win, 0.85),
+                            ("stinger_lose", stinger_lose, 0.85), ("intro", intro, 0.8)):
+        if wanted(name):
+            yield name, S.normalize(fn(), level)

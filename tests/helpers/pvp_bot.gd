@@ -9,8 +9,8 @@ extends Node
 ##
 ## Scenarios:
 ##   capture  supervisor + rats "victim" and "rescuer": broom → stun → grab → carry → cage →
-##            the rescuer frees the victim → 2nd capture eliminates it → the victim uses the
-##            ghost chat → the rescuer is caged too, so every rat is caught. Team chat on the way.
+##            the rescuer frees the victim → the 2nd capture cages it again (no elimination) →
+##            the rescuer is caged too, so every rat is caught. Team chat on the way.
 ##   swarm    supervisor + rats 1..3: rat 2 bites the carrier so it drops rat 1, then all three
 ##            bite the supervisor: knockdown, swarm bonus once, knockdown immunity.
 ##   items    supervisor + rat: steal → locked out of the keycard door → stun drops the keycard →
@@ -19,7 +19,8 @@ extends Node
 ##   hack     supervisor + rat send requests a hacked client could: wrong role, bad args, out of
 ##            range, cooldown spam. The server must refuse them all (checked in the server log).
 ##   plant    (M5, on the plant: --level plant) supervisor + rat: the supervisor sits at the CCTV
-##            chair, the rat breaks camera 1, the supervisor stands up and repairs it, then climbs
+##            chair, the rat breaks camera 1, the supervisor stands up and repairs it, takes the CCTV
+##            tablet out and puts it away, then climbs
 ##            the yard ladder to the vent roof and is teleported out of bounds (it must come back
 ##            by itself); the rat climbs the vent shaft up to the roof.
 ##   ai_target (M10, TestArena, with one AI rat that stands still: server --ai-roles rat
@@ -205,8 +206,8 @@ func _capture_supervisor() -> void:
 		and victim.global_position.distance_to(VICTIM_SPOT) < 0.5), 6.0, "VictimBot back in place")
 	await wait(0.3)
 	if await stun_and_grab("VictimBot"):
-		await cage_carried(cage_a)  # 2nd capture: eliminated
-	await wait_until(func() -> bool: return body_named("VictimBot") == null, 2.0, "VictimBot eliminated")
+		await cage_carried(cage_a)  # 2nd capture: caged again
+	await wait_until(func() -> bool: return has(victim, StatusComponent.Status.CAGED), 2.0, "VictimBot caged again")
 	await wait(1.0)
 	if await stun_and_grab("RescuerBot"):
 		await cage_carried(cage("CageB"))  # every rat is caught: supervisors win
@@ -214,19 +215,14 @@ func _capture_supervisor() -> void:
 
 func _capture_victim() -> void:
 	await teleport(VICTIM_SPOT)
-	var me_peer := session.local_peer_id
 	await wait_until(func() -> bool: return has(me(), StatusComponent.Status.CAGED), 20.0, "being caged")
 	Log.info("bot", "I'm caged")
 	await wait_until(func() -> bool: return not has(me(), StatusComponent.Status.CAGED), 15.0, "being freed")
 	Log.info("bot", "freed, invulnerable: %s" % has(me(), StatusComponent.Status.INVULNERABLE))
 	await wait(0.5)
 	await teleport(VICTIM_SPOT)
-	await wait_until(func() -> bool: return me() == null, 20.0, "being eliminated")
-	await wait_until(func() -> bool: return session.match_manager.is_ghost(me_peer), 2.0, "becoming a ghost")
-	Log.info("bot", "eliminated, now a ghost")
-	session.chat.send("boo from the other side", ChatService.Channel.GHOST)
-	await wait(1.2)
-	session.chat.send("can the living hear me", ChatService.Channel.ALL)  # rerouted to ghosts
+	await wait_until(func() -> bool: return has(me(), StatusComponent.Status.CAGED), 20.0, "being caged again")
+	Log.info("bot", "caged again, still in the match: %s" % (me() != null and not session.match_manager.is_ghost(session.local_peer_id)))
 
 
 func _capture_rescuer() -> void:
@@ -498,6 +494,14 @@ func _plant_supervisor() -> void:
 	Log.info("bot", "camera repair hold ended: %s" % await hold(cam))
 	if await wait_until(func() -> bool: return not cam.broken, 2.0, "the repair to arrive"):
 		Log.info("bot", "camera 1 works again")
+	# The CCTV tablet: out (we can still move), then away again before the ladder.
+	me().request_tablet.rpc_id(1, true)
+	if await wait_until(func() -> bool: return me().using_tablet and me().movement.can_move(), 3.0, "the tablet"):
+		Log.info("bot", "holding the CCTV tablet, free to move")
+	await wait(0.5)
+	me().request_tablet.rpc_id(1, false)
+	if await wait_until(func() -> bool: return not me().using_tablet, 3.0, "putting the tablet away"):
+		Log.info("bot", "put the tablet away")
 	# Up the yard ladder: walk into it, facing the wall.
 	var ladder := get_tree().root.find_child("Ladder", true, false) as Ladder
 	var base := ladder.global_position - ladder.up_direction() * 1.0

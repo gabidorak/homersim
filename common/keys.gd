@@ -12,7 +12,7 @@ extends RefCounted
 ## on purpose: it always opens the menu, so nobody can lock themselves out of the settings.
 const REBINDABLE: Array[StringName] = [
 	&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"sprint", &"crouch",
-	&"primary", &"secondary", &"interact", &"next_trap", &"slot_1", &"slot_2", &"slot_3", &"slot_next", &"slot_prev",
+	&"primary", &"secondary", &"interact", &"next_trap", &"cctv_tablet", &"slot_1", &"slot_2", &"slot_3", &"slot_next", &"slot_prev",
 	&"emote", &"chat", &"team_chat", &"scoreboard", &"map", &"lobby_ready", &"lobby_pref_any", &"lobby_pref_supervisor",
 	&"lobby_pref_rat", &"spectate_up", &"spectate_down", &"debug_overlay", &"debug_stopwatch",
 ]
@@ -30,6 +30,7 @@ const ACTION_NAMES := {
 	&"secondary": "Place a trap (hold, release)",
 	&"interact": "Interact (hold)",
 	&"next_trap": "Switch trap (CCTV: previous camera)",
+	&"cctv_tablet": "CCTV tablet (supervisor)",
 	&"slot_1": "Inventory slot 1",
 	&"slot_2": "Inventory slot 2",
 	&"slot_3": "Inventory slot 3",
@@ -38,8 +39,8 @@ const ACTION_NAMES := {
 	&"emote": "Emote",
 	&"chat": "Chat",
 	&"team_chat": "Team chat",
-	&"scoreboard": "Scoreboard (hold)",
-	&"map": "Map",
+	&"scoreboard": "Scoreboard and map (hold)",
+	&"map": "Big map with legend",
 	&"lobby_ready": "Lobby: ready",
 	&"lobby_pref_any": "Lobby: play any role",
 	&"lobby_pref_supervisor": "Lobby: play supervisor",
@@ -54,7 +55,7 @@ const ACTION_NAMES := {
 ## (Space for both "jump" and "fly up" is fine: a spectator has no body to jump with.)
 const GROUPS: Array[Array] = [
 	[&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"sprint", &"crouch", &"primary",
-		&"secondary", &"interact", &"next_trap", &"slot_1", &"slot_2", &"slot_3", &"slot_next", &"slot_prev", &"emote",
+		&"secondary", &"interact", &"next_trap", &"cctv_tablet", &"slot_1", &"slot_2", &"slot_3", &"slot_next", &"slot_prev", &"emote",
 		&"chat", &"team_chat", &"scoreboard", &"map", &"debug_overlay", &"debug_stopwatch"],
 	[&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"emote", &"chat", &"scoreboard",
 		&"map", &"lobby_ready", &"lobby_pref_any", &"lobby_pref_supervisor", &"lobby_pref_rat"],

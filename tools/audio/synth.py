@@ -240,6 +240,15 @@ def xylophone(freq, dur, vel=1.0):
     return fade(x * vel, 0.0005, 0.02)
 
 
+def glockenspiel(freq, dur, decay=0.4, vel=1.0):
+    """A glockenspiel bar (a music box, a twinkle): a bright fundamental and two inharmonic partials."""
+    t = t_axis(dur)
+    x = (np.sin(2 * np.pi * freq * t) * np.exp(-t / decay)
+         + 0.4 * np.sin(2 * np.pi * freq * 2.76 * t) * np.exp(-t / (decay * 0.35))
+         + 0.15 * np.sin(2 * np.pi * freq * 5.4 * t) * np.exp(-t / (decay * 0.15)))
+    return fade(x * vel, 0.0005, 0.02)
+
+
 def tuba(freq, dur, vel=1.0):
     """Brassy oompah bass: saw through a low-pass that opens at the attack."""
     x = saw(freq, dur) * 0.6 + sine(freq, dur) * 0.6

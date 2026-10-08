@@ -6,8 +6,9 @@ extends Node
 ##          carry speed
 ##   drop   the rat escapes after carry_max_s, or when another rat bites the carrier, or when the
 ##          carrier is stunned / knocked down / gone: it lands at the carrier's feet, INVULNERABLE
-##   cage   the carrier presses E at a cage: the rat gets CAGED and is moved inside. Its Nth
-##          capture (captures_to_eliminate) eliminates it instead: MatchManager makes it a ghost
+##   cage   the carrier presses E at a cage: the rat gets CAGED and is moved inside, however many
+##          times it was caught before. (With captures_to_eliminate > 0, its Nth capture eliminates
+##          it instead: MatchManager makes it a ghost. 0, the default, never eliminates.)
 ##   free   a rat holds E at an occupied cage: the oldest occupant walks out, INVULNERABLE
 ## The win check (every rat that isn't eliminated is caged) is MatchManager's.
 ## It lives in Session (on the server AND the clients) like the other services.
@@ -88,7 +89,7 @@ func cage(supervisor: Player, target: Cage) -> void:
 	session.match_manager.add_stat(supervisor.peer_id, "catches")
 	session.match_manager.add_stat(rat.peer_id, "caught")
 	session.items.drop_stolen(rat)
-	if captures[rat.peer_id] >= tuning.captures_to_eliminate:
+	if tuning.captures_to_eliminate > 0 and captures[rat.peer_id] >= tuning.captures_to_eliminate:
 		Log.info("capture", "%s caught %s again: eliminated" % [supervisor.display_name, rat.display_name])
 		session.match_manager.feed("eliminated", supervisor.display_name, rat.display_name)
 		session.match_manager.eliminate(rat.peer_id)

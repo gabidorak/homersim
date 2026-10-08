@@ -3,11 +3,13 @@ extends CanvasLayer
 ## The scoreboard (M8, ClientOnly): shown while the scoreboard key (Tab) is held. During a match, one
 ## column per team: name, how they are doing (caged, out, knocked down…), their key stats so far
 ## (MatchManager.live_stats) and ping (MatchManager.pings), or a BOT badge for an AI bot (M10);
-## spectators below. In the lobby: everyone with their preferred role and ready state. Only reads
-## replicated state.
+## spectators below. In the lobby: everyone with their preferred role and ready state. Under the board,
+## the map of the level (a MapView of its plan, as on the full map key) fills the rest of the screen,
+## with the player's room drawn brighter; the minimap steps aside meanwhile. Only reads replicated state.
 
 const SUPERVISOR_COLOR := Color("ffc93c")
 const RAT_COLOR := Color("7bd389")
+const MARGIN := 24.0
 const SUPERVISOR_STATS: Array[String] = ["repairs", "catches", "bonks"]
 const RAT_STATS: Array[String] = ["sabotages", "bites", "frees"]
 const STAT_TITLES := {
@@ -20,17 +22,23 @@ var _root: Control
 var _title: Label
 var _columns: HBoxContainer
 var _footer: Label
+var _plan: LevelMap
+var _map_box: AspectRatioContainer
+var _map: MapView
 var _next_refresh_ms := 0
 
 
 func _ready() -> void:
 	layer = 15
-	_root = CenterContainer.new()
-	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_root = VBoxContainer.new()
+	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, int(MARGIN))
+	_root.alignment = BoxContainer.ALIGNMENT_CENTER  # (the board alone, without a map: in the middle)
+	_root.add_theme_constant_override("separation", 12)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(900, 0)
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(panel)
 	var col := VBoxContainer.new()
@@ -49,7 +57,33 @@ func _ready() -> void:
 	_footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_footer.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	col.add_child(_footer)
+	_build_map()
 	_root.visible = false
+
+
+## The map under the board: as big as the space left allows, in the plan's proportions.
+func _build_map() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	_plan = MapInfo.plan_in(get_tree())
+	if _plan == null:
+		return
+	_map_box = AspectRatioContainer.new()
+	_map_box.ratio = _plan.area.size.x / _plan.area.size.y
+	_map_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_map_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_map_box)
+	var card := PanelContainer.new()
+	card.theme_type_variation = &"CardPanel"
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_box.add_child(card)
+	_map = MapView.new()
+	_map.plan = _plan
+	card.add_child(_map)
+
+
+func is_shown() -> bool:
+	return _root.visible
 
 
 ## Test hook: show it without holding the key.
@@ -73,6 +107,7 @@ func _refresh() -> void:
 	var session := Session.current
 	var mm := session.match_manager
 	var info := mm.server_info
+	_refresh_map()
 	var title := str(info.get("name", ""))
 	if mm.state == MatchManager.State.PLAYING:
 		title += "  ·  %d:%02d" % [floori(mm.time_left / 60.0), mm.time_left % 60]
@@ -95,6 +130,18 @@ func _refresh() -> void:
 	else:
 		_columns.add_child(_lobby_list())
 		_footer.text = tr("%d / %d players") % [mm.human_count(), int(info.get("max_players", 6))]
+
+
+func _refresh_map() -> void:
+	if _map_box == null:
+		return
+	_map_box.visible = Session.current.match_manager.state != MatchManager.State.POST_MATCH
+	if not _map_box.visible:
+		return
+	var session := Session.current
+	var body := session.get_body(session.local_peer_id)
+	_map.highlight = -1 if body != null and VentVolume.contains(body) else _plan.room_at(_map.viewer()[0])
+	Config.mark_hint_seen("map")  # (they found it: no need for the tip any more)
 
 
 func _team(title: String, role: Role.Kind, color: Color, stat_keys: Array[String]) -> Control:

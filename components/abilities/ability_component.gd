@@ -87,7 +87,7 @@ func server_cooldown(id: StringName, seconds: float) -> void:
 func _process(delta: float) -> void:
 	for id: StringName in _cooldown_left.keys():
 		_cooldown_left[id] = maxf(_cooldown_left[id] - delta, 0.0)
-	var control := PlayerInput.has_control() and _playing() and body.seated_console() == null
+	var control := PlayerInput.has_control() and _playing() and not body.watching_cctv()
 	if control and Input.is_action_just_pressed("primary") and primary() != null:
 		use(primary().id)
 	var wants_preview := control and Input.is_action_pressed("secondary") and selected_trap_ability() != null

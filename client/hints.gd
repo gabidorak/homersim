@@ -106,7 +106,7 @@ func _current_situation() -> String:
 					return "carrying"
 				if not body.inventory.keycard:
 					return "keycard_stolen"
-				if body.seated_console() != null:
+				if body.watching_cctv():
 					return "cctv"
 				if session.plant.alarm == PlantModel.Alarm.CRITICAL:
 					return "alarm_supervisor"
@@ -135,7 +135,7 @@ func _still_relevant(id: String) -> bool:
 		"carrying":
 			return body != null and body.status.carrying != 0
 		"cctv":
-			return body != null and body.seated_console() != null
+			return body != null and body.watching_cctv()
 		"eliminated", "spectator":
 			return mm.in_match()
 		"map":
@@ -167,6 +167,10 @@ func text_of(id: String) -> Array[String]:
 		"keycard_stolen":
 			return [tr("Keycard stolen"), tr("Without it, the keycard doors stay shut. Stun the thief to drop it, or pick up the spare in Storage when it's ready.")]
 		"cctv":
+			var body := Session.current.get_body(Session.current.local_peer_id)
+			if body != null and body.using_tablet:
+				return [tr("CCTV"), tr("%s / %s switch cameras, %s puts the tablet away. You can walk while you watch, but your hands are full. Rats can break cameras: repair them where they hang.")
+					% [Keys.label(&"next_trap"), interact, Keys.label(&"cctv_tablet")]]
 			return [tr("CCTV"), tr("%s / %s switch cameras, %s stands up. Rats can break cameras: repair them where they hang.")
 				% [Keys.label(&"next_trap"), interact, Keys.label(&"jump")]]
 		"alarm_supervisor":
@@ -174,8 +178,8 @@ func text_of(id: String) -> Array[String]:
 		"alarm_rat":
 			return [tr("Critical alarm!"), tr("The core is overheating: keep the machines broken and the meltdown meter climbs faster.")]
 		"map":
-			return [tr("Lost?"), tr("%s opens the map of the plant, with every machine and your team. The minimap in the corner turns with you and names the room you're in.")
-				% Keys.label(&"map")]
+			return [tr("Lost?"), tr("Hold %s to see the map of the plant under the scoreboard, with every machine and your team (%s opens a bigger one with a legend). The minimap in the corner turns with you and names the room you're in.")
+				% [Keys.label(&"scoreboard"), Keys.label(&"map")]]
 		"eliminated":
 			return [tr("You're out"), tr("You were caught twice. Watch the rest of the match: %s / %s follow players, %s flies. Only other ghosts can read your messages.")
 				% [Keys.label(&"primary"), Keys.label(&"secondary"), Keys.move_label()]]

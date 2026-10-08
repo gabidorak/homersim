@@ -48,6 +48,9 @@ var sync_pitch := 0.0
 ## What the body is doing, for everyone's animations: AnimationController.FLAG_* bits (M7).
 var sync_anim := 0
 
+## Supervisor: watching the CCTV on the handheld tablet (server-owned, replicated by StatusSync).
+var using_tablet := false
+
 ## Clients: the character model's animation and its sounds/particles (null on the server).
 var anim: AnimationController
 var fx: BodyFx
@@ -164,6 +167,10 @@ func _physics_process(_delta: float) -> void:
 		sync_pitch = rig.look_pitch()
 		if anim != null:
 			sync_anim = anim.local_flags()
+	if Net.is_server and using_tablet:
+		var reason := tablet_blocker()
+		if reason != "":
+			server_set_tablet(false, reason)
 
 
 ## Where we look: yaw from the body, pitch from the head (synced for remote bodies).
@@ -181,6 +188,45 @@ func max_speed() -> float:
 ## The CCTV chair we sit at, or null (while seated: no moving, interacting or abilities).
 func seated_console() -> CctvConsole:
 	return CctvConsole.of_peer(get_tree(), peer_id)
+
+
+## Watching the CCTV, at the chair or on the tablet (no interacting, items or abilities meanwhile;
+## at the chair, no moving or looking around either).
+func watching_cctv() -> bool:
+	return using_tablet or seated_console() != null
+
+
+## Why we can't hold the CCTV tablet up right now, or "" if we can.
+func tablet_blocker() -> String:
+	if role != Role.Kind.SUPERVISOR:
+		return "not a supervisor"
+	if Session.current == null or Session.current.match_manager.state != MatchManager.State.PLAYING:
+		return "the match stopped"
+	if not status.can_act():
+		return "can't act"
+	if status.carrying != 0:
+		return "carrying a rat"
+	if seated_console() != null:
+		return "at the CCTV chair"
+	if CctvCamera.all_in(get_tree()).is_empty():
+		return "no cameras"
+	return ""
+
+
+## Client → server: take the CCTV tablet out (`on`) or put it away.
+@rpc("any_peer", "reliable")
+func request_tablet(on: bool) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
+		server_set_tablet(on, "asked")
+
+
+## Server: the supervisor holds the tablet up (it can still walk, but its hands are full) or puts it
+## away. Refused while tablet_blocker() says why not.
+func server_set_tablet(on: bool, reason: String) -> void:
+	if on == using_tablet or (on and tablet_blocker() != ""):
+		return
+	using_tablet = on
+	Log.info("cctv", "%s %s the CCTV tablet: %s" % [display_name, "took out" if on else "put away", reason])
 
 
 ## The carrier's HandSocket while we are carried, else null.
