@@ -179,6 +179,33 @@ def munch():
     return S.fade(S.normalize(out, 0.8))
 
 
+@sound("spit")
+def spit():
+    """A caged rat's PTOOEY: a lip pop, a quick squeaky "too-ee" and a wet spray."""
+    r = rng(60)
+    out = np.zeros(samples(0.45))
+    S.mix_at(out, S.lowpass(S.noise(0.02, r), 900) * S.env_exp(0.02, 0.006), 0, 1.0)
+    S.mix_at(out, _voice(0.16, 560, 820, (330, 900, 2300), (300, 2300, 3000), 61), samples(0.025), 0.5)
+    spray = S.sweep_filter(S.noise(0.24, r), lambda u: 2500 - 1000 * u, lambda u: 9000 - 3000 * u)
+    S.mix_at(out, spray * S.env_exp(0.24, 0.06, 0.005), samples(0.12), 0.55)
+    return S.fade(S.normalize(out, 0.75))
+
+
+@sound("splat")
+def splat():
+    """Rat spit landing: a small wet slap and a couple of drips."""
+    r = rng(62)
+    out = np.zeros(samples(0.4))
+    t = t_axis(0.12)
+    S.mix_at(out, np.sin(S.phase(160 + 260 * np.exp(-t / 0.02), len(t))) * np.exp(-t / 0.04), 0, 0.6)
+    S.mix_at(out, S.bandpass(S.noise(0.15, r), 600, 5000) * S.env_exp(0.15, 0.03), 0, 1.0)
+    for at in (0.13, 0.25):
+        tp = t_axis(0.06)
+        drop = np.sin(S.phase(r.uniform(1000, 1400) * (1 + 1.1 * tp / 0.06), len(tp))) * np.exp(-tp / 0.015)
+        S.mix_at(out, drop, samples(at), 0.2)
+    return S.fade(S.normalize(out, 0.8))
+
+
 @sound("emote_whistle")
 def emote_whistle():
     """A cheerful three-note whistle (supervisor emote)."""

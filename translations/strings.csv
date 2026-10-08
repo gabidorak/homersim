@@ -37,6 +37,8 @@ ghost,ghost,fantôme
 BONK! You're stunned,BONK! You're stunned,BONK ! Vous êtes assommé
 The rats knocked you down!,The rats knocked you down!,Les rats vous ont mis à terre !
 Knockdown!,Knockdown!,À terre !
+PTOOEY! Rat spit in the eye: you're stunned,PTOOEY! Rat spit in the eye: you're stunned,PTOUH ! Un crachat de rat dans l'œil : vous êtes assommé
+Bullseye! The supervisor is stunned,Bullseye! The supervisor is stunned,En plein dans le mille ! Le superviseur est assommé
 SNAP! A trap caught a rat,SNAP! A trap caught a rat,CLAC ! Un piège a attrapé un rat
 Thanks for playing!,Thanks for playing!,Merci d'avoir joué !
 CREDITS.md is missing from this build.,CREDITS.md is missing from this build.,CREDITS.md manque dans cette version.
@@ -87,7 +89,7 @@ frozen,frozen,figé
 %s team chat,%s team chat,%s chat d'équipe
 %s scores and map,%s scores and map,%s scores et carte
 Esc menu,Esc menu,Échap menu
-You're caged! A free rat can let you out (hold %s at the cage),You're caged! A free rat can let you out (hold %s at the cage),Vous êtes en cage ! Un rat libre peut vous sortir (en maintenant %s devant la cage)
+"You're caged! A free rat can let you out (hold %s at the cage). Meanwhile, %s spits at supervisors","You're caged! A free rat can let you out (hold %s at the cage). Meanwhile, %s spits at supervisors","Vous êtes en cage ! Un rat libre peut vous sortir (en maintenant %s devant la cage). En attendant, %s crache sur les superviseurs"
 Keycard: STOLEN · spare in Storage in %d s,Keycard: STOLEN · spare in Storage in %d s,Badge : VOLÉ · badge de secours dans la Réserve dans %d s
 Keycard: STOLEN · a spare is waiting in Storage,Keycard: STOLEN · a spare is waiting in Storage,Badge : VOLÉ · un badge de secours attend dans la Réserve
 Carrying %s: get to a cage!,Carrying %s: get to a cage!,Vous portez %s : direction une cage !
@@ -318,6 +320,7 @@ Your turn: flip them in the same order (%d / %d),Your turn: flip them in the sam
 %s caught %s again: out of the match!,%s caught %s again: out of the match!,%s a rattrapé %s : éliminé !
 %s freed %s!,%s freed %s!,%s a libéré %s !
 BONK! %s stunned %s,BONK! %s stunned %s,BONK ! %s a assommé %s
+PTOOEY! %s spat in %s's eye,PTOOEY! %s spat in %s's eye,PTOUH ! %s a craché dans l'œil de %s
 The rats knocked %s down!,The rats knocked %s down!,Les rats ont mis %s à terre !
 SNAP! %s stepped in a trap,SNAP! %s stepped in a trap,CLAC ! %s a marché dans un piège
 %s sniffed the cheese lure: revealed!,%s sniffed the cheese lure: revealed!,%s a reniflé l'appât au fromage : repéré !
@@ -429,6 +432,7 @@ Turn the valve,Turn the valve,Tournez la vanne
 SPARE KEYCARD,SPARE KEYCARD,BADGE DE SECOURS
 DONUTS,DONUTS,DONUTS
 Bite,Bite,Morsure
+Spit,Spit,Crachat
 Broom,Broom,Balai
 Cheese lure,Cheese lure,Appât au fromage
 Snap trap,Snap trap,Tapette

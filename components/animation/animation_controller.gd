@@ -99,6 +99,9 @@ func _ready() -> void:
 		abilities.bitten.connect(func(attacker: int, _victim: int, _result: int) -> void:
 			if attacker == body.peer_id and not body.is_local():
 				play_one_shot("bite"))
+		abilities.spat.connect(func(attacker: int, _victim: int, _aim: Vector3, _stunned: bool) -> void:
+			if attacker == body.peer_id and not body.is_local():
+				play_one_shot("bite"))  # (no clip of its own: the same lunge)
 	_last_donuts = body.inventory.donuts
 
 

@@ -18,6 +18,7 @@ const LINES := {
 	"freed": "%s freed %s!",
 	"bonk": "BONK! %s stunned %s",
 	"knockdown": "The rats knocked %s down!",
+	"spit": "PTOOEY! %s spat in %s's eye",
 	"trap_snap": "SNAP! %s stepped in a trap",
 	"trap_lure": "%s sniffed the cheese lure: revealed!",
 	"stolen": "A rat stole %s's keycard!",

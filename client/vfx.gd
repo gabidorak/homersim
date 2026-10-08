@@ -14,13 +14,20 @@ const ARC := Color(0.55, 0.85, 1.0)
 const RAD_GREEN := Color(0.61, 1.0, 0.18)
 const DUST := Color(0.62, 0.58, 0.52, 0.7)
 const STAR := Color(1.0, 0.86, 0.24)
+const SPIT := Color(0.74, 0.93, 0.5)
+const SPIT_SPEED := 10.0  ## m/s
+const INK := Color("1b1b1f")
+const PUDDLE_SIZE := 0.45  ## m across (a random 0.8–1.2 of it)
+const PUDDLE_SHAPES := 3
 
 static var _materials: Dictionary[String, StandardMaterial3D] = {}
+static var _puddles: Array[ImageTexture] = []  # spit puddle textures (a few shapes)
 
 
 ## Drops the cached materials (Session does it when it leaves, so nothing is held at exit).
 static func clear_cache() -> void:
 	_materials.clear()
+	_puddles.clear()
 
 
 static func enabled() -> bool:
@@ -159,6 +166,112 @@ static func crumbs(parent: Node, pos: Vector3) -> void:
 	m.gravity = Vector3(0, -6, 0)
 	m.color_ramp = _fade_ramp(Color(0.89, 0.66, 0.34))[0]
 	_one_shot(parent, p, pos)
+
+
+## A glob of rat spit flying from `from` to `to` in a little arc, leaving a trail of droplets in the
+## air; a splash where it lands. Returns how long the flight takes (s), or 0 when effects are off.
+static func spit(parent: Node, from: Vector3, to: Vector3) -> float:
+	if not enabled() or parent == null or not parent.is_inside_tree():
+		return 0.0
+	var glob := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.05
+	sphere.height = 0.09
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = SPIT
+	mat.roughness = 0.15
+	sphere.material = mat
+	glob.mesh = sphere
+	glob.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(glob)
+	glob.global_position = from
+	var trail := _spit_trail()
+	glob.add_child(trail)
+	trail.emitting = true
+	var flight := clampf(from.distance_to(to) / SPIT_SPEED, 0.08, 0.7)
+	var arc := from.distance_to(to) * 0.15
+	var tween := glob.create_tween()
+	tween.tween_method(func(u: float) -> void:
+		glob.global_position = from.lerp(to, u) + Vector3.UP * arc * 4.0 * u * (1.0 - u), 0.0, 1.0, flight)
+	tween.tween_callback(func() -> void:
+		puff(parent, to, Color(SPIT, 0.8), 6, 0.25)
+		# The trail outlives the glob: its droplets hang in the air a moment, then fade.
+		trail.reparent(parent)
+		trail.emitting = false
+		parent.get_tree().create_timer(trail.lifetime + 0.1).timeout.connect(trail.queue_free)
+		glob.queue_free())
+	return flight
+
+
+## The droplets a flying glob leaves behind (world space, so they stay where they were shed).
+static func _spit_trail() -> GPUParticles3D:
+	var p := _particles("circle_05", 0.12)
+	p.amount = 160
+	p.lifetime = 0.5
+	p.local_coords = false
+	p.fixed_fps = 0  # emit every frame, so a fast glob still draws a continuous streak
+	p.interpolate = true
+	var m := p.process_material as ParticleProcessMaterial
+	m.direction = Vector3.UP
+	m.spread = 180.0
+	m.initial_velocity_min = 0.0
+	m.initial_velocity_max = 0.15
+	m.gravity = Vector3(0, -1.0, 0)
+	var ramps := _fade_ramp(SPIT, 0.3)
+	m.color_ramp = ramps[0]
+	m.scale_curve = ramps[1]
+	return p
+
+
+## A puddle of spit on the floor at `pos` (a decal, so it follows steps and slopes): it splats in and
+## stays until the caller frees it. Null when effects are off.
+static func spit_puddle(parent: Node, pos: Vector3) -> Decal:
+	if not enabled() or parent == null or not parent.is_inside_tree():
+		return null
+	if _puddles.is_empty():
+		for i in PUDDLE_SHAPES:
+			_puddles.append(ImageTexture.create_from_image(_puddle_image(i)))
+	var decal := Decal.new()
+	decal.texture_albedo = _puddles[randi() % _puddles.size()]
+	var size := PUDDLE_SIZE * randf_range(0.8, 1.2)
+	decal.size = Vector3(size, 0.3, size)
+	decal.upper_fade = 0.1
+	decal.lower_fade = 0.1
+	parent.add_child(decal)
+	decal.global_position = pos
+	decal.rotation.y = randf() * TAU
+	decal.scale = Vector3(0.2, 1.0, 0.2)
+	decal.create_tween().tween_property(decal, "scale", Vector3.ONE, 0.15).set_ease(Tween.EASE_OUT) \
+		.set_trans(Tween.TRANS_BACK)
+	return decal
+
+
+## A cartoon spit blob like SpitSplat's: a big drop and droplets, ink-outlined, with a shine.
+static func _puddle_image(shape: int) -> Image:
+	const SIZE := 128
+	const OUTLINE := 4.0  ## px
+	var r := RandomNumberGenerator.new()
+	r.seed = 9100 + shape
+	var blobs: Array[Vector3] = [Vector3(SIZE * 0.5, SIZE * 0.5, r.randf_range(30.0, 36.0))]
+	for i in r.randi_range(5, 7):
+		var a := r.randf() * TAU
+		var d := r.randf_range(34.0, 52.0)
+		blobs.append(Vector3(SIZE * 0.5 + cos(a) * d, SIZE * 0.5 + sin(a) * d, r.randf_range(4.0, 10.0)))
+	var shine := Vector2(SIZE * 0.5 - 11.0, SIZE * 0.5 - 12.0)
+	var image := Image.create_empty(SIZE, SIZE, false, Image.FORMAT_RGBA8)
+	for y in SIZE:
+		for x in SIZE:
+			var d := INF  # distance outside the nearest blob's edge (negative inside)
+			for b in blobs:
+				d = minf(d, Vector2(x - b.x, y - b.y).length() - b.z)
+			var alpha := clampf(OUTLINE + 0.5 - d, 0.0, 1.0)
+			if alpha <= 0.0:
+				continue
+			var color := INK.lerp(SPIT, clampf(0.5 - d, 0.0, 1.0))
+			if Vector2(x, y).distance_to(shine) < 6.0:
+				color = color.lerp(Color.WHITE, 0.55)
+			image.set_pixel(x, y, Color(color, alpha))
+	return image
 
 
 # --- Continuous -------------------------------------------------------------------------------------

@@ -174,7 +174,8 @@ func _update_statuses() -> void:
 		parts.append("[color=#%s]%s[/color]" % [(entry[1] as Color).to_html(false), tr(entry[0])])
 	status_label.text = "  ".join(parts)
 	if _player.status.has(StatusComponent.Status.CAGED):
-		banner_label.text = tr("You're caged! A free rat can let you out (hold %s at the cage)") % Keys.label(&"interact")
+		banner_label.text = tr("You're caged! A free rat can let you out (hold %s at the cage). Meanwhile, %s spits at supervisors") \
+			% [Keys.label(&"interact"), Keys.label(&"primary")]
 		_banner_until_ms = Time.get_ticks_msec() + 200
 
 

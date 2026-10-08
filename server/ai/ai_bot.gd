@@ -18,6 +18,7 @@ const REFLEX_INTERRUPT := 0.75  ## a reflex goal scoring this much takes over be
 const REFLEX_CHECK_S := 0.05  ## …checked this often (20 Hz)
 const RESCUE_BITE_M := 1.1  ## m from a carried teammate: its carrier is in bite reach
 const RETRY_AFTER_FAIL_S := 1.5  ## a goal that just failed sits out this long
+const CAGE_SPIT_PER_S := 0.35  ## caged, with a supervisor in range: chance per second to spit (cooldown allowing)
 
 var director: AiDirector
 var body: Player
@@ -129,6 +130,8 @@ func _tick(delta: float) -> void:
 		if current != null:
 			current.stop()
 			current = null
+		if ctx.playing():
+			_caged_spit(delta)
 		ctx.driver.halt()
 		ctx.driver.tick(delta)
 		return
@@ -291,6 +294,32 @@ func _reflexes() -> void:
 		if ctx.driver.use(&"broom", aim) == "":
 			ctx.log_line("swung at %s" % ctx.session.name_of(k.peer))
 		return
+
+
+## Caged and bored: now and then, spit at the nearest supervisor in range (the server checks the line
+## of sight, so a bot spitting at one behind a wall just misses, like a player would).
+func _caged_spit(delta: float) -> void:
+	if not body.status.has(StatusComponent.Status.CAGED) or not body.abilities.server_ready(&"spit") \
+			or ctx.rng.randf() >= CAGE_SPIT_PER_S * delta:
+		return
+	var spit := body.role_data.ability(&"spit")
+	var here := Interactable.origin_of(body)
+	var best := Vector3.INF
+	for node in ctx.session.players_root.get_children():
+		var p := node as Player
+		if p == null or p.role != Role.Kind.SUPERVISOR or p.is_queued_for_deletion():
+			continue
+		var at := Interactable.origin_of(p)
+		if HitCheck.in_reach(here, Vector3.FORWARD, at, spit.range, 360.0) \
+				and (best == Vector3.INF or here.distance_to(at) < here.distance_to(best)):
+			best = at
+	if best == Vector3.INF:
+		return
+	var error := deg_to_rad(ctx.rng.randf_range(-ctx.skill.aim_error_deg, ctx.skill.aim_error_deg))
+	var to := best - here
+	if ctx.driver.use(&"spit", Vector3(to.x, 0.0, to.z).rotated(Vector3.UP, error)) == "":
+		body.rotation.y = atan2(-to.x, -to.z)  # (a bot body is ours on the server: face the spit)
+		ctx.log_line("spat at a supervisor from the cage")
 
 
 func _on_hold_ended(who: int, path: NodePath, reason: String) -> void:

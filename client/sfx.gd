@@ -44,6 +44,8 @@ const SOUNDS := {
 	"cage_slam": {"kind": Kind.SFX, "files": [RPG + "metalLatch.ogg"], "db": 2.0, "also": "metal_heavy"},
 	"cage_open": {"kind": Kind.SFX, "files": [RPG + "creak1.ogg"], "pitch": 1.1},
 	"powerup": {"kind": Kind.SFX, "files": [DIGITAL + "powerUp2.ogg"], "db": -4.0},
+	"spit": {"kind": Kind.SFX, "files": [A + "spit.ogg"], "db": -2.0, "pitch": 1.12},
+	"splat": {"kind": Kind.SFX, "files": [A + "splat.ogg"], "db": -2.0, "pitch": 1.15},
 	# Voices
 	"squeak": {"kind": Kind.VOICE, "files": [A + "squeak_1.ogg", A + "squeak_2.ogg", A + "squeak_3.ogg", A + "squeak_4.ogg"],
 		"pitch": 1.12},

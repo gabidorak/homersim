@@ -121,8 +121,25 @@ func test_abilities_match_gdd() -> void:
 	var lure := sup.ability(&"cheese_lure")
 	assert_eq([lure.kind, lure.status, lure.status_duration, lure.extra["trap_kind"]],
 		[AbilityData.Kind.TRAP, StatusComponent.Status.REVEALED, 10.0, "lure"])
+	var spit := rat.ability(&"spit")
+	assert_eq([spit.kind, spit.range, spit.cone_deg, spit.cooldown_s], [AbilityData.Kind.SPIT, 6.0, 40.0, 3.0])
+	assert_eq([spit.status, spit.status_duration, spit.extra["stun_chance"], spit.extra["stun_cooldown_s"]],
+		[StatusComponent.Status.STUNNED, 1.5, 0.2, 10.0])
 	assert_null(rat.ability(&"broom"), "abilities are per role")
 	assert_null(sup.ability(&"bite"))
+	assert_null(sup.ability(&"spit"))
+
+
+## Only a caged rat spits, and a caged rat can't bite.
+func test_spit_needs_a_cage() -> void:
+	var rat := Role.data(Role.Kind.RAT)
+	var status: StatusComponent = autofree(StatusComponent.new())
+	status.setup(rat)
+	assert_true(rat.ability(&"bite").usable(status))
+	assert_false(rat.ability(&"spit").usable(status))
+	status.apply(StatusComponent.Status.CAGED)
+	assert_false(rat.ability(&"bite").usable(status))
+	assert_true(rat.ability(&"spit").usable(status))
 
 
 func test_every_ability_is_sane() -> void:

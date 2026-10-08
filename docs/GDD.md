@@ -140,6 +140,7 @@ Abilities:
 
 ### 5.3 Capture
 - Every capture (the 1st, the 2nd, the 3rd…): the rat is **caged**. Rats in a cage can't act but can chat and spectate through the cage's camera.
+- **Spit** (LMB, caged rats only, instead of the bite): a caged rat spits through the bars where its camera looks, every **3 s** at most: **6 m** range, 40° cone, needs a clear line of sight. Mostly for fun (a glob with a trail of droplets, a splat, a gob of spit over the supervisor's screen, and a puddle that stays on the floor until the match ends, 40 at most), but a hit has a **20% chance to stun the supervisor for 1.5 s** (it then drops a carried rat, like any stun). A supervisor stunned by spit can't be stunned by spit again for **10 s**, so a full cage can't keep a guard down. Bot rats spit too.
 - Freed rats leave the cage with **3 s of invulnerability**.
 - Rats are never eliminated by captures. (The tuning `captures_to_eliminate` can bring back elimination on the Nth capture: the rat then becomes a free-cam spectator with access to the **ghost chat**. It is 0, off.)
 - If every rat is caged at the same time, **supervisors win immediately**.
@@ -148,7 +149,7 @@ Abilities:
 ### 5.4 Status effects (shared system)
 | Status | Source | Effect |
 |---|---|---|
-| Stunned | Broom, trap, hazards | No movement or actions. Can't be re-applied while active (no stun-lock chains) |
+| Stunned | Broom, trap, hazards, a caged rat's spit (20%) | No movement or actions. Can't be re-applied while active (no stun-lock chains) |
 | Slowed (stacks multiply, floor at 40%) | Bite, radiation, puddle | Speed × factor |
 | Knocked down | 3 bites, debris | Ragdoll-ish fall, no actions |
 | Carried | Grabbed by a supervisor | The rat's position follows the carrier's hand |

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # M4 capture chain: a supervisor bot and two rat bots (victim, rescuer). Broom → stun → grab →
-# carry → cage → the rescuer frees the victim → the 2nd capture cages it again (no elimination) →
+# carry → cage → the caged victim spits at the supervisor → the rescuer frees the victim → the 2nd capture cages it again (no elimination) →
 # the rescuer is caged too → supervisors win because every rat is caught.
 # Usage: tests/integration/pvp_capture.sh   (GODOT=/path/to/godot to override the binary)
 source "$(dirname "$0")/pvp_lib.sh"
@@ -23,6 +23,9 @@ expect "$LOGS/server.log" "RescuerBot freed VictimBot"       "server: the rescue
 expect "$LOGS/server.log" "caged VictimBot \(capture 2\)"    "server: 2nd capture cages again"
 refute "$LOGS/server.log" "again: eliminated"                "server: nobody eliminated"
 expect "$LOGS/server.log" "caged RescuerBot \(capture 1\)"   "server: the rescuer caged too"
+expect "$LOGS/server.log" "VictimBot spat from the cage: (hit SupervisorBot|PTOOEY)" "server: the caged victim spat on the supervisor"
+expect "$LOGS/victim.log" "caged: LMB is spit, spat: true" "victim: LMB spits instead of biting in the cage"
+expect "$LOGS/victim.log" "my spit hit SupervisorBot"        "victim: saw its spit land on the supervisor"
 expect "$LOGS/victim.log" "freed, invulnerable: true"        "victim: freed with invulnerability"
 expect "$LOGS/victim.log" "caged again, still in the match: true" "victim: caged again, not a ghost"
 expect "$LOGS/victim.log" "\(team\) RescuerBot: hang on"     "victim: team chat from the rescuer"
