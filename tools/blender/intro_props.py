@@ -137,8 +137,8 @@ def _roof(root):
 def _wheel(root, x, y):
     """The exercise wheel on its stand: the stand stays, the "Wheel" spins about X."""
     b = C.Builder("WheelStand")
-    r, width = 0.15, 0.19
-    cz = TRAY_H + r + 0.02
+    r, width = 0.175, 0.21
+    cz = TRAY_H + r + 0.015
     sx = x + width / 2 + 0.02
     _rod(b, (sx, y - 0.07, TRAY_H - 0.01), (sx, y, cz), 0.009, "steel_light")
     _rod(b, (sx, y + 0.07, TRAY_H - 0.01), (sx, y, cz), 0.009, "steel_light")

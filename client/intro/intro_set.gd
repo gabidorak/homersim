@@ -3,9 +3,8 @@ extends Node3D
 ## The intro's set (client/intro/intro.gd): the supervisors' corner of the Control Room at Sunny
 ## Acres, back when the rats were hamsters. The long desk with an open hamster cage at each end and
 ## a plate of donuts in the middle, the "days without an incident" board, a window on the glowing reactor,
-## the door the clumsy supervisor comes in by (it slides up, like the plant's doors), the freshly
-## mopped aisle behind the chairs, and on the right wall the junction box the rats chew up and the
-## vent they leave by. Built in code from the generated models and the plant's own wall and floor
+## the door the clumsy supervisor comes in by (it slides up, like the plant's doors) onto a freshly
+## mopped floor, and on the right wall the junction box the rats chew up and the vent they leave by. Built in code from the generated models and the plant's own wall and floor
 ## materials (their patterns come from the world position, so plain boxes look like its rooms).
 ##
 ## Coordinates: the floor is y = 0; the back wall (door, board, window) is at z = BACK, the vent and
@@ -27,18 +26,20 @@ const DESK := Vector3(0.0, 0.0, -2.2)
 const DESK_TOP := 0.76
 const DESK_FRONT := -1.78  ## z of the desk's front edge
 const SEAT_Y := 0.47  ## where a seated supervisor's model stands (the sit clip sits on its origin)
-const SEAT_Z := -3.08
-const AISLE_Z := -3.95  ## the mopped aisle between the chairs and the back wall
+## The two seats: x = +-SEAT_X. Far enough apart for their 1.2 m wide hard hats, and back from the
+## desk so the hats clear the hamsters when they lean in.
+const SEAT_X := 0.72
+const SEAT_Z := -3.25
 const DOOR_X := -2.6  ## the doorway in the back wall: 2.0 wide, 2.6 high, like door_panel
 const VENT_Z := -1.4  ## the vent's centre in the right wall (0.7 x 0.6, at the floor)
 const JUNCTION := Vector3(RIGHT, 0.42, -3.0)  ## the junction box on the right wall (its back)
 const WINDOW_X := Vector2(1.55, 3.45)  ## the window in the back wall: from x to x
 const WINDOW_Y := Vector2(0.95, 2.55)
-const CAGE_A := Vector3(-1.05, DESK_TOP, -2.12)  ## with the wheel
-const CAGE_B := Vector3(1.05, DESK_TOP, -2.12)  ## with the little house
-const WHEEL := Vector3(0.12, 0.105, -0.02)  ## a hamster on the wheel's rungs, in cage A's space
+const CAGE_A := Vector3(-1.1, DESK_TOP, -2.12)  ## with the wheel
+const CAGE_B := Vector3(1.1, DESK_TOP, -2.12)  ## with the little house
+const WHEEL := Vector3(0.12, 0.1, -0.02)  ## a hamster on the wheel's rungs, in cage A's space
 const PLATE := Vector3(0.0, DESK_TOP, -2.02)  ## the plate of donuts, mid-desk
-const SIGN := Vector3(-1.2, 0.0, AISLE_Z)  ## the wet floor sign, in the aisle
+const SIGN := Vector3(DOOR_X, 0.0, BACK + 0.85)  ## the wet floor sign, just inside the door
 const BEACON_SPIN := TAU * 0.8
 
 var cage_a: Node3D
@@ -239,8 +240,8 @@ func _reactor_hall(wx: float) -> void:
 
 func _build_desk() -> void:
 	Art.add(self, "supervisor_desk", Transform3D(Basis(Vector3.UP, PI), DESK))
-	for x: float in [-0.5, 0.5]:
-		chairs.append(Art.add(self, "k_chair_desk", Transform3D(Basis(Vector3.UP, x * -0.3), Vector3(x, 0.0, SEAT_Z - 0.02))))
+	for x: float in [-SEAT_X, SEAT_X]:
+		chairs.append(Art.add(self, "k_chair_desk", Transform3D(Basis(Vector3.UP, x * -0.2), Vector3(x, 0.0, SEAT_Z - 0.02))))
 	cage_a = Art.add(self, "hamster_cage", Transform3D(Basis(Vector3.UP, 0.12), CAGE_A))
 	cage_b = Art.add(self, "hamster_cage_house", Transform3D(Basis(Vector3.UP, -0.12), CAGE_B))
 	wheel = Art.part(cage_a, "Wheel")
@@ -249,11 +250,10 @@ func _build_desk() -> void:
 		if cage_door != null:
 			cage_door.rotation.y = -1.9
 	_plate_of_donuts()
-	mug = _prop("k_mug", Vector3(-0.62, DESK_TOP, -1.92), 0.6)
-	_prop("k_coffee_cup", Vector3(0.7, DESK_TOP, -1.9), 2.4)
-	_prop("papers", Vector3(-0.35, DESK_TOP, -2.5), 0.15)
-	_prop("clipboard", Vector3(1.4, DESK_TOP, -1.95), -0.4)
-	_prop("donut", Vector3(0.66, DESK_TOP, -2.47), 0.0)
+	mug = _prop("k_mug", Vector3(-0.35, DESK_TOP, -1.88), 0.6)
+	_prop("k_coffee_cup", Vector3(0.28, DESK_TOP, -2.47), 2.4)
+	_prop("papers", Vector3(-0.3, DESK_TOP, -2.48), 0.15)
+	_prop("donut", Vector3(0.33, DESK_TOP, -2.2), 0.0)
 	broom = Art.add(self, "broom", Transform3D(Basis.from_euler(Vector3(0.0, 0.0, 0.3)), Vector3(1.72, 1.22, -2.75)))
 
 
@@ -289,10 +289,10 @@ func _build_dressing() -> void:
 	_prop("k_trashcan", Vector3(LEFT + 0.3, 0.0, -0.8), 0.3)
 	junction = Art.add(self, "sabotage_box", Transform3D(Basis(Vector3.UP, -PI * 0.5), JUNCTION))
 	# Plants, a crate of glowing vials (the plant is never far away).
-	_prop("k_potted_plant", Vector3(RIGHT - 0.4, 0.0, BACK + 0.45), 0.0)
+	_prop("k_potted_plant", Vector3(RIGHT - 0.32, 0.0, BACK + 0.3), 0.0)
 	_prop("k_potted_plant", Vector3(LEFT + 0.4, 0.0, 2.7), 0.8)
 	_prop("radiation_vial_crate", Vector3(LEFT + 0.6, 0.0, 1.4), 1.2)
-	# The freshly mopped aisle: the bucket by the door, a puddle, and the sign right in the way.
+	# The freshly mopped floor: the bucket by the door, a puddle, and the sign right in the way.
 	_prop("mop_bucket", Vector3(LEFT + 0.45, 0.0, BACK + 0.55), 0.5)
 	var puddle := MeshInstance3D.new()
 	var disc := CylinderMesh.new()
@@ -302,10 +302,10 @@ func _build_dressing() -> void:
 	disc.radial_segments = 20
 	puddle.mesh = disc
 	puddle.material_override = _flat(Color(0.55, 0.78, 0.92), 0.15)
-	puddle.position = SIGN + Vector3(-0.2, 0.004, 0.0)
-	puddle.scale = Vector3(1.4, 1.0, 0.7)
+	puddle.position = SIGN + Vector3(0.0, 0.004, -0.1)
+	puddle.scale = Vector3(0.8, 1.0, 1.3)
 	add_child(puddle)
-	wet_sign = _prop("wet_floor_sign", SIGN, PI * 0.5 + 0.2)
+	wet_sign = _prop("wet_floor_sign", SIGN, 0.15)
 	for x: float in [-1.5, 1.5]:  # ceiling lamps
 		Art.add(self, "k_ceiling_lamp", Transform3D(Basis.IDENTITY, Vector3(x, HEIGHT - 0.35, -2.2)))
 	# The alarm beacon on the right wall, dark for now.

@@ -23,6 +23,10 @@ const GOO_TINT := Color(0.72, 1.0, 0.6)  ## hamsters dripping with goo
 const OVERLAY_LAYER := 10
 const BAR_HEIGHT := 58.0  ## the letterbox bars, in pixels at 720p
 const VENT := Vector3(IntroSet.RIGHT - 0.3, 0.0, IntroSet.VENT_Z)  ## the vent's mouth
+## Where the broom guy swings at the last rat...
+const SWING_SPOT := Vector3(2.6, 0.0, -2.0)
+const FALL_TOWARDS := Vector3(3.07, 0.0, -0.53)  ## ...where his head lands after the BONK (sideways on to the camera)
+const STARTLE_STEP := 0.18  ## the startle and cower clips step back this much (m)
 ## Times the music (tools/audio/music.py, intro) hits too: move one, move it there as well.
 const TRIP := 5.9
 const SPLASH := 7.55
@@ -162,8 +166,10 @@ func _go_to_menu() -> void:
 # --- The cast -----------------------------------------------------------------------------------
 
 func _cast() -> void:
-	sup_a = IntroActor.create(set_, "supervisor", Vector3(-0.5, IntroSet.SEAT_Y, IntroSet.SEAT_Z), 0.15, "sit")
-	sup_b = IntroActor.create(set_, "supervisor", Vector3(0.5, IntroSet.SEAT_Y, IntroSet.SEAT_Z), -0.15, "sit")
+	sup_a = IntroActor.create(set_, "supervisor", Vector3(-IntroSet.SEAT_X, IntroSet.SEAT_Y, IntroSet.SEAT_Z), 0.1,
+		"sit")
+	sup_b = IntroActor.create(set_, "supervisor", Vector3(IntroSet.SEAT_X, IntroSet.SEAT_Y, IntroSet.SEAT_Z), -0.1,
+		"sit")
 	sup_c = IntroActor.create(set_, "supervisor", Vector3(IntroSet.DOOR_X, 0.0, IntroSet.BACK - 0.9), 0.0, "idle")
 	var hat := Art.part(sup_c.model, "HardHat")
 	if hat != null:
@@ -173,13 +179,15 @@ func _cast() -> void:
 		sup_c.attach(bottle, "torso", Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 1.25), Vector3(0.0, 0.1, 0.42)))
 	hamsters = [
 		IntroActor.create(set_, "hamster", set_.wheel_spot(), 0.12, "run"),
-		IntroActor.create(set_, "hamster_cocoa", Vector3(-0.42, IntroSet.DESK_TOP, -2.5), 0.25, "beg"),
-		IntroActor.create(set_, "hamster_cream", Vector3(0.4, IntroSet.DESK_TOP, -2.47), -0.3, "nibble"),
+		IntroActor.create(set_, "hamster_cocoa", Vector3(-0.55, IntroSet.DESK_TOP, -2.25), 0.2, "beg"),
+		IntroActor.create(set_, "hamster_cream", Vector3(0.55, IntroSet.DESK_TOP, -2.25), -0.2, "nibble"),
 	]
 	hamsters[0].set_speed(1.3)
 	set_.wheel_speed = 5.5
 	for h in hamsters:
-		var rat := IntroActor.create(set_, "rat", h.position, h.rotation.y, "idle")
+		# The wheel's rat stands on the desk: its cage won't be there any more (_burst_cage).
+		var at := IntroSet.CAGE_A if h == hamsters[0] else h.position
+		var rat := IntroActor.create(set_, "rat", at, h.rotation.y, "idle")
 		rat.visible = false
 		rats.append(rat)
 		var light := OmniLight3D.new()  # the goo's glow on each hamster
@@ -234,18 +242,17 @@ func _script() -> void:
 	_sfx(2.5, "intro_sparkle", -9.0)
 	_sfx(2.9, "intro_squeak", -7.0)
 
-	# 2. The new guy (4.4 - 6.2 s) comes in whistling with the bottle, down the freshly mopped aisle
-	#    behind the chairs, and straight into the wet floor sign.
-	var trip := Vector3(IntroSet.SIGN.x - 0.45, 0.0, IntroSet.AISLE_Z)
+	# 2. The new guy (4.4 - 6.2 s) comes in whistling with the bottle, onto the freshly mopped floor,
+	#    and straight into the wet floor sign.
+	var trip := IntroSet.SIGN + Vector3(0.0, 0.0, -0.35)
 	_at(4.2, func() -> void:
 		create_tween().tween_property(set_.door, ^"position:y", 1.3 + 2.6, 0.45).set_trans(Tween.TRANS_QUAD))
 	_sfx(4.2, "door_open", -6.0)
 	_at(4.35, func() -> void:
 		sup_a.play_upper("")
 		sup_b.play_upper("")
-		sup_c.play("carry_walk", 0.1, 1.9)
-		sup_c.move_to(Vector3(IntroSet.DOOR_X, 0.0, IntroSet.AISLE_Z), 0.85, false).tween_callback(func() -> void:
-			sup_c.move_to(trip, 0.7)))
+		sup_c.play("carry_walk", 0.1, 1.15)
+		sup_c.move_to(trip, 1.55, false))
 	_sfx(4.5, "whistle_emote", -8.0)
 	_at(TRIP, func() -> void:
 		sup_c.play("trip", 0.08)
@@ -254,7 +261,7 @@ func _script() -> void:
 	_at(6.0, _throw_bottle)
 
 	# 3. Slow motion (6.2 - 7.8 s): the bottle tumbles over the supervisors' heads, pouring goo; they
-	#    and the hamsters can only watch. Thud: the new guy lands behind the chairs.
+	#    and the hamsters can only watch. Thud: the new guy lands flat on his face.
 	_at(6.2, func() -> void:
 		for actor: IntroActor in [sup_a, sup_b]:
 			actor.play_upper("startle", 0.15)
@@ -308,17 +315,22 @@ func _script() -> void:
 		for sup: IntroActor in [sup_a, sup_b]:
 			sup.play_upper("", 0.1)
 			sup.play("startle", 0.12)  # (standing up where it sat: on the seat)
+			# The clip jumps back 0.18 m: forward as much, so the feet land on the seat, not its back.
+			create_tween().tween_property(sup, ^"position", sup.position + sup.basis.z * STARTLE_STEP, 0.3)
 		fx.exclaim(sup_a.bone_position("head", Vector3(0, 1.0, 0)), 1.0, 0.8)
 		fx.exclaim(sup_b.bone_position("head", Vector3(0, 1.0, 0)), 1.0, 0.8))
 	_sfx(10.5, "intro_eek", -5.0)
-	_at(10.7, func() -> void:
-		r_cream.play("jump", 0.05)
-		r_cream.hop_to(Vector3(1.75, 0.0, -1.5), 0.45, 0.42).tween_callback(func() -> void:
-			r_cream.play("run", 0.08, 1.2)
-			r_cream.move_to(IntroSet.JUNCTION + Vector3(-0.32, -IntroSet.JUNCTION.y, 0.0), 0.75)))
+	_at(10.7, func() -> void:  # to the desk's front edge, down, round the desk's end, to the box
+		r_cream.play("run", 0.08, 1.2)
+		r_cream.move_to(Vector3(0.55, IntroSet.DESK_TOP, IntroSet.DESK_FRONT - 0.15), 0.25).tween_callback(func() -> void:
+			r_cream.play("jump", 0.05)
+			r_cream.hop_to(Vector3(0.75, 0.0, -1.3), 0.35, 0.38).tween_callback(func() -> void:
+				r_cream.play("run", 0.08, 1.2)
+				r_cream.move_to(Vector3(2.05, 0.0, -1.3), 0.4).tween_callback(func() -> void:
+					r_cream.move_to(IntroSet.JUNCTION + Vector3(-0.32, -IntroSet.JUNCTION.y, 0.0), 0.55)))))
 	_at(10.75, func() -> void:
 		r_wheel.play("jump", 0.05)
-		r_wheel.hop_to(Vector3(-0.58, IntroSet.DESK_TOP, -2.48), 0.35, 0.38))
+		r_wheel.hop_to(Vector3(-0.95, IntroSet.DESK_TOP, -2.4), 0.35, 0.38))
 	_at(11.2, func() -> void:
 		r_wheel.face_towards(sup_a.position, 0.08)
 		r_wheel.play("bite", 0.05, 1.0, true))
@@ -328,14 +340,11 @@ func _script() -> void:
 		fx.exclaim(sup_a.bone_position("head", Vector3(0, 1.0, 0)), 1.1, 0.7))
 	_sfx(11.42, "ow", -5.0)
 	_at(10.95, func() -> void: sup_b.play("cower", 0.15))
-	_at(10.9, func() -> void:
-		r_cocoa.play("run", 0.1)
-		r_cocoa.move_to(set_.mug.position + Vector3(0.04, 0, -0.22), 0.3))
 	_at(11.25, func() -> void:
 		r_cocoa.face_towards(set_.mug.position, 0.06)
 		r_cocoa.play("bite", 0.05, 1.0, true))
 	_at(11.4, _knock_mug)
-	_at(11.75, func() -> void:
+	_at(12.3, func() -> void:
 		r_cream.face_towards(IntroSet.JUNCTION, 0.1)
 		r_cream.play("gnaw", 0.1, 1.3))
 	_at(12.15, func() -> void: r_cocoa.play("squeak", 0.1))
@@ -358,56 +367,69 @@ func _script() -> void:
 		set_.sound_alarm())
 	_sfx(ALARM, "klaxon", -9.0)
 
-	# 7. The escape (13.7 - 18.6 s): off the desk, across the floor, into the vent. The donut guy grabs
-	#    the broom and gives chase, the bitten one limps after him; the last rat squeaks a taunt and
-	#    slips in just as the broom comes down. BONK.
+	# 7. The escape (13.7 - 18.6 s): to the desk's edge, down, across the floor in two lanes (far
+	#    enough apart not to run into each other), into the vent. The donut guy jumps off his chair,
+	#    grabs the broom and gives chase, the bitten one follows; the last rat squeaks a taunt and slips
+	#    in just as the broom comes down. BONK.
+	var lane_wheel := -1.45
+	var lane_cocoa := -0.95
 	_at(13.55, func() -> void:
 		r_cream.play("run", 0.08, 1.2)
 		r_cream.move_to(VENT, 0.7))
-	_at(14.25, func() -> void: _into_vent(r_cream))
-	_at(13.4, func() -> void:
+	_at(14.3, func() -> void: _into_vent(r_cream))
+	_at(13.2, func() -> void:
+		r_wheel.play("run", 0.08, 1.2)
+		r_wheel.move_to(Vector3(-0.88, IntroSet.DESK_TOP, IntroSet.DESK_FRONT - 0.15), 0.3)
+		r_cocoa.play("run", 0.08, 1.2)
+		r_cocoa.move_to(Vector3(-0.35, IntroSet.DESK_TOP, IntroSet.DESK_FRONT - 0.15), 0.3))
+	_at(13.5, func() -> void:
 		r_wheel.play("jump", 0.05)
-		r_wheel.hop_to(Vector3(-0.3, 0.0, -1.15), 0.55, 0.48)
+		r_wheel.hop_to(Vector3(-0.75, 0.0, lane_wheel), 0.4, 0.4)
 		r_cocoa.play("jump", 0.05)
-		r_cocoa.hop_to(Vector3(-0.85, 0.0, -1.38), 0.45, 0.42))
-	_at(13.9, func() -> void:
-		r_cocoa.play("run", 0.1, 1.25)
-		r_cocoa.move_to(VENT + Vector3(-0.05, 0, 0.04), 1.6))
+		r_cocoa.hop_to(Vector3(-0.2, 0.0, lane_cocoa), 0.5, 0.45))
 	_at(13.95, func() -> void:
-		r_wheel.play("run", 0.1, 1.25)
-		r_wheel.move_to(VENT + Vector3(-0.42, 0, 0.3), 1.35))
-	_at(15.5, func() -> void: _into_vent(r_cocoa))
-	_at(15.3, func() -> void:
-		r_wheel.face_towards(r_wheel.position + Vector3(-1, 0, 0.35), 0.15)
-		r_wheel.play("squeak", 0.1))
+		r_cocoa.play("run", 0.1, 1.3)
+		r_cocoa.move_to(Vector3(3.0, 0.0, lane_cocoa), 0.95).tween_callback(func() -> void:
+			r_cocoa.move_to(VENT, 0.2).tween_callback(func() -> void: _into_vent(r_cocoa)))
+		r_wheel.play("run", 0.1, 1.2)
+		r_wheel.move_to(Vector3(2.95, 0.0, lane_wheel), 1.25).tween_callback(func() -> void:
+			r_wheel.move_to(VENT + Vector3(-0.35, 0.0, 0.0), 0.12).tween_callback(func() -> void:
+				r_wheel.face_towards(r_wheel.position + Vector3(-1, 0, 0.35), 0.15)
+				r_wheel.play("squeak", 0.1))))
 	_sfx(15.35, "squeak", -4.0)
 	_at(15.85, func() -> void: _into_vent(r_wheel))
-	_at(13.55, func() -> void:
+	_at(13.55, func() -> void:  # off the chair (beside it, not through its back), the broom, the chase
 		sup_b.play("jump", 0.08)
-		sup_b.hop_to(Vector3(0.95, 0.0, -2.95), 0.3, 0.3).tween_callback(func() -> void:
+		sup_b.hop_to(Vector3(IntroSet.SEAT_X + 0.63, 0.0, IntroSet.SEAT_Z + 0.1), 0.3, 0.3).tween_callback(func() -> void:
 			sup_b.play("run", 0.1, 1.15)
-			sup_b.move_to(Vector3(1.55, 0.0, -2.95), 0.25).tween_callback(func() -> void:
+			sup_b.move_to(Vector3(1.98, 0.0, -3.1), 0.25).tween_callback(func() -> void:
 				_grab_broom(sup_b)
 				sup_b.play("chase", 0.12, 1.15)
-				sup_b.move_to(Vector3(2.92, 0.0, -1.78), 0.75).tween_callback(func() -> void:
+				sup_b.move_to(SWING_SPOT, 0.6).tween_callback(func() -> void:
 					sup_b.play("idle", 0.15)
 					sup_b.face_towards(VENT, 0.12)))))
-	_at(13.85, func() -> void:
+	_at(13.85, func() -> void:  # off the chair, behind both chairs, and up behind the broom guy
 		sup_a.play("jump", 0.08)
-		sup_a.hop_to(Vector3(-0.15, 0.0, -3.3), 0.3, 0.3).tween_callback(func() -> void:
-			sup_a.play("run", 0.12, 0.95)
-			sup_a.move_to(Vector3(1.7, 0.0, -3.15), 0.8).tween_callback(func() -> void:
-				sup_a.move_to(Vector3(2.35, 0.0, -3.55), 0.45).tween_callback(func() -> void:
-					sup_a.play("idle", 0.2)
-					sup_a.face_towards(VENT, 0.15)))))
+		sup_a.hop_to(Vector3(-IntroSet.SEAT_X + 0.57, 0.0, IntroSet.SEAT_Z + 0.1), 0.3, 0.3).tween_callback(func() -> void:
+			sup_a.play("run", 0.12, 1.0)
+			sup_a.move_to(Vector3(-0.15, 0.0, -3.85), 0.3).tween_callback(func() -> void:
+				sup_a.move_to(Vector3(1.75, 0.0, -3.85), 0.7).tween_callback(func() -> void:
+					sup_a.move_to(Vector3(1.75, 0.0, -3.4), 0.25).tween_callback(func() -> void:
+						sup_a.play("idle", 0.2)
+						sup_a.face_towards(VENT, 0.15))))))
 	_at(15.59, func() -> void: sup_b.play("swing", 0.08))
 	_at(BONK, func() -> void: _bonk(VENT + Vector3(0.05, 0.68, 0.0)))
 	_sfx(BONK, "bonk", -2.0)
-	_at(16.2, func() -> void:
+	_at(15.95, func() -> void:  # the BONK spins him round (well clear of his friend)...
+		sup_b.play("fall", 0.1)
+		var away := atan2(FALL_TOWARDS.x - SWING_SPOT.x, FALL_TOWARDS.z - SWING_SPOT.z) + PI
+		create_tween().tween_property(sup_b, ^"rotation:y",
+			sup_b.rotation.y + wrapf(away - sup_b.rotation.y, -PI, PI) + TAU, 0.35).set_trans(Tween.TRANS_QUAD))
+	_at(16.3, func() -> void:  # ...and he goes down flat on his back, on the open floor
 		sup_b.play("knocked", 0.1)
 		sup_a.play("emote_no", 0.15))
-	_sfx(16.4, "land", -6.0)
-	_at(16.5, func() -> void: _dizzy(sup_b))
+	_sfx(16.5, "land", -6.0)
+	_at(16.65, func() -> void: _dizzy(sup_b))
 	_sfx(16.45, "squeak", -10.0)
 	_sfx(16.7, "squeak", -11.0)
 	_sfx(16.9, "squeak", -12.0)
@@ -526,19 +548,21 @@ func _transform(i: int, n: int) -> void:
 		_burst_cage()
 
 
-## The wheel's cage can't hold a rat: the roof flies off, the wheel rolls away.
+## The wheel's cage can't hold a rat: the POOF blows it off the desk (the rat stands where it was),
+## its roof and its wheel flying off on their own. Each lands on clear floor, left of the desk.
 func _burst_cage() -> void:
-	var roof := Art.part(set_.cage_a, "Roof")
+	var cage := set_.cage_a
+	var roof := Art.part(cage, "Roof")
 	if roof != null:
 		roof.reparent(set_)
-		IntroFx.toss(roof, roof.global_position + Vector3(-0.75, -IntroSet.DESK_TOP - 0.25, 0.5), 0.8, 0.65,
-			Vector3(2.5, 0.6, 1.2))
+		IntroFx.toss(roof, Vector3(-1.15, 0.0, -1.25), 0.8, 0.65, Vector3(2.0 * PI, 0.6, 0.0))
 	if set_.wheel != null:
 		var wheel := set_.wheel
 		set_.wheel = null
 		wheel.reparent(set_)
-		IntroFx.toss(wheel, Vector3(-1.85, 0.16, -1.3), 0.45, 0.6, Vector3(0.0, 0.0, 6.0))
-	Sfx.play(self, "metal_heavy", -8.0)
+		IntroFx.toss(wheel, Vector3(-1.1, 0.19, -0.6), 0.6, 0.6, Vector3(8.6, 0.0, 0.0))  # (rolling)
+	IntroFx.toss(cage, Vector3(-1.85, 0.0, -0.75), 0.7, 0.6, Vector3(0.0, 2.0, 2.0 * PI))
+	_after(0.6, func() -> void: Sfx.play(self, "metal_heavy", -7.0))
 
 
 ## Two green glints in a rat's eyes, fading out over a few seconds.
@@ -604,12 +628,12 @@ func _shot_list() -> Array[Dictionary]:
 		# 1. Close on the wheel, pulling back to the whole happy desk.
 		_shot(0.0, Vector3(-1.4, 1.0, -1.32), Vector3(0.2, 1.72, 0.6), Vector3(-0.93, 0.9, -2.16),
 			Vector3(-0.08, 1.18, -2.75), 44.0, 50.0),
-		# 2. From the left: the new guy comes in at the back, down the aisle, into the sign.
-		_shot(4.4, Vector3(-3.45, 1.9, -0.9), Vector3(-3.4, 1.85, -1.15), Vector3(-2.0, 0.95, -4.2),
-			Vector3(-1.35, 0.9, -3.95), 50.0, 48.0),
+		# 2. Across the room: the new guy comes in at the back and goes flat on his face.
+		_shot(4.4, Vector3(-1.2, 1.9, 0.6), Vector3(-1.35, 1.85, 0.4), Vector3(-2.6, 0.95, -4.0),
+			Vector3(-2.6, 0.75, -3.1), 50.0, 48.0),
 		# 3. The supervisors look up at the bottle tumbling over their heads.
-		_shot(6.2, Vector3(0.85, 1.35, -0.25), Vector3(0.72, 1.3, -0.42), Vector3(-0.3, 1.62, -3.0),
-			Vector3(0.0, 1.2, -2.25), 56.0, 54.0),
+		_shot(6.2, Vector3(0.85, 1.35, -0.25), Vector3(0.72, 1.3, -0.42), Vector3(0.25, 1.62, -3.0),
+			Vector3(0.3, 1.2, -2.25), 56.0, 54.0),
 		# 4. The hamsters, face on, the supervisors watching: pushing in on the transformation.
 		_shot(7.8, Vector3(0.0, 1.3, -0.05), Vector3(0.0, 1.25, -0.32), Vector3(0.0, 1.04, -2.4),
 			Vector3(0.0, 1.02, -2.4), 44.0, 44.0),

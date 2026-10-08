@@ -284,11 +284,16 @@ func _build_full_map() -> void:
 func _layout_full() -> void:
 	if _full_map == null or _plan == null:
 		return
-	var screen := get_viewport().get_visible_rect().size
-	var aspect := _plan.area.size.x / _plan.area.size.y
+	_full_map.custom_minimum_size = full_map_size(get_viewport().get_visible_rect().size, _plan, LEGEND_W)
+
+
+## How big a full map of `plan` is on `screen`: as big as fits below a title, next to a column
+## `side_w` wide (the legend here, the player list on the scoreboard, so both maps match).
+static func full_map_size(screen: Vector2, plan: LevelMap, side_w: float) -> Vector2:
+	var aspect := plan.area.size.x / plan.area.size.y
 	var height := screen.y - 170.0
-	var width := minf(height * aspect, screen.x - LEGEND_W - 150.0)
-	_full_map.custom_minimum_size = Vector2(width, width / aspect)
+	var width := minf(height * aspect, screen.x - side_w - 150.0)
+	return Vector2(width, width / aspect)
 
 
 ## The key next to the full map, for what this player's map shows.
