@@ -1,6 +1,7 @@
 extends Node
 ## Entry point: self-update (exported CI builds), then the launcher of online games (`--launcher`),
-## dedicated server, test bot (debug builds), or client.
+## dedicated server, test bot (debug builds), or client: the intro cinematic (skipped with
+## `--no-intro`, `--connect` and the test hooks, see Intro.wanted()), then the main menu.
 
 const BOT_SCENE := "res://tests/helpers/BotClient.tscn"  # not exported (tests/ is filtered out)
 
@@ -29,7 +30,7 @@ func _start() -> void:
 	elif OS.is_debug_build() and Cli.has_arg("bot"):
 		get_tree().change_scene_to_file.call_deferred(BOT_SCENE)
 	else:
-		get_tree().change_scene_to_file.call_deferred("res://client/MainMenu.tscn")
+		get_tree().change_scene_to_file.call_deferred(Intro.SCENE if Intro.wanted() else Intro.MENU)
 
 
 ## The first server process only supervises (see autoload/updater.gd). Its child updates, then serves.

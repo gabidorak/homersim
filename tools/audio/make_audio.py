@@ -4,7 +4,8 @@
     python3 tools/audio/make_audio.py              # everything (about a minute)
     python3 tools/audio/make_audio.py sfx          # only sound effects
     python3 tools/audio/make_audio.py music        # only music
-    python3 tools/audio/make_audio.py squeak hiss  # only sounds whose name starts with these
+    python3 tools/audio/make_audio.py squeak hiss  # only sounds (and music) whose name starts with these
+    python3 tools/audio/make_audio.py intro        # the intro's sounds and its music
 
 Everything here is made from scratch with numpy (tools/audio/synth.py), so it belongs to the
 project. Recorded CC0 sounds (Kenney packs: footsteps, impacts, UI clicks, doors) are used as they
@@ -437,6 +438,148 @@ def sabotage_done():
     return S.fade(S.normalize(fizz + down, 0.75))
 
 
+# --- The intro (client/intro/) ------------------------------------------------------------------------
+
+for _i, _shape in enumerate([
+        [(3900, 5300, 0.05, 0), (4300, 5800, 0.06, 0)],
+        [(4800, 3900, 0.09, 140), (4100, 5200, 0.05, 0)]]):
+    def _make(shape=_shape):
+        """A hamster: higher, shorter and softer than a rat."""
+        parts = [np.concatenate([_chirp(f0, f1, d, v, 40.0), np.zeros(samples(0.02))]) for f0, f1, d, v in shape]
+        return S.fade(S.normalize(np.concatenate(parts), 0.55))
+    SOUNDS["intro_squeak_%d" % (_i + 1)] = _make
+
+
+@sound("intro_sparkle")
+def intro_sparkle():
+    """Hearts: a quick rising twinkle."""
+    out = np.zeros(samples(0.8))
+    for k, note in enumerate((91, 95, 98, 103)):
+        S.mix_at(out, S.glockenspiel(S.midi(note), 0.5, 0.25), samples(k * 0.045), 0.8 - k * 0.1)
+    S.mix_at(out, S.highpass(S.noise(0.5, rng(50)), 6000) * S.bell(0.5) * 0.06, 0)
+    return S.fade(S.normalize(out, 0.5))
+
+
+def _shout(dur, pitch, formants, seed, vib=(5.0, 0.02), breath=0.05):
+    """A cartoon voice: a buzz with the pitch curve `pitch(u)` (u = 0..1, Hz) through the formants
+    `formants(u)` (three Hz values), with vibrato (rate, depth) and a little breath."""
+    t = t_axis(dur)
+    u = t / dur
+    f = pitch(u) * (1 + vib[1] * np.sin(2 * np.pi * vib[0] * t))
+    src = S.lowpass(S.saw(f, dur), 4000, 1) + breath * S.noise(dur, rng(seed))
+    fr = formants(u)
+    y = S.resonator(src, fr, [90, 120, 170])
+    env = np.clip(t / 0.03, 0, 1) * np.clip((dur - t) / 0.1, 0, 1)
+    return S.normalize(y * env, 0.8)
+
+
+@sound("intro_whoa")
+def intro_whoa():
+    """The new guy, tripping: "WHOA-oa-oa!", the pitch flying up and wobbling down."""
+    def pitch(u):
+        return np.where(u < 0.25, 190 + 170 * (u / 0.25), 360 - 170 * np.clip((u - 0.25) / 0.75, 0, 1) ** 1.3)
+
+    def formants(u):
+        a = np.clip(u * 4, 0, 1)
+        return [300 + 400 * a, 620 + 480 * a, 2300 + 100 * a]
+    x = _shout(0.75, pitch, formants, 51, vib=(9.0, 0.035))
+    return S.fade(S.normalize(S.distort(x, 1.3), 0.85))
+
+
+@sound("intro_eek")
+def intro_eek():
+    """Two supervisors in falsetto: "EEEEK!" (a rat!)."""
+    out = np.zeros(samples(0.7))
+    for k, (lo, hi, at) in enumerate(((680, 980, 0.0), (610, 900, 0.045))):
+        def pitch(u, lo=lo, hi=hi):
+            return lo + (hi - lo) * np.clip(u * 3, 0, 1)
+        voice = _shout(0.55, pitch, lambda u: [320 + 0 * u, 2450 + 0 * u, 3150 + 0 * u], 52 + k, vib=(11.0, 0.03))
+        S.mix_at(out, S.distort(voice, 1.6), samples(at), 0.6)
+    S.mix_at(out, S.bandpass(S.noise(0.02, rng(54)), 2000, 6000) * 0.3, samples(0.56))  # the "k"
+    return S.fade(S.normalize(out, 0.85))
+
+
+@sound("intro_splash")
+def intro_splash():
+    """The bottle lands on the donuts: a fat wet SPLAT, bubbles, a few drips."""
+    r = rng(55)
+    d = 1.2
+    out = np.zeros(samples(d))
+    t = t_axis(0.3)
+    S.mix_at(out, np.sin(S.phase(45 + 50 * np.exp(-t / 0.05), len(t))) * np.exp(-t / 0.12), 0, 0.9)
+    S.mix_at(out, S.bandpass(S.noise(0.4, r), 250, 2600) * S.env_exp(0.4, 0.07), 0, 1.0)
+    S.mix_at(out, S.bandpass(S.noise(0.6, r), 2000, 8000) * S.env_exp(0.6, 0.15), samples(0.01), 0.35)
+    for _ in range(9):  # bubbles popping up out of the goo
+        f = r.uniform(300, 900)
+        d_b = r.uniform(0.03, 0.06)
+        tb = t_axis(d_b)
+        blip = np.sin(S.phase(f * (1 + 0.8 * tb / d_b), len(tb))) * S.bell(d_b)
+        S.mix_at(out, blip, samples(r.uniform(0.05, 0.6)), r.uniform(0.2, 0.45))
+    for _ in range(5):  # drips
+        d_p = 0.07
+        tp = t_axis(d_p)
+        drop = np.sin(S.phase(r.uniform(900, 1300) * (1 + 1.1 * tp / d_p), len(tp))) * np.exp(-tp / 0.018)
+        S.mix_at(out, drop, samples(r.uniform(0.4, 1.05)), r.uniform(0.12, 0.25))
+    return S.fade(S.normalize(out, 0.9))
+
+
+@sound("intro_glug")
+def intro_glug():
+    """The upturned bottle emptying: glug, glug, glug."""
+    r = rng(56)
+    out = np.zeros(samples(0.75))
+    for k in range(4):
+        d = 0.09
+        t = t_axis(d)
+        f = (120 + 15 * k) * (1 + 1.2 * t / d)
+        glug = np.sin(S.phase(f, len(t))) * S.bell(d, 0.8) + 0.15 * S.lowpass(S.noise(d, r), 900) * S.bell(d)
+        S.mix_at(out, glug, samples(0.04 + k * 0.15 + r.uniform(-0.01, 0.01)), 1.0 - k * 0.12)
+    return S.fade(S.normalize(out, 0.75))
+
+
+@sound("intro_clonk")
+def intro_clonk():
+    """The empty plastic bottle hitting the floor, bouncing once, twice."""
+    out = np.zeros(samples(0.6))
+    for at, gain in ((0.0, 1.0), (0.13, 0.45), (0.22, 0.2)):
+        d = 0.18
+        t = t_axis(d)
+        x = (np.sin(2 * np.pi * 290 * t) + 0.6 * np.sin(2 * np.pi * 690 * t) + 0.25 * np.sin(2 * np.pi * 1530 * t))
+        x = x * np.exp(-t / 0.045)
+        x[:samples(0.003)] += S.noise(0.003, rng(57)) * 0.8
+        S.mix_at(out, x, samples(at), gain)
+    return S.fade(S.normalize(out, 0.75))
+
+
+for _i, _k in enumerate((1.0, 1.12, 1.26)):
+    def _poof(k=_k, seed=60 + _i):
+        """The transformation: a cork POP, a whoosh of smoke and a shimmer of magic (each one higher)."""
+        r = rng(seed)
+        d = 0.95
+        out = np.zeros(samples(d))
+        t = t_axis(0.12)
+        S.mix_at(out, np.sin(S.phase(k * (180 + 1100 * np.exp(-t / 0.012)), len(t))) * np.exp(-t / 0.04), 0, 1.0)
+        S.mix_at(out, np.sin(2 * np.pi * 55 * k * t_axis(0.3)) * S.env_exp(0.3, 0.09), 0, 0.6)
+        whoosh = S.sweep_filter(S.noise(0.5, r), lambda u: k * (500 + 900 * np.sin(np.pi * u)),
+                                lambda u: k * (2200 + 2600 * np.sin(np.pi * u)))
+        S.mix_at(out, whoosh * S.bell(0.5, 1.2), samples(0.01), 0.55)
+        for _ in range(12):
+            S.mix_at(out, S.glockenspiel(k * r.uniform(2200, 6500), 0.4, 0.12), samples(r.uniform(0.03, 0.5)),
+                     r.uniform(0.08, 0.2))
+        return S.fade(S.normalize(out, 0.9))
+    SOUNDS["intro_poof_%d" % (_i + 1)] = _poof
+
+
+@sound("intro_flip")
+def intro_flip():
+    """The board's number cards flipping over: clack-clack."""
+    out = np.zeros(samples(0.25))
+    for at, f in ((0.0, 2300), (0.06, 1700), (0.1, 2000)):
+        S.mix_at(out, S.woodblock(f, 1.0), samples(at), 0.8)
+    S.mix_at(out, S.bandpass(S.noise(0.12, rng(63)), 1500, 6000) * S.env_exp(0.12, 0.03) * 0.3, 0)
+    return S.fade(S.normalize(out, 0.7))
+
+
 SFX_ONLY = set(SOUNDS)
 
 
@@ -444,9 +587,9 @@ SFX_ONLY = set(SOUNDS)
 
 def main():
     args = sys.argv[1:]
-    want_sfx = not args or "sfx" in args or any(a not in ("sfx", "music") for a in args)
-    want_music = not args or "music" in args
     prefixes = [a for a in args if a not in ("sfx", "music")]
+    want_sfx = not args or "sfx" in args or bool(prefixes)
+    want_music = not args or "music" in args or bool(prefixes)
     if want_sfx:
         for name, fn in SOUNDS.items():
             if prefixes and not any(name.startswith(p) for p in prefixes):
@@ -455,7 +598,7 @@ def main():
             S.write(os.path.join(SFX_DIR, name + ".ogg"), x)
             print("sfx   %-20s %5.2f s" % (name, len(x) / SR))
     if want_music:
-        for name, x in music.render_all():
+        for name, x in music.render_all(prefixes):
             S.write(os.path.join(MUSIC_DIR, name + ".ogg"), x, quality=6)
             print("music %-20s %5.2f s" % (name, len(x) / SR))
 

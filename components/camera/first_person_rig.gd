@@ -6,6 +6,9 @@ extends CameraRig
 ## holding a rat, eat and place as one-shots. The arms are drawn at ARMS_SCALE around the camera:
 ## the picture is the same, but they stay inside the capsule and never poke through walls.
 ## Knocked down, the view drops to the floor.
+## The CCTV tablet is part of the arms model too: set_tablet() plays tablet_out (the broom arm drops,
+## the left hand brings the tablet up), then the tablet loop, and tablet_away. Its Tablet and
+## TabletScreen meshes only show while it is in hand; the screen shows `tablet_feed`.
 
 const MAX_PITCH := 1.55  ## radians, just under straight up/down
 const EYE_BELOW_TOP := 0.2  ## m between the top of the capsule and the eyes
@@ -17,6 +20,8 @@ const ARMS_SCALE := 0.35
 const ARMS_OUTLINE_WIDTH := 0.0035
 const ARMS_SWAY := 0.012  ## m (scaled) the arms lag behind turns
 const BLEND_S := 0.15
+const TABLET_SHOW_S := 0.1  ## into tablet_out: from here the tablet is in hand (below the view)
+const TABLET_HIDE_S := 0.13  ## into tablet_away: from here it is put away (below the view)
 
 var _bob_phase := 0.0
 var _eye_height := 0.0
@@ -24,6 +29,12 @@ var _arms_player: AnimationPlayer
 var _one_shot_until := 0.0
 var _sway := Vector2.ZERO
 var _listening := false
+
+## Supervisors: what the CCTV tablet's screen shows (CctvView picks the camera).
+var tablet_feed: CctvTabletView
+
+var _tablet_out := false
+var _tablet_meshes: Array[MeshInstance3D] = []
 
 @onready var arms: Node3D = $Camera3D/Arms
 
@@ -48,6 +59,22 @@ func _setup_local() -> void:
 	toon.next_pass = outline
 	for mesh in Art.meshes(model):
 		mesh.material_override = toon
+		mesh.layers = CctvTabletView.LAYER  # (left out of the tablet's own feed)
+	tablet_feed = CctvTabletView.new()
+	tablet_feed.name = "CctvTabletFeed"
+	add_child(tablet_feed)
+	for part: String in ["Tablet", "TabletScreen"]:
+		var mesh := model.find_child(part, true, false) as MeshInstance3D
+		if mesh == null:
+			continue
+		mesh.visible = false
+		_tablet_meshes.append(mesh)
+		if part == "TabletScreen":
+			var screen := StandardMaterial3D.new()
+			screen.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			screen.albedo_texture = tablet_feed.get_texture()
+			screen.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+			mesh.material_override = screen
 	var players := model.find_children("*", "AnimationPlayer", true, false)
 	_arms_player = players[0] as AnimationPlayer if not players.is_empty() else null
 	if _arms_player != null:
@@ -57,6 +84,18 @@ func _setup_local() -> void:
 ## A broom swing in view (cosmetic, local).
 func swing() -> void:
 	play_arms("swing")
+
+
+## The CCTV tablet in hand (true) or put away (false); plays the arms clip on a change.
+func set_tablet(out: bool) -> void:
+	if out == _tablet_out:
+		return
+	_tablet_out = out
+	play_arms("tablet_out" if out else "tablet_away")
+
+
+func tablet_out() -> bool:
+	return _tablet_out
 
 
 ## Plays a short arms clip, then goes back to whatever the arms were doing.
@@ -77,7 +116,9 @@ func _update_arms(delta: float) -> void:
 				play_arms(clip))
 	if Time.get_ticks_msec() / 1000.0 >= _one_shot_until:
 		var base := "idle"
-		if body.status.carrying != 0:
+		if _tablet_out:
+			base = "tablet"
+		elif body.status.carrying != 0:
 			base = "carry"
 		elif body.sync_anim & AnimationController.FLAG_INTERACT:
 			base = "interact"
@@ -87,6 +128,15 @@ func _update_arms(delta: float) -> void:
 	_sway = _sway.lerp(Vector2.ZERO, 1.0 - exp(-8.0 * delta))
 	var down := 0.3 if body.status.has(StatusComponent.Status.KNOCKED_DOWN) else 0.0
 	arms.position = Vector3(_sway.x, _sway.y - down, 0.0)
+	# The tablet is in hand from partway into tablet_out until partway into tablet_away (both below
+	# the view); the feed only renders meanwhile.
+	var clip := _arms_player.current_animation
+	var at := _arms_player.current_animation_position
+	var in_hand := clip == "tablet" or (clip == "tablet_out" and at >= TABLET_SHOW_S) \
+		or (clip == "tablet_away" and at < TABLET_HIDE_S)
+	for mesh in _tablet_meshes:
+		mesh.visible = in_hand
+	tablet_feed.set_live(in_hand)
 
 
 func look_pitch() -> float:

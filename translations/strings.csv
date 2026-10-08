@@ -68,7 +68,7 @@ Watching,Watching,Spectateur
 Keep the plant alive,Keep the plant alive,Garder la centrale en vie
 Damaged machines heat up the core. Press %s at a machine's repair panel and win the short minigame to fix it. Keep the meltdown meter (top of the screen) away from 100%% until the shift timer runs out. The Control Room has emergency coolant and a SCRAM button for bad moments.,Damaged machines heat up the core. Press %s at a machine's repair panel and win the short minigame to fix it. Keep the meltdown meter (top of the screen) away from 100%% until the shift timer runs out. The Control Room has emergency coolant and a SCRAM button for bad moments.,Les machines abîmées font chauffer le cœur. Appuyez sur %s devant le panneau de réparation d'une machine et réussissez le petit mini-jeu pour la réparer. Gardez la jauge de fusion (en haut de l'écran) loin des 100 %% jusqu'à la fin du service. La salle de contrôle a un refroidissement d'urgence et un bouton SCRAM pour les coups durs.
 "Bonk, carry, cage","Bonk, carry, cage","Assommer, porter, enfermer"
-"Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A rat caught twice is out for the match. Hold %s, then release, to place a trap: a snap trap stuns a rat, a cheese lure shows it through walls and on your map. Grab a donut in the Break Room and eat it when you need a burst of speed (select it, then %s).","Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A rat caught twice is out for the match. Hold %s, then release, to place a trap: a snap trap stuns a rat, a cheese lure shows it through walls and on your map. Grab a donut in the Break Room and eat it when you need a burst of speed (select it, then %s).","Donnez un coup de balai avec %s pour assommer un rat, appuyez sur %s pour le ramasser et portez-le jusqu'à une cage de la salle des cages ou du hall du réacteur (%s devant la cage). Un rat attrapé deux fois est éliminé pour la partie. Maintenez %s puis relâchez pour poser un piège : une tapette assomme un rat, un appât au fromage le montre à travers les murs et sur votre carte. Prenez un donut dans la salle de pause et mangez-le quand il vous faut un coup de vitesse (sélectionnez-le, puis %s)."
+"Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A caged rat stays there until another rat frees it, however many times it was caught. Hold %s, then release, to place a trap: a snap trap stuns a rat, a cheese lure shows it through walls and on your map. Grab a donut in the Break Room and eat it when you need a burst of speed (select it, then %s).","Swing your broom with %s to stun a rat, press %s to pick it up, and carry it to a cage in the Cage Room or the Reactor Hall (%s at the cage). A caged rat stays there until another rat frees it, however many times it was caught. Hold %s, then release, to place a trap: a snap trap stuns a rat, a cheese lure shows it through walls and on your map. Grab a donut in the Break Room and eat it when you need a burst of speed (select it, then %s).","Donnez un coup de balai avec %s pour assommer un rat, appuyez sur %s pour le ramasser et portez-le jusqu'à une cage de la salle des cages ou du hall du réacteur (%s devant la cage). Un rat en cage y reste jusqu'à ce qu'un autre rat le libère, même s'il a déjà été attrapé. Maintenez %s puis relâchez pour poser un piège : une tapette assomme un rat, un appât au fromage le montre à travers les murs et sur votre carte. Prenez un donut dans la salle de pause et mangez-le quand il vous faut un coup de vitesse (sélectionnez-le, puis %s)."
 Sabotage!,Sabotage!,Sabotage !
 "Sneak through the vents to the machines and hold %s at their red junction boxes. The critical machines (control rods, turbine) need two rats pulling their levers at the same time. Each broken machine pushes the meltdown meter up: reach 100%% and the rats win.","Sneak through the vents to the machines and hold %s at their red junction boxes. The critical machines (control rods, turbine) need two rats pulling their levers at the same time. Each broken machine pushes the meltdown meter up: reach 100%% and the rats win.","Faufilez-vous par les conduits jusqu'aux machines et maintenez %s devant leurs boîtiers électriques rouges. Les machines critiques (barres de contrôle, turbine) demandent deux rats qui tirent leurs leviers en même temps. Chaque machine cassée fait monter la jauge de fusion : à 100 %%, les rats gagnent."
 "Bite, steal, rescue","Bite, steal, rescue","Mordre, voler, libérer"
@@ -85,7 +85,7 @@ Core %d°,Core %d°,Cœur %d°
 frozen,frozen,figé
 %s chat,%s chat,%s chat
 %s team chat,%s team chat,%s chat d'équipe
-%s scores,%s scores,%s scores
+%s scores and map,%s scores and map,%s scores et carte
 Esc menu,Esc menu,Échap menu
 You're caged! A free rat can let you out (hold %s at the cage),You're caged! A free rat can let you out (hold %s at the cage),Vous êtes en cage ! Un rat libre peut vous sortir (en maintenant %s devant la cage)
 Keycard: STOLEN · spare in Storage in %d s,Keycard: STOLEN · spare in Storage in %d s,Badge : VOLÉ · badge de secours dans la Réserve dans %d s
@@ -341,7 +341,7 @@ Switch trap (CCTV: previous camera),Switch trap (CCTV: previous camera),Changer 
 Emote,Emote,Emote
 Chat,Chat,Chat
 Team chat,Team chat,Chat d'équipe
-Scoreboard (hold),Scoreboard (hold),Tableau des scores (maintenir)
+Scoreboard and map (hold),Scoreboard and map (hold),Tableau des scores et carte (maintenir)
 Lobby: ready,Lobby: ready,Salon : prêt
 Lobby: play any role,Lobby: play any role,Salon : n'importe quel rôle
 Lobby: play supervisor,Lobby: play supervisor,Salon : jouer superviseur
@@ -482,6 +482,7 @@ Kicked for testing,Kicked for testing,Expulsé pour un test
 Repair minigames (Esc gives up),Repair minigames (Esc gives up),Mini-jeux de réparation (Échap abandonne)
 Hazards,Hazards,Accidents
 Map,Map,Carte
+Big map with legend,Big map with legend,Grande carte avec légende
 Sunny Acres plant,Sunny Acres plant,Centrale de Sunny Acres
 Yard,Yard,Cour
 Control Room,Control Room,Salle de contrôle
@@ -504,7 +505,7 @@ Vents (rats only),Vents (rats only),Conduits (rats seulement)
 Show the minimap,Show the minimap,Afficher la mini-carte
 Minimap turns with you,Minimap turns with you,La mini-carte tourne avec vous
 Lost?,Lost?,Perdu ?
-"%s opens the map of the plant, with every machine and your team. The minimap in the corner turns with you and names the room you're in.","%s opens the map of the plant, with every machine and your team. The minimap in the corner turns with you and names the room you're in.","%s ouvre la carte de la centrale, avec toutes les machines et votre équipe. La mini-carte dans le coin tourne avec vous et indique la pièce où vous êtes."
+"Hold %s to see the map of the plant under the scoreboard, with every machine and your team (%s opens a bigger one with a legend). The minimap in the corner turns with you and names the room you're in.","Hold %s to see the map of the plant under the scoreboard, with every machine and your team (%s opens a bigger one with a legend). The minimap in the corner turns with you and names the room you're in.","Maintenez %s pour voir la carte de la centrale sous le tableau des scores, avec toutes les machines et votre équipe (%s en ouvre une plus grande, avec une légende). La mini-carte dans le coin tourne avec vous et indique la pièce où vous êtes."
 Close,Close,Fermer
 Legend,Legend,Légende
 BOT,BOT,BOT
@@ -604,3 +605,10 @@ Cheese lures are full,Cheese lures are full,Appâts au complet
 Refill cheese lures,Refill cheese lures,Recharger les appâts
 SNAP TRAPS,SNAP TRAPS,TAPETTES
 CHEESE LURES,CHEESE LURES,APPÂTS AU FROMAGE
+CCTV tablet (supervisor),CCTV tablet (supervisor),Tablette caméras (superviseur)
+%s / %s: previous / next camera  ·  %s: put the tablet away,%s / %s: previous / next camera  ·  %s: put the tablet away,%s / %s : caméra précédente / suivante  ·  %s : ranger la tablette
+"%s / %s switch cameras, %s puts the tablet away. You can walk while you watch, but your hands are full. Rats can break cameras: repair them where they hang.","%s / %s switch cameras, %s puts the tablet away. You can walk while you watch, but your hands are full. Rats can break cameras: repair them where they hang.","%s / %s changent de caméra, %s range la tablette. Vous pouvez marcher en regardant, mais vous avez les mains prises. Les rats peuvent casser les caméras : réparez-les sur place."
+THE GOOD OLD DAYS,THE GOOD OLD DAYS,LE BON VIEUX TEMPS
+DAYS WITHOUT AN INCIDENT,DAYS WITHOUT AN INCIDENT,JOURS SANS INCIDENT
+...and the night shift was never the same again.,...and the night shift was never the same again.,...et le service de nuit n'a plus jamais été le même.
+Click to skip,Click to skip,Cliquez pour passer

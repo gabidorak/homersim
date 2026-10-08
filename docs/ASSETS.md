@@ -74,7 +74,8 @@ godot tests/helpers/ArtGallery.tscn -- --files crate,lever [--anim idle]   # the
 | `furniture.py` | Control desks, break-room table and chairs, bench, lockers, vending machine, coffee station, donut counter, shelves, pallet, water cooler, whiteboard, office desk, donut, donut box |
 | `dressing.py` | Barrels, junk piles, trash bags, rat beds, cones, signs, mop bucket, fire extinguisher, toolbox, cable spool, papers, clocks, pipe bundles, vial crates |
 | `kenney.py` | Kenney CC0 models recoloured onto the palette and rescaled (`k_*`) |
-| `supervisor.py`, `rat.py`, `fp_arms.py`, `broom.py` | Characters (§5) |
+| `supervisor.py`, `rat.py`, `fp_arms.py`, `broom.py`, `hamster.py` | Characters (§5) |
+| `intro_props.py` | The intro cinematic's props (`client/intro/`): the supervisors' desk, the hamster cages (`Door`, `Roof`, the wheel cage's `Wheel`), the yellow bottle of radioactive goo, the "days without an incident" board (its words are Label3Ds), and effect meshes: a heart, a goo blob, a goo puddle, a "!" mark |
 
 Animatable parts are **separately named child objects** with their pivot as origin; Godot code finds them by name (`Art.part()`), so mesh names must not collide with gameplay node names. Gameplay collision never comes from the art: the level keeps its layout boxes (`solid()` in `gen_plant.py`) and the interactable scenes their own shapes.
 
@@ -83,9 +84,10 @@ Animatable parts are **separately named child objects** with their pivot as orig
 ## 5. Characters and animation
 | Role | Model | Clips |
 |---|---|---|
-| Supervisor | Kenney Mini Character *male-d* recoloured (white shirt, red tie, navy trousers, boots), a separate `HardHat` mesh (lobby bodies tint it per player), a badge; 1.85 m (`supervisor.py`). Bones: root, leg-left, leg-right, torso, arm-left, arm-right, head | idle, walk, run, jump, fall, swing, carry_idle, place, interact, knocked, get_up (knocked reversed), eat (new), sit, emote, emote_no |
+| Supervisor | Kenney Mini Character *male-d* recoloured (white shirt, red tie, navy trousers, boots), a separate `HardHat` mesh (lobby bodies tint it per player), a badge; 1.85 m (`supervisor.py`). Bones: root, leg-left, leg-right, torso, arm-left, arm-right, head | idle, walk, run, jump, fall, swing, carry_idle, place, interact, knocked, get_up (knocked reversed), eat (new), sit, emote, emote_no; for the intro: carry_walk, trip, faceplant, cheer (upper body), startle, cower, ouch, chase (broom overhead), point |
 | Broom | `broom.py`, held in the right hand through a BoneAttachment3D (`CharacterVisual`) | – |
 | Rat | Generated in the Mini Characters style (`rat.py`): 0.5 m, 2.4k tris, rigid skinning. Bones: root, body, head, jaw, ear_l/r, arm_l/r, leg_l/r, tail_1..4 | idle, run, jump, fall, crawl, bite, gnaw, stunned, dangle, caged, squeak |
+| Hamster (intro) | `hamster.py`, in the rat's style but round where the rat is boxy: 0.27 m, 3.3k tris, three coats (`hamster` golden, `hamster_cream`, `hamster_cocoa`), rat.py's rig helpers. Bones: root, body, head, jaw, ear_l/r, arm_l/r, leg_l/r, tail | idle, nibble, run (the wheel), beg, hop, shiver (dripping with goo), wash, look_up |
 | First-person arms | `fp_arms.py`: forearms and broom, origin = the camera; drawn at 35 % scale around the camera (same picture, never through walls) with a thinner outline | idle, swing, interact, carry, eat, place |
 
 - `components/animation/animation_controller.gd` builds the AnimationTree in code: a speed blend space (idle → walk → run, with a time scale so feet keep up), a transition on the body's state (jump, fall, interact, climb, crawl, sit, stunned, knocked, dangle, caged), a carry blend filtered to the arms, and a one-shot for swing / bite / place / eat / get_up / emote. Remote bodies use the same inputs: speed measured from their interpolated motion, statuses from StatusComponent, and `Player.sync_anim` (a few bits in BodySync: airborne, interacting, emoting, climbing, in a vent).
@@ -104,7 +106,8 @@ Animatable parts are **separately named child objects** with their pivot as orig
 As built (M7):
 - **Synthesized** by `tools/audio/make_audio.py` (numpy + ffmpeg; `synth.py` has the oscillators, FFT filters, Karplus-Strong plucks and formant voices) into `assets/audio/sfx/` and `assets/audio/music/`: squeaks, chomp, gnawing, rat steps, vent rattle, "ow!" grunts, whoosh, cartoon BONK, SNAP crack, munch, whistle emote, steam hiss and puff, zaps and the puddle buzz, Geiger clicks, falling whistle and rumble, the alarm klaxon and warning chime, SCRAM klaxon, coolant whoosh, machinery hums (room, reactor, turbine, pump, electric, fans), crickets, dripping, sparks, beeps, lever, button, repair and sabotage jingles.
 - **Music** (`tools/audio/music.py`): a sneaky A-minor match theme in three stems of exactly 32 s at 120 BPM (calm: pizzicato walking bass, marimba melody, a ticking clock; warning: drums, brass stabs, tremolo strings; critical: fast hats, toms, siren lead, low brass), a lounge loop for the lobby, a win fanfare and the cartoon "wah-wah-wah-waaah" lose stinger.
-- **Recorded CC0** (Kenney packs, §3): footsteps, punches, metal and glass impacts, UI clicks, door slides, keycard beeps, the meltdown explosion.
+- **The intro** (`client/intro/`, `make_audio.py intro`): hamster squeaks, a twinkle for the hearts, a cartoon "WHOA!" and a falsetto "EEK!" (formant voices), the goo SPLAT, glugs, the empty bottle's clonk, three POOFs a step higher each, the board's flip; and its score (`music.py` `intro`, 18.6 s, written to the intro's hit points, see `INTRO_*`): a music box tune in F, a creeping walk-up, a record scratch, a slow-motion choir, a radioactive build with a riser, a "DUN-DUN-DUNNN" reveal, a 160 BPM chase quoting the match theme's motif, its critical siren when the alarm goes off, a dead stop on the BONK, and the "wah-wah-wah-waaah".
+- **Recorded CC0** (Kenney packs, §3): footsteps, punches, metal and glass impacts, UI clicks, door slides, keycard beeps, the meltdown explosion, the intro's falling wet floor sign.
 - `client/sfx.gd` is the sound bank: every sound by name with its kind (bus and how far it carries), volume, random pitch (several files become an `AudioStreamRandomizer`) and an optional layered companion. Positional players pick up the hall reverb from audio areas (`PhysicsLayers.AUDIO`, placed by the level generator in the big halls).
 - Buses (`default_bus_layout.tres`): Master (hard limiter), Music, SFX, UI, Ambience, HallReverb (sends to SFX).
 - `client/music_director.gd` plays the stems in one `AudioStreamSynchronized` and fades them with the alarm, the lobby loop before a match, countdown beeps, the stingers (and the meltdown boom). `levels/ambient_sound.gd` markers loop the hums; `AlarmBeacon` sounds the alarm.
@@ -120,7 +123,8 @@ As built (M7):
 Target: **60 fps at 1080p on a GTX 1060 / RX 580-class GPU** with 6 players.
 
 As built: characters 1.2k (supervisor) and 2.4k (rat); reactor 4.6k, turbine 5.9k; the six station machines
-2.8k–5.3k (over the prop budget, but there is one of each); everything else under 1.5k (the donut counter 2.8k).
+2.8k–5.3k (over the prop budget, but there is one of each); everything else under 1.5k (the donut counter 2.8k;
+the intro's hamsters 3.3k and its two hamster cages about 2k, all those wire bars).
 `tests/helpers/MapTour.tscn -- --players 6 --no-vsync` measured at most ~570 draw calls in normal views (1300
 in the frame the CCTV wall screens refresh) and 77+ fps at 720p on an Intel Iris Xe (a weaker GPU than the
 target) with six animated bodies in view. Models get automatic LODs on import; long pipe runs are MultiMeshes.

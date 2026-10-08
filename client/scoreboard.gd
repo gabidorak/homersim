@@ -1,13 +1,18 @@
 class_name Scoreboard
 extends CanvasLayer
-## The scoreboard (M8, ClientOnly): shown while the scoreboard key (Tab) is held. During a match, one
-## column per team: name, how they are doing (caged, out, knocked down…), their key stats so far
-## (MatchManager.live_stats) and ping (MatchManager.pings), or a BOT badge for an AI bot (M10);
-## spectators below. In the lobby: everyone with their preferred role and ready state. Only reads
+## The scoreboard and map (M8, ClientOnly): shown while the scoreboard key (Tab) is held. Laid out like
+## the full map (MapOverlay): the same map of the level, as big and as detailed (with the player's room
+## drawn brighter), and the players in a column where that one has its legend. During a match: each team,
+## with for each player how they are doing (caged, out, knocked down…), their ping (MatchManager.pings)
+## or a BOT badge for an AI bot (M10), and under it their key stats so far (MatchManager.live_stats);
+## bots and spectators at the bottom. In the lobby: everyone with their preferred role and ready state.
+## Without a plan, and after the match, the column alone. The minimap steps aside meanwhile. Only reads
 ## replicated state.
 
 const SUPERVISOR_COLOR := Color("ffc93c")
 const RAT_COLOR := Color("7bd389")
+const MUTED := Color(0.64, 0.65, 0.68)
+const SIDE_W := 320.0  ## the player column, next to the map
 const SUPERVISOR_STATS: Array[String] = ["repairs", "catches", "bonks"]
 const RAT_STATS: Array[String] = ["sabotages", "bites", "frees"]
 const STAT_TITLES := {
@@ -18,38 +23,90 @@ const STAT_TITLES := {
 var _forced := false  # (the UI tour shows it without the key)
 var _root: Control
 var _title: Label
-var _columns: HBoxContainer
+var _map_card: PanelContainer
+var _map: MapView
+var _plan: LevelMap
+var _list: VBoxContainer
 var _footer: Label
 var _next_refresh_ms := 0
 
 
 func _ready() -> void:
 	layer = 15
-	_root = CenterContainer.new()
+	_root = Control.new()
 	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
+	var dim := ColorRect.new()
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0, 0, 0, 0.45)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(center)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(900, 0)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.add_child(panel)
+	center.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
 	panel.add_child(col)
 	_title = Label.new()
 	_title.theme_type_variation = &"HeaderLabel"
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	col.add_child(_title)
-	_columns = HBoxContainer.new()
-	_columns.add_theme_constant_override("separation", 18)
-	col.add_child(_columns)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	col.add_child(row)
+	_build_map(row)
+	var side_card := PanelContainer.new()
+	side_card.theme_type_variation = &"CardPanel"
+	side_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(side_card)
+	var side := VBoxContainer.new()
+	side.custom_minimum_size = Vector2(SIDE_W, 0)
+	side.add_theme_constant_override("separation", 6)
+	side_card.add_child(side)
+	_list = VBoxContainer.new()
+	_list.add_theme_constant_override("separation", 6)
+	side.add_child(_list)
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	side.add_child(spacer)
 	_footer = Label.new()
 	_footer.theme_type_variation = &"MutedLabel"
-	_footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_footer.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	col.add_child(_footer)
+	side.add_child(_footer)
 	_root.visible = false
+
+
+## The map, sized like the full map (MapOverlay.full_map_size) whenever the window changes.
+func _build_map(row: HBoxContainer) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	_plan = MapInfo.plan_in(get_tree())
+	if _plan == null:
+		return
+	_map_card = PanelContainer.new()
+	_map_card.theme_type_variation = &"CardPanel"
+	_map_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_map_card)
+	_map = MapView.new()
+	_map.plan = _plan
+	_map_card.add_child(_map)
+	get_viewport().size_changed.connect(_layout_map)
+	_layout_map()
+
+
+func _layout_map() -> void:
+	_map.custom_minimum_size = MapOverlay.full_map_size(get_viewport().get_visible_rect().size, _plan, SIDE_W)
+
+
+func is_shown() -> bool:
+	return _root.visible
 
 
 ## Test hook: show it without holding the key.
@@ -73,16 +130,17 @@ func _refresh() -> void:
 	var session := Session.current
 	var mm := session.match_manager
 	var info := mm.server_info
+	_refresh_map()
 	var title := str(info.get("name", ""))
 	if mm.state == MatchManager.State.PLAYING:
 		title += "  ·  %d:%02d" % [floori(mm.time_left / 60.0), mm.time_left % 60]
 	_title.text = title
-	for child in _columns.get_children():
-		_columns.remove_child(child)
+	for child in _list.get_children():
+		_list.remove_child(child)
 		child.queue_free()
 	if mm.in_match() or mm.state == MatchManager.State.POST_MATCH:
-		_columns.add_child(_team(tr("Supervisors"), Role.Kind.SUPERVISOR, SUPERVISOR_COLOR, SUPERVISOR_STATS))
-		_columns.add_child(_team(tr("Rats"), Role.Kind.RAT, RAT_COLOR, RAT_STATS))
+		_team(tr("Supervisors"), Role.Kind.SUPERVISOR, SUPERVISOR_COLOR, SUPERVISOR_STATS)
+		_team(tr("Rats"), Role.Kind.RAT, RAT_COLOR, RAT_STATS)
 		var watching: Array[String] = []
 		for peer: int in mm.roster:
 			if mm.roster[peer]["role"] == Role.Kind.SPECTATOR:
@@ -93,27 +151,26 @@ func _refresh() -> void:
 		if bots > 0:
 			_footer.text = tr("%d humans, %d bots") % [mm.human_count(), bots] + "  ·  " + _footer.text
 	else:
-		_columns.add_child(_lobby_list())
+		_lobby_list()
 		_footer.text = tr("%d / %d players") % [mm.human_count(), int(info.get("max_players", 6))]
 
 
-func _team(title: String, role: Role.Kind, color: Color, stat_keys: Array[String]) -> Control:
+func _refresh_map() -> void:
+	if _map_card == null:
+		return
+	_map_card.visible = Session.current.match_manager.state != MatchManager.State.POST_MATCH
+	if not _map_card.visible:
+		return
+	var session := Session.current
+	var body := session.get_body(session.local_peer_id)
+	_map.highlight = -1 if body != null and VentVolume.contains(body) else _plan.room_at(_map.viewer()[0])
+	Config.mark_hint_seen("map")  # (they found it: no need for the tip any more)
+
+
+## One team in the column: its name, then each player (name, state, ping) with their stats under it.
+func _team(title: String, role: Role.Kind, color: Color, stat_keys: Array[String]) -> void:
 	var mm := Session.current.match_manager
-	var card := PanelContainer.new()
-	card.theme_type_variation = &"CardPanel"
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var grid := GridContainer.new()
-	grid.columns = 3 + stat_keys.size()
-	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 6)
-	card.add_child(grid)
-	var heading := _cell(title, color, true)
-	heading.add_theme_font_size_override("font_size", 22)
-	grid.add_child(heading)
-	grid.add_child(_cell("", Color.WHITE))
-	for key in stat_keys:
-		grid.add_child(_cell(tr(STAT_TITLES[key]), Color(0.64, 0.65, 0.68), false, true))
-	grid.add_child(_cell(tr("Ping"), Color(0.64, 0.65, 0.68), false, true))
+	_heading(title, color)
 	var peers: Array = mm.roster.keys()
 	peers.sort_custom(func(a: int, b: int) -> bool: return str(mm.roster[a]["name"]).naturalnocasecmp_to(mm.roster[b]["name"]) < 0)
 	for peer: int in peers:
@@ -121,19 +178,16 @@ func _team(title: String, role: Role.Kind, color: Color, stat_keys: Array[String
 		if e["role"] != role:
 			continue
 		var me := peer == Session.current.local_peer_id
-		grid.add_child(_cell(str(e["name"]) + (" " + tr("(you)") if me else ""), Color.WHITE if not me else color, me))
 		var state := _state_of(peer, e)
-		grid.add_child(_cell(state[0], state[1]))
+		var right: Control = Ui.bot_badge() if e.get("bot", false) else _ping_cell(peer)
 		var counts: Dictionary = mm.live_stats.get(peer, {})
+		var stats: Array[String] = []
 		for key in stat_keys:
-			grid.add_child(_cell(str(counts.get(key, 0)), Color.WHITE, false, true))
-		if e.get("bot", false):
-			var badge := Ui.bot_badge()
-			badge.size_flags_horizontal = Control.SIZE_SHRINK_END
-			grid.add_child(badge)
-		else:
-			grid.add_child(_ping_cell(peer))
-	return card
+			stats.append("%s %d" % [tr(STAT_TITLES[key]), int(counts.get(key, 0))])
+		var sub := _cell("  ·  ".join(stats), MUTED)
+		sub.add_theme_font_size_override("font_size", 14)
+		_entry(str(e["name"]) + (" " + tr("(you)") if me else ""), color if me else Color.WHITE, me,
+			_cell(state[0], state[1]), right, sub)
 
 
 ## [text, colour] for how a player is doing right now.
@@ -154,28 +208,50 @@ func _state_of(peer: int, e: Dictionary) -> Array:
 	return ["", Color.WHITE]
 
 
-func _lobby_list() -> Control:
+## The lobby: each player with their ping, and under it the role they want and whether they are ready.
+func _lobby_list() -> void:
 	var mm := Session.current.match_manager
-	var card := PanelContainer.new()
-	card.theme_type_variation = &"CardPanel"
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var grid := GridContainer.new()
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 24)
-	grid.add_theme_constant_override("v_separation", 6)
-	card.add_child(grid)
-	for title in [tr("Lobby"), tr("Wants to play"), tr("Ready?"), tr("Ping")]:
-		grid.add_child(_cell(title, Color(0.64, 0.65, 0.68), false))
+	_heading(tr("Lobby"), Color.WHITE)
 	for peer: int in mm.roster:
 		var e: Dictionary = mm.roster[peer]
 		var me := peer == Session.current.local_peer_id
-		grid.add_child(_cell(str(e["name"]) + (" " + tr("(you)") if me else ""), Color.WHITE, me))
 		var pref: Role.Kind = e["pref"]
-		grid.add_child(_cell(tr(Role.pref_name(pref)), SUPERVISOR_COLOR if pref == Role.Kind.SUPERVISOR
-			else RAT_COLOR if pref == Role.Kind.RAT else Color(0.8, 0.8, 0.8)))
-		grid.add_child(_cell(tr("Ready!") if e["ready"] else "-", Color(0.5, 1, 0.55) if e["ready"] else Color(0.6, 0.6, 0.6)))
-		grid.add_child(_ping_cell(peer))
-	return card
+		var sub := HBoxContainer.new()
+		sub.add_theme_constant_override("separation", 10)
+		for cell: Label in [_cell(tr(Role.pref_name(pref)), SUPERVISOR_COLOR if pref == Role.Kind.SUPERVISOR
+				else RAT_COLOR if pref == Role.Kind.RAT else Color(0.8, 0.8, 0.8)),
+				_cell(tr("Ready!") if e["ready"] else tr("Ready?"), Color(0.5, 1, 0.55) if e["ready"] else MUTED)]:
+			cell.add_theme_font_size_override("font_size", 14)
+			sub.add_child(cell)
+		_entry(str(e["name"]) + (" " + tr("(you)") if me else ""), Color.WHITE, me, null, _ping_cell(peer), sub)
+
+
+func _heading(text: String, color: Color) -> void:
+	var heading := _cell(text, color, true)
+	heading.add_theme_font_size_override("font_size", 22)
+	if _list.get_child_count() > 0:
+		heading.custom_minimum_size = Vector2(0, 36)
+		heading.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_list.add_child(heading)
+
+
+## A player in the column: a line with their name, `state` and `right` (ping or BOT), then `sub`.
+func _entry(player_name: String, color: Color, bold: bool, state: Control, right: Control, sub: Control) -> void:
+	var entry := VBoxContainer.new()
+	entry.add_theme_constant_override("separation", 0)
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	entry.add_child(line)
+	var name_label := _cell(player_name, color, bold)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	line.add_child(name_label)
+	if state != null:
+		line.add_child(state)
+	right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	line.add_child(right)
+	entry.add_child(sub)
+	_list.add_child(entry)
 
 
 func _ping_cell(peer: int) -> Label:

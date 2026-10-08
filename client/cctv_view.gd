@@ -1,11 +1,14 @@
 class_name CctvView
 extends CanvasLayer
-## Client: the view of a supervisor sitting at the CCTV chair (CctvConsole). While our peer is the
-## chair's synced `user`, the screen shows the selected camera (Q / E: previous / next; Space: stand
-## up), with static and "NO SIGNAL" for a broken one. No extra viewport: our main view simply
-## switches to a camera placed at the lens, so nothing renders for anyone else.
-## The camera node only exists while we watch: Godot makes a leftover camera current on its own
-## when the current one goes away.
+## Client: what a supervisor sees of the CCTV cameras, at the chair (CctvConsole) or on the tablet
+## (Player.using_tablet). Q / E: previous / next camera; a broken one shows static and "NO SIGNAL".
+##   Chair:  while our peer is the chair's synced `user`, the whole screen shows the camera (Space
+##           stands up). No extra viewport: our main view simply switches to a camera placed at the
+##           lens, so nothing renders for anyone else. That camera node only exists while we watch:
+##           Godot makes a leftover camera current on its own when the current one goes away.
+##   Tablet: C takes it out (the server agrees) and puts it away. Our FirstPersonRig plays the arms'
+##           tablet clips (the left hand brings it up) and its screen shows the rig's tablet_feed;
+##           we keep walking and looking around, but our hands are full (no broom, items or E).
 
 const STATIC_SHADER: Shader = preload("res://shaders/tv_static.gdshader")
 
@@ -56,41 +59,50 @@ func _label(font_size: int, preset: Control.LayoutPreset, offset: Vector2) -> La
 	return label
 
 
-## The console we sit at, or null.
-func _console() -> CctvConsole:
+## Our body, or null.
+func _body() -> Player:
 	var session := Session.current
-	if session.get_body(session.local_peer_id) == null:
-		return null
-	return CctvConsole.of_peer(get_tree(), session.local_peer_id)
+	return session.get_body(session.local_peer_id) if session != null else null
 
 
 func _process(_delta: float) -> void:
-	var console := _console()
+	var body := _body()
 	var cameras := CctvCamera.all_in(get_tree())
-	var active := console != null and not cameras.is_empty()
-	if active != (_camera != null):
-		_set_active(active)
-	if not active:
+	var seated := body != null and body.seated_console() != null and not cameras.is_empty()
+	var tablet := body != null and body.using_tablet and not cameras.is_empty()
+	if seated != (_camera != null):
+		_set_seated(seated)
+	var rig := body.rig as FirstPersonRig if body != null else null
+	if rig != null and rig.tablet_feed != null:
+		if tablet and not rig.tablet_out():
+			Log.info("cctv", "watching the cameras on the tablet")
+		rig.set_tablet(tablet)
+	if not seated and not tablet:
 		return
 	selected = posmod(selected, cameras.size())
 	var cam := cameras[selected]
+	if tablet:
+		if rig != null and rig.tablet_feed != null:
+			rig.tablet_feed.show_feed(cam, tr("%s / %s: previous / next camera  ·  %s: put the tablet away") % [
+				Keys.label(&"next_trap"), Keys.label(&"interact"), Keys.label(&"cctv_tablet")])
+		return
 	_camera.global_transform = cam.lens.global_transform
 	_title.text = "%s  ·  %s%s" % [tr("CAM %d") % cam.number, tr(cam.label), "  ·  " + tr("BROKEN") if cam.broken else ""]
 	_static.visible = cam.broken
 	_no_signal.visible = cam.broken
 
 
-func _set_active(active: bool) -> void:
-	_root.visible = active
-	if active:
+func _set_seated(seated: bool) -> void:
+	_root.visible = seated
+	if seated:
 		_camera = Camera3D.new()
 		_camera.name = "CctvViewCamera"
 		_camera.fov = 70.0
 		add_child(_camera)
 		_camera.make_current()
-		Log.info("cctv", "watching the cameras")
+		Log.info("cctv", "watching the cameras at the chair")
 		return
-	var body := Session.current.get_body(Session.current.local_peer_id)
+	var body := _body()
 	if body != null and body.rig.camera != null:
 		body.rig.camera.make_current()
 	_camera.queue_free()
@@ -98,16 +110,22 @@ func _set_active(active: bool) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _camera == null:
+	var body := _body()
+	if body == null or not body.watching_cctv():
+		# C takes the tablet out (the server checks the rest: playing, not stunned, no rat in hand…).
+		if event.is_action_pressed("cctv_tablet") and body != null and body.role == Role.Kind.SUPERVISOR \
+				and PlayerInput.has_control() and body.tablet_blocker() == "":
+			body.request_tablet.rpc_id(1, true)
+			get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("next_trap"):
 		selected -= 1
 	elif event.is_action_pressed("interact"):
 		selected += 1
-	elif event.is_action_pressed("jump"):
-		var console := _console()
-		if console != null:
-			console.request_stand_up.rpc_id(1)
+	elif body.using_tablet and event.is_action_pressed("cctv_tablet"):
+		body.request_tablet.rpc_id(1, false)
+	elif body.seated_console() != null and event.is_action_pressed("jump"):
+		body.seated_console().request_stand_up.rpc_id(1)
 	else:
-		return
+		return  # (on the tablet, Space still jumps)
 	get_viewport().set_input_as_handled()

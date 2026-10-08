@@ -158,7 +158,7 @@ func _update_player() -> void:
 	var keys := [tr("%s chat") % Keys.label(&"chat")]
 	if _player.role in [Role.Kind.SUPERVISOR, Role.Kind.RAT]:
 		keys.append(tr("%s team chat") % Keys.label(&"team_chat"))
-	keys.append(tr("%s scores") % Keys.label(&"scoreboard"))
+	keys.append(tr("%s scores and map") % Keys.label(&"scoreboard"))
 	keys.append(tr("Esc menu"))
 	info_label.text = "%s%s\n%s" % [role, frozen, " · ".join(keys)]
 	var playing := Session.current.match_manager.state == MatchManager.State.PLAYING

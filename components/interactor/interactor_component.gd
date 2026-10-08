@@ -43,7 +43,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if body.seated_console() != null:
+	if body.watching_cctv():
 		target = null  # E switches cameras while we watch the CCTV
 		if holding != null:
 			_stop()

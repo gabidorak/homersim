@@ -16,9 +16,11 @@ const GLASS: Material = preload("res://shaders/materials/toon_glass.tres")
 const OUTLINE: Material = preload("res://shaders/materials/outline.tres")
 const TOON_SHADER: Shader = preload("res://shaders/toon.gdshader")
 const NAMED := {"palette": PALETTE, "palette_emissive": EMISSIVE, "glass": GLASS}
-## Character clips that repeat (the rest play once).
+## Character clips that repeat (the rest play once). The second line: the intro's supervisor and
+## hamster clips (client/intro/).
 const LOOPING: Array[String] = ["idle", "walk", "run", "carry_idle", "carry", "interact", "gnaw", "stunned",
-	"dangle", "caged", "crawl", "sit", "fall"]
+	"dangle", "caged", "crawl", "sit", "fall", "tablet",
+	"carry_walk", "faceplant", "cheer", "cower", "ouch", "chase", "nibble", "beg", "shiver", "wash", "look_up"]
 
 var _converted: Dictionary = {}  # source material -> toon material
 

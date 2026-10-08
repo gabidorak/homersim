@@ -10,7 +10,7 @@ const PATH := "res://data/pvp_tuning.tres"
 @export var drop_invulnerable_s := 1.5  ## a dropped rat (escape, bite on the carrier)
 @export var free_hold_s := 4.0  ## rat hold at a cage
 @export var freed_invulnerable_s := 3.0
-@export var captures_to_eliminate := 2  ## the Nth capture eliminates instead of caging
+@export var captures_to_eliminate := 0  ## the Nth capture eliminates instead of caging (0 = never: every capture cages)
 
 @export_group("Stealing")
 @export var steal_hold_s := 1.0

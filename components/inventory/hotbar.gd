@@ -71,11 +71,11 @@ func use_selected() -> bool:
 
 func _can_eat() -> bool:
 	return selected_item() == DONUT and body.inventory.donuts > 0 and body.status.can_act() \
-		and body.seated_console() == null and Session.current.match_manager.state == MatchManager.State.PLAYING
+		and not body.watching_cctv() and Session.current.match_manager.state == MatchManager.State.PLAYING
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not PlayerInput.has_control() or body.seated_console() != null or Session.current.match_manager.state \
+	if not PlayerInput.has_control() or body.watching_cctv() or Session.current.match_manager.state \
 			not in [MatchManager.State.COUNTDOWN, MatchManager.State.PLAYING]:
 		return  # (1 2 3 pick a role in the lobby; Q and E switch cameras at the CCTV)
 	var count := slots().size()

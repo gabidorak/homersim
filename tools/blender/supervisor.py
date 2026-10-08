@@ -9,7 +9,8 @@ Bones (Kenney's names): root, leg-left, leg-right, torso, arm-left, arm-right, h
 Meshes: "Supervisor" (body + head, skinned) and "HardHat" (rigid on the head bone, separate so the
 lobby can tint it per player).
 Clips: idle, walk, run, jump, fall (loops: idle walk run fall interact carry_idle sit), swing,
-carry_idle, place, interact, knocked, get_up, eat, sit, emote, emote_no.
+carry_idle, place, interact, knocked, get_up, eat, sit, emote, emote_no. For the intro cinematic
+(client/intro/, add_intro_clips): carry_walk, trip, faceplant, cheer, startle, cower, ouch, chase, point.
 """
 import math
 import os
@@ -179,7 +180,103 @@ def add_clips(arm):
         pose["head"] = R.P((-6 * t + 4 * chew, 0, 0))
         return pose
     anim.clip("eat", 36, eat)
+    add_intro_clips(anim, idle_arms)
     anim.finish()
+
+
+def arms(rot, loc=(0, 0, 0)):
+    """Both arms: the left one with this pose, the right one mirrored."""
+    return {"arm-left": R.P(rot, loc), "arm-right": R.P((rot[0], -rot[1], -rot[2]), (-loc[0], loc[1], loc[2]))}
+
+
+def add_intro_clips(anim, idle_arms):
+    """The intro cinematic's clips (client/intro/): the old days, the spill, the chase. Arms rest
+    straight out to the sides: +Y lowers the left arm, -Z swings it forward (mirrored on the right)."""
+    # carry_walk: a jaunty stroll, holding something in front of the belly with both hands (0.8 s).
+    def carry_walk(f):
+        ph, step = R.wave(f, 24), abs(R.wave(f, 24, 0.25))
+        return {"root": R.P(loc=(0, 0, 0.035 * step)),
+                "leg-left": R.P((26 * ph, 0, 0)), "leg-right": R.P((-26 * ph, 0, 0)),
+                "torso": R.P((-3, 3 * ph, 2 * ph)), "head": R.P((-2 + 3 * R.wave(f, 12), 0, 5 * R.wave(f, 24, 0.1))),
+                **arms((0, 15 + 4 * step, -62))}
+    anim.clip("carry_walk", 24, carry_walk, loop=True)
+
+    # trip: the toe catches, he flies forward, arms flung out (whatever he held is gone), and lands
+    # flat on his belly (1.2 s); faceplant then holds that, legs twitching.
+    down = {"root": R.P((90, 0, 0), (0, -0.5, 0.2)), "torso": R.P(), "head": R.P((-15, 0, 0)),
+            "leg-left": R.P((30, 0, 0)), "leg-right": R.P((20, 0, 0)), **arms((0, -95, -10))}
+    trip = R.keyed([
+        (0, dict(carry_walk(6)), "lin"),
+        (5, {"root": R.P((25, 0, 0), (0, -0.12, 0.05)), "torso": R.P((10, 0, 0)), "head": R.P((-20, 0, 0)),
+             "leg-left": R.P((55, 0, 0)), "leg-right": R.P((-35, 0, 0)), **arms((0, -35, -85))}, "out"),
+        (11, {"root": R.P((70, 0, 0), (0, -0.32, 0.42)), "torso": R.P((5, 0, 0)), "head": R.P((-35, 0, 0)),
+              "leg-left": R.P((35, 0, 0)), "leg-right": R.P((50, 0, 0)), **arms((0, -75, -60))}, "out"),
+        (17, {"root": R.P((90, 0, 0), (0, -0.46, 0.2)), "head": R.P((-20, 0, 0)), "leg-left": R.P((70, 0, 0)),
+              "leg-right": R.P((55, 0, 0)), **arms((0, -95, -10))}, "in"),
+        (21, {"root": R.P((86, 0, 0), (0, -0.5, 0.27)), "head": R.P((-28, 0, 0)), "leg-left": R.P((80, 0, 0)),
+              "leg-right": R.P((75, 0, 0)), **arms((0, -100, -15))}, "out"),
+        (27, dict(down, head=R.P((-22, 0, 0)), **{"leg-left": R.P((40, 0, 0))}), "in"),
+        (36, down, "io")])
+    anim.clip("trip", 36, trip)
+
+    def faceplant(f):
+        kick = R.bump(f, 6, 18) + 0.6 * R.bump(f, 24, 34)
+        return dict(down, head=R.P((-15 + 6 * R.bump(f, 14, 40), 0, 8 * R.wave(f, 40))),
+                    **{"leg-left": R.P((30 + 40 * kick, 0, 0)), "leg-right": R.P((20 + 25 * R.bump(f, 12, 26), 0, 0))})
+    anim.clip("faceplant", 40, faceplant, loop=True)
+
+    # cheer: arms up, bouncing with laughter (upper body: the intro plays it over sit) (0.67 s).
+    def cheer(f):
+        w = R.wave(f, 10)
+        return {"torso": R.P((-6 + 4 * w, 0, 3 * R.wave(f, 20))), "head": R.P((-14 + 6 * w, 0, 6 * R.wave(f, 20, 0.3))),
+                **arms((0, -62 + 14 * R.wave(f, 10, 0.25), -18))}
+    anim.clip("cheer", 20, cheer, loop=True)
+
+    # startle: jump back with the arms flung up, then cower (0.53 s); cower trembles there.
+    cower_pose = {"root": R.P((-6, 0, 0), (0, 0.18, -0.05)), "torso": R.P((10, 0, 0)), "head": R.P((12, 0, 0)),
+                  "leg-left": R.P((-12, 0, 0)), "leg-right": R.P((10, 0, 0)), **arms((0, -45, -70))}
+    startle = R.keyed([
+        (0, dict(idle_arms)),
+        (3, {"root": R.P(loc=(0, 0, -0.06)), "torso": R.P((12, 0, 0)), "head": R.P((8, 0, 0)),
+             "leg-left": R.P((-15, 0, 0)), "leg-right": R.P((-15, 0, 0)), **arms((0, 60, -10))}, "out"),
+        (8, {"root": R.P((-14, 0, 0), (0, 0.12, 0.2)), "torso": R.P((-10, 0, 0)), "head": R.P((-18, 0, 0)),
+             "leg-left": R.P((-30, 0, 0)), "leg-right": R.P((25, 0, 0)), **arms((0, -95, 15))}, "out"),
+        (16, cower_pose, "io")])
+    anim.clip("startle", 16, startle)
+
+    def cower(f):
+        j = R.wave(f, 4)
+        p = dict(cower_pose)
+        p.update(arms((0, -45 + 3 * j, -70 + 4 * R.wave(f, 4, 0.25))))
+        p["root"] = R.P((-6, 0, 0), (0.008 * j, 0.18, -0.05))
+        p["head"] = R.P((12 + 3 * R.wave(f, 8), 3 * j, 0))
+        return p
+    anim.clip("cower", 8, cower, loop=True)
+
+    # ouch: bitten! Hopping on one leg, shaking the hand (0.6 s).
+    def ouch(f):
+        hop = abs(R.wave(f, 18))
+        return {"root": R.P((0, 0, 8 * R.wave(f, 18, 0.25)), (0, 0, 0.08 * hop)),
+                "leg-left": R.P((-10 * hop, 0, 0)), "leg-right": R.P((55, 0, 0)),
+                "torso": R.P((-6, 4 * R.wave(f, 9), 0)), "head": R.P((-16, 0, 10 * R.wave(f, 9))),
+                "arm-right": R.P((0, 70 + 12 * R.wave(f, 3), 40 + 20 * R.wave(f, 6))),
+                "arm-left": R.P((0, 30 + 25 * R.wave(f, 9), -10))}
+    anim.clip("ouch", 18, ouch, loop=True)
+
+    # chase: running flat out, the broom raised overhead in both hands (0.47 s).
+    def chase(f):
+        ph = R.wave(f, 14)
+        return {"root": R.P(loc=(0, 0, 0.05 * abs(R.wave(f, 14, 0.25)))),
+                "leg-left": R.P((42 * ph, 0, 0)), "leg-right": R.P((-42 * ph, 0, 0)),
+                "torso": R.P((14, 0, 4 * ph)), "head": R.P((-12, 0, -3 * ph)),
+                **arms((0, -100 + 10 * R.wave(f, 7), -30))}
+    anim.clip("chase", 14, chase, loop=True)
+
+    # point: "There!" The right arm shoots forward and stays (0.4 s).
+    aim = dict(idle_arms, **{"arm-right": R.P((0, 18, 92)), "arm-left": R.P((0, 50, -15)),
+                             "torso": R.P((4, 0, -8)), "head": R.P((-6, 0, -4))})
+    shake = dict(aim, **{"arm-right": R.P((0, 24, 88))})
+    anim.clip("point", 12, R.keyed([(0, dict(idle_arms)), (4, aim, "out"), (7, shake), (12, aim, "io")]))
 
 
 def build():

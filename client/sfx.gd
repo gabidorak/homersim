@@ -111,6 +111,20 @@ const SOUNDS := {
 	"beep_go": {"kind": Kind.UI, "files": [A + "beep_go.ogg"], "db": -2.0},
 	"stinger_win": {"kind": Kind.MUSIC, "files": [M + "stinger_win.ogg"]},
 	"stinger_lose": {"kind": Kind.MUSIC, "files": [M + "stinger_lose.ogg"]},
+	# The intro (client/intro/)
+	"intro_squeak": {"kind": Kind.VOICE, "files": [A + "intro_squeak_1.ogg", A + "intro_squeak_2.ogg"], "pitch": 1.06},
+	"intro_sparkle": {"kind": Kind.SFX, "files": [A + "intro_sparkle.ogg"]},
+	"intro_whoa": {"kind": Kind.VOICE, "files": [A + "intro_whoa.ogg"]},
+	"intro_eek": {"kind": Kind.VOICE, "files": [A + "intro_eek.ogg"]},
+	"intro_splash": {"kind": Kind.SFX, "files": [A + "intro_splash.ogg"], "db": 2.0},
+	"intro_glug": {"kind": Kind.SFX, "files": [A + "intro_glug.ogg"]},
+	"intro_clonk": {"kind": Kind.SFX, "files": [A + "intro_clonk.ogg"]},
+	"intro_poof_1": {"kind": Kind.SFX, "files": [A + "intro_poof_1.ogg"]},
+	"intro_poof_2": {"kind": Kind.SFX, "files": [A + "intro_poof_2.ogg"]},
+	"intro_poof_3": {"kind": Kind.SFX, "files": [A + "intro_poof_3.ogg"]},
+	"intro_flip": {"kind": Kind.SFX, "files": [A + "intro_flip.ogg"]},
+	"clatter": {"kind": Kind.SFX, "files": [IMPACT + "impactPlate_heavy_000.ogg", IMPACT + "impactPlate_heavy_001.ogg"],
+		"pitch": 1.1},
 }
 
 static var _cache: Dictionary[String, AudioStream] = {}
