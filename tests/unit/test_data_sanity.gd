@@ -235,7 +235,7 @@ func test_bot_skills_are_sane_and_harder_is_better() -> void:
 
 func test_bot_names_and_numbers_are_sane() -> void:
 	var t := BotTuning.load_default()
-	assert_true(t.names.size() >= 6, "enough names for a bots-only match")
+	assert_true(t.names.size() >= MatchRules.SUPERVISORS_LIMIT + MatchRules.RATS_LIMIT, "enough names for a bots-only match")
 	var seen := {}
 	for n in t.names:
 		assert_false(n.strip_edges().is_empty(), "no empty name")

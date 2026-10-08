@@ -4,7 +4,7 @@ extends Node
 ##   godot tests/helpers/UiTour.tscn -- --settings /tmp/ui_tour.cfg --out /tmp/ui [--only NAME] [--lang fr] [--bots]
 ##     [--big] [--local solo|host]
 ## --bots (M10): the server fills its matches with AI bots, and two of the made-up rats are bots.
-## --big: the biggest teams (3 supervisors and 6 rats): three more bots in the match.
+## --big: the biggest teams (MatchRules.SUPERVISORS_LIMIT and RATS_LIMIT): bots take the extra seats.
 ## --local: the made-up game is one this game started (LocalServer): the solo or the host's lobby and menu.
 ## Always pass --settings with a throwaway file: the tour changes settings (name, favourites…).
 ## Shots: menu, welcome, browser_lan, browser_online_key, browser_online, browser_online_error, browser_fav,
@@ -216,8 +216,9 @@ func _in_game() -> void:
 			Role.Kind.NONE, Role.Kind.SUPERVISOR][peer - 11], "ready": peer % 2 == 1, "role": Role.Kind.NONE, "eliminated": false}
 	var big := Cli.has_arg("big")
 	mm.server_info = {"name": "Sunny Acres #1", "max_players": 6, "duration_s": 540, "duration_single_s": 480,
-		"min_players": 1 if bots or big else 3, "locked": false, "supervisors": 3 if big else 2, "rats": 6 if big else 4,
-		"bot_fill_to": 9 if big else 6 if bots else 0}
+		"min_players": 1 if bots or big else 3, "locked": false, "supervisors": MatchRules.SUPERVISORS_LIMIT if big else 2,
+		"rats": MatchRules.RATS_LIMIT if big else 4,
+		"bot_fill_to": MatchRules.SUPERVISORS_LIMIT + MatchRules.RATS_LIMIT if big else 6 if bots else 0}
 	mm.min_players = mm.server_info["min_players"]
 	mm.pings = _as_bots({11: 18, 12: 42, 13: 95, 14: 160, 15: 33, 16: 61}) if bots else {11: 18, 12: 42, 13: 95, 14: 160, 15: 33, 16: 61}
 	mm.roster = roster
@@ -234,9 +235,13 @@ func _in_game() -> void:
 	if bots:
 		roles = _as_bots(roles)
 	if big:
-		for i in 3:
-			names[-1003 - i] = ["Big Earl", "Crumbs", "Fuzzbucket"][i]
-			roles[-1003 - i] = Role.Kind.SUPERVISOR if i == 0 else Role.Kind.RAT
+		var extra := ["Big Earl", "Crumbs", "Fuzzbucket", "Norbert", "Pickles", "Gouda", "Rusty", "Bertha", "Mopsy",
+			"Colonel Crumb", "Brie", "Lugnut", "Scuttles", "Hank", "Pudding", "Toast", "Gus", "Mabel"]
+		var supervisors := MatchRules.SUPERVISORS_LIMIT - roles.values().count(Role.Kind.SUPERVISOR)
+		var rats := MatchRules.RATS_LIMIT - roles.values().count(Role.Kind.RAT)
+		for i in supervisors + rats:
+			names[-1003 - i] = extra[i % extra.size()]
+			roles[-1003 - i] = Role.Kind.SUPERVISOR if i < supervisors else Role.Kind.RAT
 	var playing := roster.duplicate(true)
 	for peer: int in roles:
 		if not playing.has(peer):
@@ -296,7 +301,7 @@ func _in_game() -> void:
 		for peer: int in roles:
 			var row := {"peer": peer, "name": names[peer], "role": roles[peer], "bot": Session.is_ai_id(peer)}
 			for key in MatchManager.STAT_KEYS:
-				row[key] = mm.live_stats[peer].get(key, 0)
+				row[key] = (mm.live_stats.get(peer, {}) as Dictionary).get(key, 0)
 			stats.append(row)
 		mm.result = {"winner": MatchRulesModel.Team.SUPERVISORS, "reason": "The shift is over: the plant survived", "stats": stats}
 		mm.state = MatchManager.State.POST_MATCH

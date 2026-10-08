@@ -45,7 +45,7 @@ func test_clean_value_clamps_and_converts() -> void:
 	assert_eq(Config.clean_value("vsync", "yes"), Config.default_value("vsync"), "wrong type: the default")
 	assert_eq(Config.clean_value("player_name", "  [b]Bob[/b]  "), "bBob/b")
 	assert_eq(Config.clean_value("player_name", "   "), "", "a blank name stays unset")
-	assert_eq(Config.clean_value("host_supervisors", 7), MatchRules.SUPERVISORS_LIMIT)
+	assert_eq(Config.clean_value("host_supervisors", 99), MatchRules.SUPERVISORS_LIMIT)
 	assert_eq(Config.clean_value("solo_rats", 0), 1)
 	assert_eq(Config.clean_value("host_bots", 6), true, "an old 'fill up to 6' setting: bots on (the default)")
 

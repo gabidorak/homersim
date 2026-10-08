@@ -14,14 +14,14 @@ It's the night shift at the **"Sunny Acres" Nuclear Plant** (placeholder name; a
 ## 2. Teams and win conditions
 | | Supervisors | Rats |
 |---|---|---|
-| Count | 1–2 (the host can pick 1–3) | 3–4 (the host can pick 1–6) |
+| Count | 1–2 (the host can pick 1–8) | 3–4 (the host can pick 1–16) |
 | Camera | First person | Third person |
 | Goal | Survive the shift: timer reaches 0 with meltdown < 100% | Fill the meltdown meter to 100% |
 | Alternate win | **All rats are caged or eliminated at the same time** | – |
 
 **Swarm bonus** (replaces the "swarm win" in the original plan): if **all** supervisors are knocked down at the same moment, meltdown instantly gets **+15%** (at most once every 45 s). A hard win condition would be far too easy to reach against a single supervisor.
 
-**Team seats**: each team has a number of seats, **2 supervisors and 4 rats** by default (`max_supervisors`, `max_rats`). Whoever starts a game picks them (**1–3 supervisors, 1–6 rats**, the spawn points the plant has): Play solo and Host a game have a row for each, a dedicated server sets them in server.cfg. A match never has more players than seats: the rest spectate.
+**Team seats**: each team has a number of seats, **2 supervisors and 4 rats** by default (`max_supervisors`, `max_rats`). Whoever starts a game picks them (**1–8 supervisors, 1–16 rats**, the spawn points the plant has): Play solo and Host a game have a row for each, a dedicated server sets them in server.cfg. A match never has more players than seats: the rest spectate.
 
 **Team auto-balance** (when nobody picks): with fewer players than seats, the teams are split in the same proportion as the seats, rounded to the nearest (a half goes to the rats), with at least one player on each team. With the default 2 + 4 seats that gives the table below; with 3 + 6 seats, 6 players are 2 supervisors and 4 rats.
 
@@ -36,7 +36,7 @@ It's the night shift at the **"Sunny Acres" Nuclear Plant** (placeholder name; a
 When there is a single supervisor, the *match timer* drops to 8 min (otherwise 9 min) to compensate.
 
 **Bots** (M10): a server can fill its matches with AI players (`bot_fill_to` in server.cfg; 0 = off, the default). At role assignment, bots are added until the match has `bot_fill_to` players (never more than the seats), and the auto-balance above sets the team sizes. Play solo and Host a game set `bot_fill_to` to the seats: **bots take every seat nobody fills**, so with bots on every match is exactly the teams the host picked. **Humans always get their slots first**: bots take whatever is left. Bots are only in the match: they aren't in the lobby, don't vote, and leave when it ends. A player who leaves mid-match is not replaced. See [§5.5](#55-bots).
-**Play solo** (main menu) is a game with bots on the player's own computer: they pick the role they'd like, the teams (1–3 supervisors, 1–6 rats, themselves included) and the bots' difficulty, and the match starts at once. The game doesn't pause.
+**Play solo** (main menu) is a game with bots on the player's own computer: they pick the role they'd like, the teams (1–8 supervisors, 1–16 rats, themselves included) and the bots' difficulty, and the match starts at once. The game doesn't pause.
 A single rat can't do the **critical** sabotages (two levers held at once, §4.3); the setup cards say so when Rats is 1.
 
 ## 3. Match flow

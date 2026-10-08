@@ -39,7 +39,7 @@ teamwork = true
 [resource]
 script = ExtResource("1_tuning")
 skills = Array[ExtResource("2_skill")]([SubResource("Resource_easy"), SubResource("Resource_normal"), SubResource("Resource_hard")])
-names = PackedStringArray("Gus", "Nibbles", "Cheddar", "Squeaky Pete", "Whiskers", "Sir Gnawsalot", "Mabel", "Big Earl", "Donut Dave", "Wrenchy", "Dottie", "Crumbs", "Fuzzbucket", "Norbert", "Pickles", "Gouda", "Rusty", "Bertha")
+names = PackedStringArray("Gus", "Nibbles", "Cheddar", "Squeaky Pete", "Whiskers", "Sir Gnawsalot", "Mabel", "Big Earl", "Donut Dave", "Wrenchy", "Dottie", "Crumbs", "Fuzzbucket", "Norbert", "Pickles", "Gouda", "Rusty", "Bertha", "Mopsy", "Colonel Crumb", "Brie", "Lugnut", "Scuttles", "Hank", "Pudding", "Toast")
 senses_hz = 10.0
 fov_supervisor_deg = 110.0
 fov_rat_deg = 220.0

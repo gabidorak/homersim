@@ -208,12 +208,45 @@ func _row(text: String, control: Control) -> HBoxContainer:
 
 ## The Supervisors and Rats rows: the teams' seats, 1 to the most the plant has spawn points for.
 func _team_rows(supervisors_key: String, rats_key: String) -> void:
-	for team: Array in [[tr("Supervisors"), supervisors_key, MatchRules.SUPERVISORS_LIMIT],
-			[tr("Rats"), rats_key, MatchRules.RATS_LIMIT]]:
-		var counts := []
-		for count in range(1, team[2] + 1):
-			counts.append([count, str(count)])
-		_choices(team[0], team[1], counts)
+	_stepper(tr("Supervisors"), supervisors_key, MatchRules.SUPERVISORS_LIMIT)
+	_stepper(tr("Rats"), rats_key, MatchRules.RATS_LIMIT)
+
+
+## A row with − count + for an int setting from 1 to `most` (too many values for ChoiceButtons).
+## Holding Shift steps by 5.
+func _stepper(text: String, key: String, most: int) -> void:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var count := Label.new()
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	count.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	count.add_theme_font_size_override("font_size", 22)
+	var buttons: Array[Button] = []
+	var show := func() -> void:
+		var value: int = Config.get(key)
+		count.text = str(value)
+		buttons[0].disabled = value <= 1
+		buttons[1].disabled = value >= most
+	for step: int in [-1, 1]:
+		var button := Button.new()
+		button.text = "−" if step < 0 else "+"
+		button.tooltip_text = tr("Shift: 5 at a time")
+		button.theme_type_variation = &"ChoiceButton"
+		button.add_theme_font_size_override("font_size", 22)
+		button.custom_minimum_size.x = 64
+		button.pressed.connect(func() -> void:
+			var by := step * (5 if Input.is_key_pressed(KEY_SHIFT) else 1)
+			Config.set_value(key, clampi(int(Config.get(key)) + by, 1, most))
+			show.call()
+			_refresh())
+		buttons.append(button)
+	box.add_child(buttons[0])
+	box.add_child(count)
+	box.add_child(buttons[1])
+	show.call()
+	_row(text, box)
 
 
 ## A row of ChoiceButtons (one chosen, yellow) for an int setting. `items`: [[value, text], …].

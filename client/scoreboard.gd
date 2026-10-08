@@ -5,7 +5,8 @@ extends CanvasLayer
 ## drawn brighter), and the players in a column where that one has its legend. During a match: each team,
 ## with for each player how they are doing (caged, out, knocked down…), their ping (MatchManager.pings)
 ## or a BOT badge for an AI bot (M10), and under it their key stats so far (MatchManager.live_stats);
-## bots and spectators at the bottom. In the lobby: everyone with their preferred role and ready state.
+## bots and spectators at the bottom. From COMPACT_FROM players (big bot matches) each team is two
+## columns of names without stats, and the column never grows past the map. In the lobby: everyone with their preferred role and ready state.
 ## Without a plan, and after the match, the column alone. The minimap steps aside meanwhile. Only reads
 ## replicated state.
 
@@ -13,6 +14,7 @@ const SUPERVISOR_COLOR := Color("ffc93c")
 const RAT_COLOR := Color("7bd389")
 const MUTED := Color(0.64, 0.65, 0.68)
 const SIDE_W := 320.0  ## the player column, next to the map
+const COMPACT_FROM := 11  ## match players from which they are listed in two columns of single lines
 const SUPERVISOR_STATS: Array[String] = ["repairs", "catches", "bonks"]
 const RAT_STATS: Array[String] = ["sabotages", "bites", "frees"]
 const STAT_TITLES := {
@@ -26,7 +28,9 @@ var _title: Label
 var _map_card: PanelContainer
 var _map: MapView
 var _plan: LevelMap
+var _scroll: ScrollContainer
 var _list: VBoxContainer
+var _compact := false
 var _footer: Label
 var _next_refresh_ms := 0
 
@@ -68,13 +72,17 @@ func _ready() -> void:
 	side.custom_minimum_size = Vector2(SIDE_W, 0)
 	side.add_theme_constant_override("separation", 6)
 	side_card.add_child(side)
+	# Clips the players to the map's height instead of growing the board past the screen.
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	side.add_child(_scroll)
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 6)
-	side.add_child(_list)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	side.add_child(spacer)
+	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_list)
 	_footer = Label.new()
 	_footer.theme_type_variation = &"MutedLabel"
 	_footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -139,6 +147,11 @@ func _refresh() -> void:
 		_list.remove_child(child)
 		child.queue_free()
 	if mm.in_match() or mm.state == MatchManager.State.POST_MATCH:
+		var playing := 0
+		for peer: int in mm.roster:
+			playing += 1 if mm.roster[peer]["role"] in [Role.Kind.SUPERVISOR, Role.Kind.RAT] else 0
+		_compact = playing >= COMPACT_FROM
+		_list.add_theme_constant_override("separation", 2 if _compact else 6)
 		_team(tr("Supervisors"), Role.Kind.SUPERVISOR, SUPERVISOR_COLOR, SUPERVISOR_STATS)
 		_team(tr("Rats"), Role.Kind.RAT, RAT_COLOR, RAT_STATS)
 		var watching: Array[String] = []
@@ -151,8 +164,14 @@ func _refresh() -> void:
 		if bots > 0:
 			_footer.text = tr("%d humans, %d bots") % [mm.human_count(), bots] + "  ·  " + _footer.text
 	else:
+		_compact = false
+		_list.add_theme_constant_override("separation", 6)
 		_lobby_list()
 		_footer.text = tr("%d / %d players") % [mm.human_count(), int(info.get("max_players", 6))]
+	# Beside the map the column takes its height; alone (no plan, after the match) it needs its own.
+	var alone := _map_card == null or not _map_card.visible
+	_scroll.custom_minimum_size.y = minf(_list.get_combined_minimum_size().y,
+		get_viewport().get_visible_rect().size.y - 220.0) if alone else 0.0
 
 
 func _refresh_map() -> void:
@@ -171,6 +190,13 @@ func _refresh_map() -> void:
 func _team(title: String, role: Role.Kind, color: Color, stat_keys: Array[String]) -> void:
 	var mm := Session.current.match_manager
 	_heading(title, color)
+	var grid: GridContainer = null
+	if _compact:
+		grid = GridContainer.new()
+		grid.columns = 2
+		grid.add_theme_constant_override("h_separation", 14)
+		grid.add_theme_constant_override("v_separation", 2)
+		_list.add_child(grid)
 	var peers: Array = mm.roster.keys()
 	peers.sort_custom(func(a: int, b: int) -> bool: return str(mm.roster[a]["name"]).naturalnocasecmp_to(mm.roster[b]["name"]) < 0)
 	for peer: int in peers:
@@ -186,8 +212,8 @@ func _team(title: String, role: Role.Kind, color: Color, stat_keys: Array[String
 			stats.append("%s %d" % [tr(STAT_TITLES[key]), int(counts.get(key, 0))])
 		var sub := _cell("  ·  ".join(stats), MUTED)
 		sub.add_theme_font_size_override("font_size", 14)
-		_entry(str(e["name"]) + (" " + tr("(you)") if me else ""), color if me else Color.WHITE, me,
-			_cell(state[0], state[1]), right, sub)
+		var player_name := str(e["name"]) + (" " + tr("(you)") if me and not _compact else "")
+		_entry(player_name, color if me else Color.WHITE, me, _cell(state[0], state[1]), right, sub, grid)
 
 
 ## [text, colour] for how a player is doing right now.
@@ -236,13 +262,20 @@ func _heading(text: String, color: Color) -> void:
 
 
 ## A player in the column: a line with their name, `state` and `right` (ping or BOT), then `sub`.
-func _entry(player_name: String, color: Color, bold: bool, state: Control, right: Control, sub: Control) -> void:
+## `parent`: where it goes (the column when null).
+func _entry(player_name: String, color: Color, bold: bool, state: Control, right: Control, sub: Control,
+		parent: Container = null) -> void:
 	var entry := VBoxContainer.new()
 	entry.add_theme_constant_override("separation", 0)
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 10)
 	entry.add_child(line)
 	var name_label := _cell(player_name, color, bold)
+	if _compact:
+		name_label.add_theme_font_size_override("font_size", 15)
+		entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if state is Label:
+			state.add_theme_font_size_override("font_size", 13)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	line.add_child(name_label)
@@ -250,8 +283,11 @@ func _entry(player_name: String, color: Color, bold: bool, state: Control, right
 		line.add_child(state)
 	right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	line.add_child(right)
-	entry.add_child(sub)
-	_list.add_child(entry)
+	if _compact:
+		sub.free()
+	else:
+		entry.add_child(sub)
+	(parent if parent != null else _list).add_child(entry)
 
 
 func _ping_cell(peer: int) -> Label:

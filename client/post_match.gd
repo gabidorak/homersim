@@ -12,9 +12,11 @@ const SUPERVISOR_COLUMNS := [["repairs", "Repairs"], ["catches", "Catches"], ["b
 	["hazard_hits", "Hazards"]]
 const RAT_COLUMNS := [["sabotages", "Sabotages"], ["bites", "Bites"], ["knockdowns", "Knockdowns"], ["frees", "Frees"],
 	["steals", "Steals"], ["caught", "Caught"]]
+const DENSE_FROM := 9  ## players in a team from which the tables' rows get smaller (big bot matches)
 const CONFETTI := [Color("ffc93c"), Color("e84a5f"), Color("7bd389"), Color("7fb7e6"), Color("ff8fb8"), Color("ffffff")]
 
 var _shown_result: Dictionary = {}
+var _dense := false  # this result's tables use small rows
 var _confetti: CPUParticles2D
 
 @onready var banner: Label = %Banner
@@ -81,6 +83,10 @@ func _show(result: Dictionary) -> void:
 	for child in tables.get_children() + awards_row.get_children():
 		child.queue_free()
 	var stats: Array = result.get("stats", [])
+	var team_sizes := {}
+	for row: Dictionary in stats:
+		team_sizes[row.get("role")] = team_sizes.get(row.get("role"), 0) + 1
+	_dense = team_sizes.values().any(func(n: int) -> bool: return n >= DENSE_FROM)
 	tables.add_child(_table(tr("Supervisors"), Role.Kind.SUPERVISOR, SUPERVISOR_COLOR, SUPERVISOR_COLUMNS, stats))
 	tables.add_child(_table(tr("Rats"), Role.Kind.RAT, RAT_COLOR, RAT_COLUMNS, stats))
 	for award in Awards.compute(stats):
@@ -109,7 +115,7 @@ func _table(title: String, role: Role.Kind, color: Color, columns: Array, stats:
 	var grid := GridContainer.new()
 	grid.columns = 1 + columns.size()
 	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 4)
+	grid.add_theme_constant_override("v_separation", 0 if _dense else 4)
 	card.add_child(grid)
 	var heading := _cell(title, color)
 	heading.add_theme_font_size_override("font_size", 22)
@@ -123,6 +129,7 @@ func _table(title: String, role: Role.Kind, color: Color, columns: Array, stats:
 			continue
 		var me: bool = row.get("peer", 0) == Session.current.local_peer_id
 		var name_cell := _cell(str(row["name"]), color if me else Color.WHITE)
+		_shrink(name_cell)
 		if row.get("bot", false):
 			var line := HBoxContainer.new()
 			line.add_theme_constant_override("separation", 6)
@@ -134,8 +141,15 @@ func _table(title: String, role: Role.Kind, color: Color, columns: Array, stats:
 			grid.add_child(name_cell)
 		for column: Array in columns:
 			var count := int(row.get(column[0], 0))
-			grid.add_child(_cell(str(count), Color.WHITE if count > 0 else Color(0.5, 0.52, 0.56), true))
+			grid.add_child(_shrink(_cell(str(count), Color.WHITE if count > 0 else Color(0.5, 0.52, 0.56), true)))
 	return card
+
+
+## A row's cell in small type when the tables are dense.
+func _shrink(label: Label) -> Label:
+	if _dense:
+		label.add_theme_font_size_override("font_size", 15)
+	return label
 
 
 func _award_card(award: Dictionary) -> Control:

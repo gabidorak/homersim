@@ -159,8 +159,10 @@ CAMERAS = [
 LADDER_YARD = (23.75, -29.0)  # on the block's west face, climbing east
 # Spawn points (x, z): one per team seat (MatchRules.SUPERVISORS_LIMIT / RATS_LIMIT), the default
 # 2 supervisors and 4 rats first (matches use them in this order); lobby spawns in the yard.
-SUPERVISOR_SPAWNS = [(-24, 12), (-28, 12), (-20, 12)]
-RAT_SPAWNS = [(-32, 34), (-28, 34), (-32, 37), (-28, 37), (-30, 34), (-30, 37)]
+SUPERVISOR_SPAWNS = [(-24, 12), (-28, 12), (-20, 12), (-24, 9), (-24, 15), (-20, 9), (-20, 15), (-27, 15)]
+RAT_SPAWNS = [(-32, 34), (-28, 34), (-32, 37), (-28, 37), (-30, 34), (-30, 37),
+              (-31, 35.5), (-29, 35.5), (-33, 35.5), (-27, 35.5), (-34, 34), (-26, 34), (-34, 37),
+              (-31, 38.5), (-29, 38.5), (-33, 32.5)]
 LOBBY_SPAWNS = [(18, -22), (18, -25), (18, -28), (14, -22), (14, -25), (14, -28)]
 
 # Hazards (M6, GDD §6), switched on by the server's HazardDirector when their subsystem drops below 50.
