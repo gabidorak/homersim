@@ -2,15 +2,18 @@
 
 Every flat-coloured model (tools/blender/*.py) maps its faces onto these swatches by name, so
 props from different scripts, and recoloured third-party models, share one look (ASSETS §1).
-The PNG is a grid of COLS x ROWS swatches, each SWATCH x SWATCH pixels; a name's swatch centre
-is the UV a face uses. Regenerate the PNG with `python3 tools/art/make_palette.py` after editing.
+The PNG is a grid of COLS x ROW_COUNT swatches, each SWATCH x SWATCH pixels; a name's swatch
+centre is the UV a face uses. Regenerate the PNG with `python3 tools/art/make_palette.py` after editing.
 
-Append new colours at the end of a row (or in a new row) rather than reordering: models store
-UVs, not names, so moving a swatch recolours every model already exported.
+Models store UVs, not names, so a swatch must never move: add new colours to EXTRA (never reorder
+ROWS, add a row or change the grid size, which would move every swatch and recolour every model
+already exported).
 """
 
 SWATCH = 16
-COLS = 8
+FAMILY = 8  # colours in each row of ROWS
+SLOTS = 3  # grid columns per ROWS colour: see EXTRA
+COLS = FAMILY * SLOTS
 
 # One row per family, left to right. GDD colour codes: rat_green #7BD389, safety_yellow #FFC93C,
 # alarm_red #E84A5F, rad_green #9CFF2E.
@@ -41,18 +44,38 @@ ROWS = [
      ("coffee", "4b2e1f"), ("cheese", "ffd34d"), ("screen_green", "35e07a"), ("screen_blue", "49b6ff")],
 ]
 
+# Colours added once models had been exported with the ROWS ones, by row of ROWS. The grid used to be
+# FAMILY columns wide: to add colours without moving any swatch, each ROWS colour became the middle
+# one of SLOTS columns (column c -> 3c + 1, same centre u: (c + 0.5) / 8 == (3c + 1.5) / 24), and these
+# fill the free columns (3c and 3c + 2) of their row, left to right: up to 16 per row.
+EXTRA = {
+    # people: uniforms (tools/blender/supervisor_general.py)
+    5: [("olive", "5d6b33"), ("olive_dark", "414b24"), ("khaki", "c2bc8a")],
+}
+
 ROW_COUNT = len(ROWS)
 WIDTH = COLS * SWATCH
 HEIGHT = ROW_COUNT * SWATCH
 
 COLORS = {}  # name -> (r, g, b) floats 0..1 (sRGB)
 INDEX = {}  # name -> (col, row)
+
+
+def _add(name, hexcode, col, row):
+    assert name not in COLORS, "duplicate palette name " + name
+    COLORS[name] = tuple(int(hexcode[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    INDEX[name] = (col, row)
+
+
 for _r, _row in enumerate(ROWS):
-    assert len(_row) == COLS, "row %d must have %d colours" % (_r, COLS)
+    assert len(_row) == FAMILY, "row %d must have %d colours" % (_r, FAMILY)
     for _c, (_name, _hex) in enumerate(_row):
-        assert _name not in COLORS, "duplicate palette name " + _name
-        COLORS[_name] = tuple(int(_hex[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
-        INDEX[_name] = (_c, _r)
+        _add(_name, _hex, _c * SLOTS + 1, _r)
+for _r, _extra in EXTRA.items():
+    _free = [c for c in range(COLS) if c % SLOTS != 1]
+    assert len(_extra) <= len(_free), "row %d has room for %d extra colours" % (_r, len(_free))
+    for (_name, _hex), _c in zip(_extra, _free):
+        _add(_name, _hex, _c, _r)
 
 
 def uv(name):
