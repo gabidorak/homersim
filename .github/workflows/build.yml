@@ -1,6 +1,6 @@
 name: Build
 
-# Every push to any branch: run the tests (ci.yml) and export the four binaries at the same time,
+# Every push to any branch: run the tests (ci.yml) and export the five builds at the same time,
 # then, if both succeeded, replace that branch's rolling GitHub release, tagged "build-<branch>".
 # The game's auto-updater (autoload/updater.gd) downloads build.json and the binaries from it, so
 # the tag and the asset names below must match tag_for() and asset_name() there.
@@ -65,17 +65,20 @@ jobs:
       - name: Import project
         run: godot --headless --import
 
-      - name: Export (pck embedded, so each build is a single file)
+      # macOS: a zip holding HomerSim.app (Intel + Apple Silicon, ad-hoc signed, not notarized).
+      - name: Export (pck embedded, so each build is a single file; macOS is a zipped .app)
         run: |
           mkdir -p dist
           godot --headless --export-release "Linux" dist/homersim-linux-x86_64
           godot --headless --export-release "Windows Desktop" dist/homersim-windows-x86_64.exe
           godot --headless --export-release "Linux Server" dist/homersim-server-linux-x86_64
           godot --headless --export-release "Windows Server" dist/homersim-server-windows-x86_64.exe
+          godot --headless --export-release "macOS" dist/homersim-macos-universal.zip
           ls -l dist
           # Godot can exit with 0 after a failed export, so check that every file exists.
           for f in homersim-linux-x86_64 homersim-windows-x86_64.exe \
-                   homersim-server-linux-x86_64 homersim-server-windows-x86_64.exe; do
+                   homersim-server-linux-x86_64 homersim-server-windows-x86_64.exe \
+                   homersim-macos-universal.zip; do
             test -s "dist/$f" || { echo "missing dist/$f"; exit 1; }
           done
 
@@ -126,6 +129,7 @@ jobs:
             --title "Build $NUMBER ($BRANCH)" \
             --notes "Automatic build $NUMBER of branch \`$BRANCH\` (commit $GITHUB_SHA).
 
-          Download the file for your system. Clients: \`homersim-linux-x86_64\` or \`homersim-windows-x86_64.exe\`. Dedicated servers: \`homersim-server-*\`.
+          Download the file for your system. Clients: \`homersim-linux-x86_64\`, \`homersim-windows-x86_64.exe\` or \`homersim-macos-universal.zip\`. Dedicated servers: \`homersim-server-*\`.
           On Linux, make it executable first: \`chmod +x homersim-linux-x86_64\`.
-          After that the game updates itself at every start (see the README)."
+          On macOS, unzip it; the app isn't notarized, so the first time click Open Anyway in System Settings > Privacy & Security.
+          After that the game updates itself at every start (see the README), except on macOS: download the new zip."

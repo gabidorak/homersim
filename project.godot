@@ -231,6 +231,7 @@ locale/translations=PackedStringArray("res://translations/strings.en.translation
 
 rendering_device/d3d12/max_resource_descriptors=262144
 occlusion_culling/use_occlusion_culling=true
+textures/vram_compression/import_etc2_astc=true
 
 [shader_globals]
 

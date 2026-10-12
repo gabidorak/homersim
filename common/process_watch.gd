@@ -3,7 +3,8 @@ extends RefCounted
 ## Tells whether another process is still running, one this process didn't start (so
 ## OS.is_process_running() can't tell). Linux: /proc/<pid>. Windows: a process can only query its own
 ## children, so it asks `tasklist`, in the background because that is slow; the answer then lags one
-## call behind. Other systems: it can't tell, and always answers true.
+## call behind. macOS: `kill -0 <pid>` (quick, no signal sent). Other systems: it can't tell, and
+## always answers true.
 ## Used by the auto-updater's server child (is the supervisor still there?) and by a server that a
 ## player's game started (is that game still there? see client/local_server.gd).
 
@@ -22,6 +23,8 @@ func alive() -> bool:
 	match OS.get_name():
 		"Linux":
 			_alive = DirAccess.dir_exists_absolute("/proc/%d" % pid)
+		"macOS":
+			_alive = OS.execute("kill", ["-0", str(pid)]) == 0
 		"Windows":
 			if _task == -1 or WorkerThreadPool.is_task_completed(_task):
 				finish()

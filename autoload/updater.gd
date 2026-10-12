@@ -19,6 +19,9 @@ extends Node
 ## new games start on the newest build, and it restarts only once no game runs. It also checks at once
 ## when a player with another build asks for a game (install_update()).
 ##
+## macOS: no self-update yet. The build is an .app bundle (a zip on the release), signed as a whole,
+## so swapping the executable alone would break it: players download the new zip themselves.
+##
 ## Flags: --branch NAME, --no-update, --update-url URL (test server instead of GitHub releases),
 ## --update-interval S.
 
@@ -57,7 +60,8 @@ func _ready() -> void:
 
 
 static func is_enabled() -> bool:
-	return OS.has_feature("template") and BuildInfo.NUMBER > 0 and not Cli.has_arg("no-update")
+	return OS.has_feature("template") and BuildInfo.NUMBER > 0 and not Cli.has_arg("no-update") \
+			and OS.get_name() != "macOS"
 
 
 static func is_server() -> bool:

@@ -7,7 +7,7 @@ A goofy, cartoon-style **asymmetric multiplayer** game set in a nuclear power pl
 - Whoever starts a game can pick other teams: 1–3 supervisors against 1–6 rats, bots filling the empty seats.
 - Supervisors whack, catch and cage rats. Rats bite, trip and rob supervisors. Broken machinery hurts everyone.
 
-Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows**.
+Engine: **Godot 4.7.2-stable (GDScript)**, standard build (not .NET), with a dedicated headless server. Targets: **Linux and Windows** (plus a macOS client build, untested).
 
 > Status: **M8 implemented** (M3–M8 still waiting for a playtest). M8 is everything around the gameplay: an intro cinematic at startup (how the supervisors' pet hamsters became the rats; a click skips it), a main menu over a little 3D diorama, a server browser (LAN discovery with ping, favourites, direct connect, server passwords), settings (video, controls with key rebinding, audio, gameplay, all saved), a polished lobby (player cards, pings, server info), an Esc menu, a Tab scoreboard, an event feed, a post-match screen with awards, How to play with illustrations, first-time hints, a clear message for every way a connection can fail, a cartoon UI theme, and the whole game in English and French. Screenshots in [docs/screenshots/](docs/screenshots/). Earlier: M3 plant simulation, sabotage and repairs, meltdown meter, HUD; M4 PvP (broom, bites, carry and cage, keycards, traps, donuts); M5 the plant layout; M6 hazards, repair minigames, Control Room consoles; M7 the art and audio pass. Next: playtest with friends (notes go in [docs/playtests/](docs/playtests/TEMPLATE.md)), including someone who has never seen the game (M8's last check) and a run at 100 ms of simulated latency, then [M9](docs/milestones/M9-ship-v1.md).
 
@@ -44,6 +44,7 @@ branches are pre-releases). Download one file:
 |---|---|
 | `homersim-linux-x86_64` / `homersim-windows-x86_64.exe` | the game (client) |
 | `homersim-server-linux-x86_64` / `homersim-server-windows-x86_64.exe` | dedicated server |
+| `homersim-macos-universal.zip` | the game on macOS (Intel and Apple Silicon) |
 
 On Linux, make it executable first (`chmod +x homersim-linux-x86_64`). The folder must be writable: from then on, the
 game and the server update themselves. At each start they download the newest build of their branch, then restart
@@ -56,6 +57,11 @@ run the exact same build to play together, so keep both updating.
 ```
 Builds from source or local exports never update themselves.
 
+On macOS, unzip `homersim-macos-universal.zip`. The app is only ad-hoc signed, not notarized, so macOS refuses it the
+first time: click Open Anyway in System Settings > Privacy & Security (or run
+`xattr -dr com.apple.quarantine HomerSim.app`). The macOS build does not update itself (the signature
+covers the whole `.app`): download the new zip when a build comes out.
+
 ## Tests and exports
 The generated art and audio are committed (Git LFS), so building the game needs only Godot. Regenerating them
 (`tools/build_assets.sh`) also needs Blender 4.2+ (tested with 5.0), Python 3 with numpy and Pillow, and ffmpeg.
@@ -66,8 +72,9 @@ godot --headless --export-release "Linux" build/linux/homersim.x86_64
 godot --headless --export-release "Windows Desktop" build/windows/homersim.exe
 godot --headless --export-release "Linux Server" build/server/homersim_server.x86_64
 godot --headless --export-release "Windows Server" build/server-windows/homersim_server.exe
+godot --headless --export-release "macOS" build/macos/homersim.zip
 ```
-Each export is a single file (the `.pck` is embedded).
+Each export is a single file (the `.pck` is embedded; macOS: a zipped `.app`).
 
 ## Translations
 Every text the player reads goes through `tr()` and lives in [translations/strings.csv](translations/strings.csv)
