@@ -77,7 +77,7 @@ func _can_eat() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if not PlayerInput.has_control() or body.watching_cctv() or Session.current.match_manager.state \
 			not in [MatchManager.State.COUNTDOWN, MatchManager.State.PLAYING]:
-		return  # (1 2 3 pick a role in the lobby; Q and E switch cameras at the CCTV)
+		return  # (1 2 3 pick a role in the lobby; Q, E and the wheel switch cameras at the CCTV)
 	var count := slots().size()
 	var index := -1
 	for i in mini(SLOT_ACTIONS.size(), count):

@@ -22,6 +22,7 @@ const ARMS_SWAY := 0.012  ## m (scaled) the arms lag behind turns
 const BLEND_S := 0.15
 const TABLET_SHOW_S := 0.1  ## into tablet_out: from here the tablet is in hand (below the view)
 const TABLET_HIDE_S := 0.13  ## into tablet_away: from here it is put away (below the view)
+const SELF_LAYER := 1 << 18  ## render layer 19: our own body (Player), seen only by the CCTV cameras
 
 var _bob_phase := 0.0
 var _eye_height := 0.0
@@ -45,6 +46,7 @@ func _place(data: RoleData) -> void:
 
 
 func _setup_local() -> void:
+	camera.cull_mask &= ~SELF_LAYER
 	arms.visible = body.role == Role.Kind.SUPERVISOR
 	if not arms.visible:
 		return

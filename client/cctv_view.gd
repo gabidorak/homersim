@@ -1,7 +1,8 @@
 class_name CctvView
 extends CanvasLayer
 ## Client: what a supervisor sees of the CCTV cameras, at the chair (CctvConsole) or on the tablet
-## (Player.using_tablet). Q / E: previous / next camera; a broken one shows static and "NO SIGNAL".
+## (Player.using_tablet). Q / E or the mouse wheel: previous / next camera; a broken one shows static
+## and "NO SIGNAL".
 ##   Chair:  while our peer is the chair's synced `user`, the whole screen shows the camera (Space
 ##           stands up). No extra viewport: our main view simply switches to a camera placed at the
 ##           lens, so nothing renders for anyone else. That camera node only exists while we watch:
@@ -42,8 +43,8 @@ func _ready() -> void:
 	_no_signal.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_no_signal.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var hint := _label(20, Control.PRESET_CENTER_BOTTOM, Vector2(0, -40))
-	hint.text = tr("%s / %s: previous / next camera  ·  %s: stand up  ·  you can still be bitten!") % [
-		Keys.label(&"next_trap"), Keys.label(&"interact"), Keys.label(&"jump")]
+	hint.text = tr("%s / %s (%s / %s): previous / next camera  ·  %s: stand up  ·  you can still be bitten!") % [
+		Keys.label(&"next_trap"), Keys.label(&"interact"), Keys.label(&"slot_prev"), Keys.label(&"slot_next"), Keys.label(&"jump")]
 	hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
 
 
@@ -83,8 +84,8 @@ func _process(_delta: float) -> void:
 	var cam := cameras[selected]
 	if tablet:
 		if rig != null and rig.tablet_feed != null:
-			rig.tablet_feed.show_feed(cam, tr("%s / %s: previous / next camera  ·  %s: put the tablet away") % [
-				Keys.label(&"next_trap"), Keys.label(&"interact"), Keys.label(&"cctv_tablet")])
+			rig.tablet_feed.show_feed(cam, tr("%s / %s (%s / %s): previous / next camera  ·  %s: put the tablet away") % [
+				Keys.label(&"next_trap"), Keys.label(&"interact"), Keys.label(&"slot_prev"), Keys.label(&"slot_next"), Keys.label(&"cctv_tablet")])
 		return
 	_camera.global_transform = cam.lens.global_transform
 	_title.text = "%s  ·  %s%s" % [tr("CAM %d") % cam.number, tr(cam.label), "  ·  " + tr("BROKEN") if cam.broken else ""]
@@ -118,9 +119,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			body.request_tablet.rpc_id(1, true)
 			get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed("next_trap"):
+	if event.is_action_pressed("next_trap") or event.is_action_pressed("slot_prev"):
 		selected -= 1
-	elif event.is_action_pressed("interact"):
+	elif event.is_action_pressed("interact") or event.is_action_pressed("slot_next"):
 		selected += 1
 	elif body.using_tablet and event.is_action_pressed("cctv_tablet"):
 		body.request_tablet.rpc_id(1, false)

@@ -143,8 +143,8 @@ func _ready() -> void:
 	status_tag.visible = false
 	status.changed.connect(_update_collision)
 	if is_local() and not Net.is_server:  # (a bot body is "local" on the server)
-		# In first person our own body would only get in the way of the camera.
-		visual.visible = role_data.camera_kind == RoleData.CameraKind.THIRD_PERSON
+		if role_data.camera_kind == RoleData.CameraKind.FIRST_PERSON:
+			_hide_from_own_view()
 		Events.local_player_spawned.emit(self)
 	if is_bot and not Net.is_server:
 		_add_bot_badge()
@@ -158,6 +158,16 @@ func _exit_tree() -> void:
 
 func is_local() -> bool:
 	return is_multiplayer_authority()
+
+
+## First person: our own body would only get in the way of our camera, which leaves out
+## FirstPersonRig.SELF_LAYER, but the CCTV cameras still show it. No shadow either: one cast by a
+## body we cannot see (with its own broom, not the arms') would look wrong.
+func _hide_from_own_view() -> void:
+	for node in visual.find_children("*", "VisualInstance3D", true, false):
+		(node as VisualInstance3D).layers = FirstPersonRig.SELF_LAYER
+		if node is GeometryInstance3D:
+			(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _physics_process(_delta: float) -> void:

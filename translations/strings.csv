@@ -27,7 +27,7 @@ Join,Join,Rejoindre
 Reset this tab,Reset this tab,Réinitialiser cet onglet
 Done,Done,Terminé
 NO SIGNAL,NO SIGNAL,PAS DE SIGNAL
-%s / %s: previous / next camera  ·  %s: stand up  ·  you can still be bitten!,%s / %s: previous / next camera  ·  %s: stand up  ·  you can still be bitten!,%s / %s : caméra précédente / suivante  ·  %s : se lever  ·  vous pouvez encore être mordu !
+%s / %s (%s / %s): previous / next camera  ·  %s: stand up  ·  you can still be bitten!,%s / %s (%s / %s): previous / next camera  ·  %s: stand up  ·  you can still be bitten!,%s / %s (%s / %s) : caméra précédente / suivante  ·  %s : se lever  ·  vous pouvez encore être mordu !
 CAM %d,CAM %d,CAM %d
 BROKEN,BROKEN,EN PANNE
 (team) Say something to your team,(team) Say something to your team,(équipe) Un mot pour votre équipe
@@ -616,7 +616,7 @@ Refill cheese lures,Refill cheese lures,Recharger les appâts
 SNAP TRAPS,SNAP TRAPS,TAPETTES
 CHEESE LURES,CHEESE LURES,APPÂTS AU FROMAGE
 CCTV tablet (supervisor),CCTV tablet (supervisor),Tablette caméras (superviseur)
-%s / %s: previous / next camera  ·  %s: put the tablet away,%s / %s: previous / next camera  ·  %s: put the tablet away,%s / %s : caméra précédente / suivante  ·  %s : ranger la tablette
+%s / %s (%s / %s): previous / next camera  ·  %s: put the tablet away,%s / %s (%s / %s): previous / next camera  ·  %s: put the tablet away,%s / %s (%s / %s) : caméra précédente / suivante  ·  %s : ranger la tablette
 "%s / %s switch cameras, %s puts the tablet away. You can walk while you watch, but your hands are full. Rats can break cameras: repair them where they hang.","%s / %s switch cameras, %s puts the tablet away. You can walk while you watch, but your hands are full. Rats can break cameras: repair them where they hang.","%s / %s changent de caméra, %s range la tablette. Vous pouvez marcher en regardant, mais vous avez les mains prises. Les rats peuvent casser les caméras : réparez-les sur place."
 THE GOOD OLD DAYS,THE GOOD OLD DAYS,LE BON VIEUX TEMPS
 DAYS WITHOUT AN INCIDENT,DAYS WITHOUT AN INCIDENT,JOURS SANS INCIDENT
