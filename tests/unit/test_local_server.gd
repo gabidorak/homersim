@@ -31,6 +31,7 @@ func test_solo_config_reads_back_as_a_private_server_with_bots() -> void:
 	assert_eq(rules.bot_fill_to, 5)
 	assert_eq(rules.bot_difficulty, 0)
 	assert_eq(MatchRulesModel.effective_min_players(rules), 1, "one human can start")
+	assert_eq(rules.countdown_s, LocalServer.SOLO_COUNTDOWN_S, "solo: a shorter countdown")
 
 
 func test_host_config_reads_back() -> void:
@@ -43,7 +44,8 @@ func test_host_config_reads_back() -> void:
 	var rules := Config.load_match_rules(CFG)
 	assert_false(MatchRulesModel.bots_enabled(rules), "no bots")
 	assert_eq([rules.max_supervisors, rules.max_rats], [3, 5], "the teams' seats")
-	assert_eq(rules.min_players, (load(Config.DEFAULT_MATCH_RULES) as MatchRules).min_players, "the usual rules otherwise")
+	var defaults := load(Config.DEFAULT_MATCH_RULES) as MatchRules
+	assert_eq([rules.min_players, rules.countdown_s], [defaults.min_players, defaults.countdown_s], "the usual rules otherwise")
 
 
 func test_solo_server_args() -> void:

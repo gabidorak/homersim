@@ -1,21 +1,27 @@
 extends Control
-## The post-match screen (M8), during POST_MATCH: the winning team's banner pops in with confetti,
-## "You win!" or "You lose...", the reason, each team's stats (MatchManager.result), the fun awards
-## (Awards), and the countdown back to the lobby. AI bots (M10) get a BOT badge after their name.
-## Only reads replicated state.
+## The post-match screen (M8), from POST_MATCH: the winning team's banner pops in with confetti,
+## "You win!" or "You lose...", the reason, each team's stats and scores (MatchManager.result, best
+## first), and the fun awards (Awards). AI bots (M10) get a BOT badge after their name.
+## After MIN_SHOW_S the buttons appear: "Back to the lobby" closes it, and in solo "Quit to menu" too.
+## The server goes back to the lobby on its own after post_match_s, but the screen stays until closed,
+## for whoever wants to study it; it closes by itself when the next match starts. Only reads replicated state.
 
 const SUPERVISOR_COLOR := Color("ffc93c")
 const RAT_COLOR := Color("7bd389")
 const ICONS := "res://assets/third_party/kenney_game-icons/%s.png"
 ## [stat, short column title] (short: both tables side by side must fit 1280 px in every language).
-const SUPERVISOR_COLUMNS := [["repairs", "Repairs"], ["catches", "Catches"], ["bonks", "Bonks"], ["donuts", "Donuts"],
-	["hazard_hits", "Hazards"]]
-const RAT_COLUMNS := [["sabotages", "Sabotages"], ["bites", "Bites"], ["knockdowns", "Knockdowns"], ["frees", "Frees"],
-	["steals", "Steals"], ["caught", "Caught"]]
+const SUPERVISOR_COLUMNS := [["score", "Score"], ["repairs", "Repairs"], ["catches", "Catches"], ["bonks", "Bonks"],
+	["donuts", "Donuts"], ["hazard_hits", "Hazards"]]
+const RAT_COLUMNS := [["score", "Score"], ["sabotages", "Sabotages"], ["bites", "Bites"], ["knockdowns", "Knockdowns"],
+	["frees", "Frees"], ["steals", "Steals"], ["caught", "Caught"]]
 const DENSE_FROM := 9  ## players in a team from which the tables' rows get smaller (big bot matches)
+const MIN_SHOW_S := 5.0  ## the result stays at least this long before the buttons appear
+const SCORE_COLOR := Color("7fb7e6")
 const CONFETTI := [Color("ffc93c"), Color("e84a5f"), Color("7bd389"), Color("7fb7e6"), Color("ff8fb8"), Color("ffffff")]
 
-var _shown_result: Dictionary = {}
+var _shown_result: Dictionary = {}  # empty while closed
+var _shown_at_ms := 0
+var _dismissed: Dictionary = {}  # the result closed with "Back to the lobby", not to show again
 var _dense := false  # this result's tables use small rows
 var _confetti: CPUParticles2D
 
@@ -24,11 +30,16 @@ var _confetti: CPUParticles2D
 @onready var reason: Label = %Reason
 @onready var tables: HBoxContainer = %Tables
 @onready var awards_row: HBoxContainer = %Awards
+@onready var buttons: HBoxContainer = %Buttons
+@onready var lobby_button: Button = %LobbyButton
+@onready var quit_button: Button = %QuitButton
 @onready var footer: Label = %Footer
 
 
 func _ready() -> void:
 	visible = false
+	lobby_button.pressed.connect(_close)
+	quit_button.pressed.connect(func() -> void: Session.current.leave())
 	_confetti = CPUParticles2D.new()
 	_confetti.emitting = false
 	_confetti.one_shot = true
@@ -55,20 +66,45 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	var mm := Session.current.match_manager
-	var want := mm.state == MatchManager.State.POST_MATCH and not mm.result.is_empty()
-	if want != visible:
-		visible = want
-		if not want:
-			_shown_result = {}
+	if mm.state == MatchManager.State.POST_MATCH and not mm.result.is_empty():
+		# The result and the state can arrive in either order: rebuild on change.
+		if mm.result != _shown_result and mm.result != _dismissed:
+			_show(mm.result)
+	elif mm.state != MatchManager.State.LOBBY:
+		_dismissed = {}
+		if visible:
+			_close()  # the next match is starting
 	if not visible:
 		return
-	if mm.result != _shown_result:  # the result and the state can arrive in either order: rebuild on change
-		_show(mm.result)
-	footer.text = tr("Back to the lobby in %d s") % mm.countdown_left
+	var buttons_due := Time.get_ticks_msec() - _shown_at_ms >= MIN_SHOW_S * 1000.0
+	if buttons_due and not buttons.visible:
+		buttons.visible = true
+		mouse_filter = Control.MOUSE_FILTER_STOP  # a click here must not grab the mouse for the game
+		lobby_button.grab_focus()
+	if buttons_due and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and get_window().has_focus():
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE  # the buttons need the mouse
+	var local := LocalServer.for_session()
+	if mm.state == MatchManager.State.LOBBY and (local == null or local.mode != LocalServer.Mode.SOLO):
+		footer.text = tr("The others are in the lobby: %d / %d ready") % [mm.ready_count(), mm.roster.size()]
+	else:
+		footer.text = ""
+
+
+func _close() -> void:
+	_dismissed = _shown_result
+	_shown_result = {}
+	visible = false
+	_confetti.emitting = false
 
 
 func _show(result: Dictionary) -> void:
 	_shown_result = result
+	_shown_at_ms = Time.get_ticks_msec()
+	visible = true
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	buttons.visible = false
+	var local := LocalServer.for_session()
+	quit_button.visible = local != null and local.mode == LocalServer.Mode.SOLO
 	var winner: MatchRulesModel.Team = result.get("winner", MatchRulesModel.Team.NONE)
 	var mine := Session.current.match_manager.local_role()
 	var team_color := SUPERVISOR_COLOR if winner == MatchRulesModel.Team.SUPERVISORS else RAT_COLOR
@@ -141,7 +177,8 @@ func _table(title: String, role: Role.Kind, color: Color, columns: Array, stats:
 			grid.add_child(name_cell)
 		for column: Array in columns:
 			var count := int(row.get(column[0], 0))
-			grid.add_child(_shrink(_cell(str(count), Color.WHITE if count > 0 else Color(0.5, 0.52, 0.56), true)))
+			var tint := SCORE_COLOR if column[0] == "score" else Color.WHITE
+			grid.add_child(_shrink(_cell(str(count), tint if count > 0 else Color(0.5, 0.52, 0.56), true)))
 	return card
 
 

@@ -11,7 +11,7 @@ extends Node
 ## setup_solo, setup_host, setup_host_online, starting, settings_video, settings_controls,
 ## settings_audio, settings_gameplay, howto_supervisor, howto_rat, howto_controls, credits, error,
 ## error_host_left, error_online, password, lobby, scoreboard, pause, feed, minimap_supervisor,
-## minimap_rat, map_supervisor, map_rat, hotbar_supervisor, hotbar_rat, postmatch, hint.
+## minimap_rat, map_supervisor, map_rat, hotbar_supervisor, hotbar_rat, postmatch, postmatch_buttons, hint.
 
 const MENU := "res://client/MainMenu.tscn"
 
@@ -302,11 +302,15 @@ func _in_game() -> void:
 			var row := {"peer": peer, "name": names[peer], "role": roles[peer], "bot": Session.is_ai_id(peer)}
 			for key in MatchManager.STAT_KEYS:
 				row[key] = (mm.live_stats.get(peer, {}) as Dictionary).get(key, 0)
+			row["score"] = MatchScore.of(row, MatchRulesModel.Team.SUPERVISORS)
 			stats.append(row)
+		stats.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return a["role"] < b["role"] or (a["role"] == b["role"] and a["score"] > b["score"]))
 		mm.result = {"winner": MatchRulesModel.Team.SUPERVISORS, "reason": "The shift is over: the plant survived", "stats": stats}
 		mm.state = MatchManager.State.POST_MATCH
 		mm.countdown_left = 12
 		await _shot("postmatch", 2.0)
+		await _shot("postmatch_buttons", 4.0)  # past post_match.gd MIN_SHOW_S: the buttons are there
 	session.queue_free()
 	await get_tree().create_timer(0.3).timeout
 

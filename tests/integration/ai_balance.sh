@@ -4,6 +4,7 @@
 # them at a time (default 4). Each match runs its real length unless DURATION is set (seconds), at the
 # difficulty DIFFICULTY (0 easy, 1 normal, 2 hard; default 1). Prints one line per match (winner, why,
 # meltdown, the team stats) and the totals: both teams should win sometimes (GDD §5.5, M10 phase F).
+# Then each role's average score (common/match_score.gd), won and lost: about the same for both roles.
 # Fails only on errors in the logs, hard-stuck bots or validator strikes.
 # TEAMS=S,R plays S supervisors against R rats (the seats; default 2,4).
 # AI_LOG=1 adds --ai-log, GOALS=role:Goal,… passes --ai-goals (experiments), KEEP_LOGS=1 keeps the logs.
@@ -49,6 +50,7 @@ logs, seed, n = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 keys = ["sabotages", "repairs", "catches", "frees", "bites", "knockdowns", "steals"]
 wins = {}
 totals = {k: 0 for k in keys}
+scores = {}  # (role, "won"/"lost") -> [score]
 for s in range(seed, seed + n):
     path = os.path.join(logs, "result_%d.json" % s)
     if not os.path.exists(path):
@@ -58,6 +60,9 @@ for s in range(seed, seed + n):
     wins[d["winner"]] = wins.get(d["winner"], 0) + 1
     team = {}
     for row in d["stats"]:
+        role = "supervisor" if row["role"] == 1 else "rat"
+        won = "won" if d["winner"] == role + "s" else "lost"
+        scores.setdefault((role, won), []).append(row.get("score", 0))
         for k in keys:
             team[k] = team.get(k, 0) + row.get(k, 0)
             totals[k] += row.get(k, 0)
@@ -65,6 +70,10 @@ for s in range(seed, seed + n):
         " ".join("%s %d" % (k, team[k]) for k in keys)))
 print("wins:", wins)
 print("totals:", " ".join("%s %d" % (k, v) for k, v in totals.items()))
+for role in ("supervisor", "rat"):
+    won, lost = scores.get((role, "won"), []), scores.get((role, "lost"), [])
+    mean = lambda xs: sum(xs) / len(xs) if xs else 0
+    print("%s score: mean %.0f (won %.0f, lost %.0f)" % (role, mean(won + lost), mean(won), mean(lost)))
 EOF
 
 FAIL=0

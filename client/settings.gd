@@ -124,6 +124,12 @@ func _build_video() -> void:
 		caps.append([cap, tr("Unlimited") if cap == 0 else tr("%d FPS") % cap])
 	_option("video", tr("Frame rate limit"), "max_fps", caps)
 	_header("video", tr("Quality"))
+	var light := Button.new()
+	light.text = tr("Use light settings")
+	light.pressed.connect(func() -> void:
+		Config.apply_light_preset()
+		_rebuild_soon())  # (the rows below show the new values)
+	_row("video", tr("Laptop or integrated graphics"), light)
 	var scales := []
 	for entry: Array in RENDER_SCALES:
 		scales.append([entry[0], tr(entry[1])])

@@ -34,6 +34,7 @@ const LOG_PATH := "user://logs/local_server.log"
 const START_TIMEOUT_S := 45.0  ## the first start after an install can be slow (shader cache, disk)
 const STOP_GRACE_S := 2.0
 const SOLO_BIND := "127.0.0.1"
+const SOLO_COUNTDOWN_S := 5  ## solo: the countdown before a match (the usual one is for players to get ready)
 ## Network interfaces friends can't reach (Docker, virtual machines, WSL), by a word in their name.
 const VIRTUAL_INTERFACES: Array[String] = ["docker", "br-", "veth", "virbr", "vbox", "virtualbox", "vmnet",
 	"vmware", "vethernet", "hyper-v", "wsl", "lxc", "lxd", "podman", "cni"]
@@ -57,7 +58,7 @@ var _ready_path := ""
 
 # --- What to start (pure, unit tested) ---------------------------------------------
 
-## Solo, from the saved choices (Config.solo_*): bots take every seat but yours.
+## Solo, from the saved choices (Config.solo_*): bots take every seat but yours, and a shorter countdown.
 static func solo_options() -> Dictionary:
 	return {
 		"name": TranslationServer.translate("Solo game"),
@@ -71,6 +72,7 @@ static func solo_options() -> Dictionary:
 		"lan": false,
 		"bind": SOLO_BIND,
 		"role": Config.solo_role,
+		"countdown": SOLO_COUNTDOWN_S,
 	}
 
 

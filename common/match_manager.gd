@@ -71,7 +71,7 @@ var roster: Dictionary = {}:
 		roster_changed.emit()
 ## The last match's outcome, set when POST_MATCH starts:
 ## {"winner": MatchRulesModel.Team, "reason": String, "stats": Array of
-##  {"peer", "name", "role", "bot", and one count per STAT_KEYS}}
+##  {"peer", "name", "role", "bot", one count per STAT_KEYS, and "score" (MatchScore)}}, each team best first
 var result: Dictionary = {}
 ## {"name", "max_players", "duration_s", "duration_single_s", "min_players", "locked", "supervisors",
 ##  "rats" (the teams' seats), "bot_fill_to" (0 = no bots)}: the lobby shows it.
@@ -559,8 +559,12 @@ func _end_match(winner: MatchRulesModel.Team, reason: String) -> void:
 		(node as Player).status.apply(StatusComponent.Status.LOCKED)
 	var stats: Array = []  # plain Array: it travels in MatchSync
 	for peer: int in _stats:
-		stats.append(_stats[peer].duplicate())
-	stats.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["role"] < b["role"])
+		var row := _stats[peer].duplicate()
+		row["score"] = MatchScore.of(row, winner)
+		stats.append(row)
+	# Each team, best score first.
+	stats.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a["role"] < b["role"] or (a["role"] == b["role"] and a["score"] > b["score"]))
 	result = {"winner": winner, "reason": reason, "stats": stats}
 	Log.info("match", "%s win: %s" % [MatchRulesModel.team_name(winner), reason])
 	countdown_left = rules.post_match_s

@@ -140,7 +140,10 @@ The match goes on without you.,The match goes on without you.,La partie continue
 You can come back from the server browser.,You can come back from the server browser.,Vous pourrez revenir depuis la liste des serveurs.
 Leave,Leave,Quitter
 Stay,Stay,Rester
-Back to the lobby in %d s,Back to the lobby in %d s,Retour au salon dans %d s
+Back to the lobby,Back to the lobby,Retour au salon
+Quit to menu,Quit to menu,Quitter vers le menu
+The others are in the lobby: %d / %d ready,The others are in the lobby: %d / %d ready,Les autres sont au salon : %d / %d prêts
+Score,Score,Score
 SUPERVISORS WIN!,SUPERVISORS WIN!,LES SUPERVISEURS GAGNENT !
 RATS WIN!,RATS WIN!,LES RATS GAGNENT !
 You win!,You win!,Vous gagnez !
@@ -185,6 +188,8 @@ Unlimited,Unlimited,Illimité
 %d FPS,%d FPS,%d IPS
 Frame rate limit,Frame rate limit,Limite d'images par seconde
 Quality,Quality,Qualité
+Laptop or integrated graphics,Laptop or integrated graphics,Portable ou carte graphique intégrée
+Use light settings,Use light settings,Réglages légers
 3D resolution,3D resolution,Résolution 3D
 Shadows,Shadows,Ombres
 Low,Low,Basses

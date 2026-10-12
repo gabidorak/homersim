@@ -160,6 +160,28 @@ func test_awards_empty_match() -> void:
 	assert_eq(Awards.compute([_row("Idle", Role.Kind.RAT, {})]), [] as Array[Dictionary])
 
 
+func test_score_counts_each_role_its_own_stats() -> void:
+	var points: Dictionary = MatchScore.POINTS
+	var none := MatchRulesModel.Team.NONE
+	var rat := _row("Rat", Role.Kind.RAT, {"sabotages": 3, "frees": 1, "repairs": 9})
+	assert_eq(MatchScore.of(rat, none), 3 * points[Role.Kind.RAT]["sabotages"] + points[Role.Kind.RAT]["frees"],
+		"a rat's repairs (none in real matches) are worth nothing")
+	var sup := _row("Sup", Role.Kind.SUPERVISOR, {"repairs": 2, "catches": 1, "sabotages": 9})
+	var sup_points: Dictionary = points[Role.Kind.SUPERVISOR]
+	assert_eq(MatchScore.of(sup, none), 2 * sup_points["repairs"] + sup_points["catches"])
+	for stat: String in points[Role.Kind.RAT].keys() + points[Role.Kind.SUPERVISOR].keys():
+		assert_true(stat in MatchManager.STAT_KEYS, "%s is a stat" % stat)
+
+
+func test_score_win_bonus_and_floor() -> void:
+	var rat := _row("Rat", Role.Kind.RAT, {"sabotages": 1})
+	var base := MatchScore.of(rat, MatchRulesModel.Team.SUPERVISORS)
+	assert_eq(MatchScore.of(rat, MatchRulesModel.Team.RATS), base + MatchScore.WIN_BONUS, "the winners' bonus")
+	var caught := _row("Caught", Role.Kind.RAT, {"caught": 5})
+	assert_eq(MatchScore.of(caught, MatchRulesModel.Team.SUPERVISORS), 0, "never below 0")
+	assert_eq(MatchScore.of(_row("Ghost", Role.Kind.SPECTATOR, {}), MatchRulesModel.Team.RATS), 0)
+
+
 # --- Chat ----------------------------------------------------------------------
 
 func test_chat_filter() -> void:

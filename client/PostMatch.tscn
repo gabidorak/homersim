@@ -72,6 +72,25 @@ mouse_filter = 2
 theme_override_constants/separation = 14
 alignment = 1
 
+[node name="Buttons" type="HBoxContainer" parent="Center/Col"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="LobbyButton" type="Button" parent="Center/Col/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 50)
+layout_mode = 2
+theme_type_variation = &"AccentButton"
+text = "Back to the lobby"
+
+[node name="QuitButton" type="Button" parent="Center/Col/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 50)
+layout_mode = 2
+text = "Quit to menu"
+
 [node name="Footer" type="Label" parent="Center/Col"]
 unique_name_in_owner = true
 layout_mode = 2

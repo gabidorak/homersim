@@ -61,6 +61,10 @@ const SECTIONS := {
 	"host_lan": "host", "host_online": "host",
 	"online_key": "online",
 }
+## The light preset (apply_light_preset()): the 3D image is at most this many rows, using one of the
+## settings screen's 3D resolutions (client/settings.gd RENDER_SCALES).
+const LIGHT_3D_ROWS := 1080
+const LIGHT_RENDER_SCALES: Array[float] = [1.0, 0.85, 0.77, 0.67, 0.59, 0.5]
 ## Host a game: the choices for the most players (client/game_setup.gd).
 const HOST_MAX_PLAYERS := 16
 
@@ -136,6 +140,8 @@ var _save_timer: Timer
 
 
 func _ready() -> void:
+	if is_persistent() and is_integrated_gpu():
+		_use_light_effects()  # this GPU's defaults: a settings file still wins
 	for key: String in SECTIONS:
 		_defaults[key] = get(key)
 	for action in Keys.REBINDABLE:
@@ -163,6 +169,40 @@ func _ready() -> void:
 		# Headless processes (servers, test bots) show no text, and tests read their logs and prompts:
 		# keep them in English whatever the machine's language.
 		TranslationServer.set_locale("en")
+
+
+## A laptop's Intel / AMD chip rather than a graphics card (with both, Vulkan picks the card).
+static func is_integrated_gpu() -> bool:
+	return RenderingServer.get_video_adapter_type() == RenderingDevice.DEVICE_TYPE_INTEGRATED_GPU
+
+
+## The effects an integrated GPU starts with: on an Iris Xe at 1080p, shadows low without SSAO and
+## glow runs ~110 fps against ~72 with everything on. Outlines cost next to nothing, they stay.
+func _use_light_effects() -> void:
+	shadows = Shadows.LOW
+	ssao = false
+	glow = false
+
+
+## The settings screen's "light settings" button: the light effects, and a 3D resolution of at most
+## LIGHT_3D_ROWS rows (FSR upscales the rest). The window itself costs too: fullscreen at 3456 × 2160
+## on an Iris Xe runs ~16 fps, ~57 with this preset.
+func apply_light_preset() -> void:
+	set_value("shadows", Shadows.LOW)
+	set_value("ssao", false)
+	set_value("glow", false)
+	var rows := resolution.y
+	if window_mode != WindowMode.WINDOWED and DisplayServer.get_name() != "headless":
+		rows = DisplayServer.screen_get_size(DisplayServer.window_get_current_screen()).y
+	set_value("render_scale", light_render_scale(rows))
+
+
+## The largest of the settings screen's 3D resolutions that draws at most LIGHT_3D_ROWS rows.
+static func light_render_scale(rows: int) -> float:
+	for scale in LIGHT_RENDER_SCALES:
+		if rows * scale <= LIGHT_3D_ROWS + 0.5:
+			return scale
+	return LIGHT_RENDER_SCALES[-1]
 
 
 ## True for a windowed client: the only kind of process that reads and saves settings.cfg.
