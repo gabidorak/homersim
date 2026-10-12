@@ -5,10 +5,8 @@ extends Node
 ##   third person (rat): the nearest interactable within reach, in front of the body or camera (or
 ##   right under its nose: pressed against a machine, the rat is already past the point's origin)
 ## Holding E on an available target sends request_interact_start, then a heartbeat every 0.25 s;
-## releasing E (or losing the target) sends request_interact_stop. A target that glides its holder
-## into place (a sabotage point) also starts MovementComponent.glide_to(); the end of the hold stops
-## it. An instant target (grab, cage, pickups, keycard readers) only gets the start request, and E
-## must be released before the next.
+## releasing E (or losing the target) sends request_interact_stop. An instant target (grab, cage,
+## pickups, keycard readers) only gets the start request, and E must be released before the next.
 ## A repair point (when the player wants minigames) gets request_minigame_start instead: the server
 ## opens the minigame overlay (MinigameHost), which takes the mouse until it closes. The server decides everything
 ## else and reports the end of every hold through server_ended_hold(). After a hold ends on the
@@ -97,7 +95,6 @@ func server_ended_hold(target_path: NodePath, reason: String) -> void:
 	if holding == null or not is_instance_valid(holding) or holding.get_path() != target_path:
 		return  # we had already let go, or this is about an older hold
 	holding = null
-	body.movement.stop_glide()
 	_needs_release = true
 	Log.info("interact", "hold ended: %s" % reason)
 	hold_ended.emit(reason)
@@ -116,15 +113,10 @@ func _start(t: Interactable) -> void:
 	holding = t
 	_since_heartbeat = 0.0
 	_held_s = 0.0
-	if t.glides_holder:
-		var spot := t.stand_position(body.role)
-		var to := t.global_position - spot
-		body.movement.glide_to(spot, atan2(-to.x, -to.z))
 
 
 func _stop() -> void:
 	holding = null
-	body.movement.stop_glide()
 	_service().request_interact_stop.rpc_id(1)
 
 

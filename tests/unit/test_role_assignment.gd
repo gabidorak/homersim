@@ -133,10 +133,10 @@ func test_custom_seats_split_fewer_players_in_proportion() -> void:
 
 
 func test_seats_outside_the_limits_are_clamped() -> void:
-	var big := _seats(9, 20)
+	var big := _seats(99, 99)
 	assert_eq([big.supervisor_seats(), big.rat_seats()], [MatchRules.SUPERVISORS_LIMIT, MatchRules.RATS_LIMIT])
-	var roles := MatchRulesModel.assign_roles(_all_any(12), big, _rng())
-	assert_eq([_count(roles, SUP), _count(roles, RAT), _count(roles, SPEC)], [3, 6, 3])
+	var roles := MatchRulesModel.assign_roles(_all_any(30), big, _rng())
+	assert_eq([_count(roles, SUP), _count(roles, RAT), _count(roles, SPEC)], [8, 16, 6])
 	var none := _seats(0, -2)
 	assert_eq([none.supervisor_seats(), none.rat_seats()], [1, 1], "at least one of each")
 

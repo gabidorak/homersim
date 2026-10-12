@@ -179,7 +179,8 @@ func _update_statuses() -> void:
 		Sfx.play(self, "caged_faa")  # only on the caged rat's own screen, not the supervisor's
 	_was_caged = caged
 	if caged:
-		banner_label.text = tr("You're caged! A free rat can let you out (hold %s at the cage)") % Keys.label(&"interact")
+		banner_label.text = tr("You're caged! A free rat can let you out (hold %s at the cage). Meanwhile, %s spits at supervisors") \
+			% [Keys.label(&"interact"), Keys.label(&"primary")]
 		_banner_until_ms = Time.get_ticks_msec() + 200
 
 

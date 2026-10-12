@@ -1,7 +1,8 @@
 class_name AbilityComponent
 extends Node
-## The player's abilities (RoleData.abilities: broom / bite / traps).
-##   Owning client: LMB uses the primary ability (request_use_ability with the aim direction).
+## The player's abilities (RoleData.abilities: broom / bite / traps / spit).
+##   Owning client: LMB uses the primary ability (request_use_ability with the aim direction); a
+##     caged rat's LMB spits instead of biting, toward the cage camera's yaw.
 ##     Supervisors hold RMB to see where the selected trap would go (a preview only this client
 ##     ever draws, so rats never see it), release to place it (request_place_trap). The Hotbar
 ##     picks which trap (selected_trap: 1 2 3, the wheel, Q). Cooldowns start locally on use and are
@@ -27,9 +28,11 @@ func _ready() -> void:
 	set_process(is_multiplayer_authority() and not body.role_data.abilities.is_empty() and not Net.is_server)
 
 
+## What LMB uses: the role's primary ability, or spitting while we sit in a cage.
 func primary() -> AbilityData:
+	var caged := body.status.has(StatusComponent.Status.CAGED)
 	for a in body.role_data.abilities:
-		if a.input_action == &"primary":
+		if a.input_action == &"primary" and (a.kind == AbilityData.Kind.SPIT) == caged:
 			return a
 	return null
 
@@ -54,16 +57,18 @@ func cooldown_left(id: StringName) -> float:
 ## Owner: use an ability now (also the bots' entry point). `aim` defaults to where we look.
 func use(id: StringName, aim: Vector3 = Vector3.ZERO) -> bool:
 	var data := body.role_data.ability(id)
-	if data == null or cooldown_left(id) > 0.0 or not body.status.can_act() or not _playing():
+	if data == null or cooldown_left(id) > 0.0 or not data.usable(body.status) or not _playing():
 		return false
 	if aim == Vector3.ZERO:
 		aim = _aim()
+	if data.kind == AbilityData.Kind.SPIT and Vector2(aim.x, aim.z).length_squared() > 0.0001:
+		body.rotation.y = atan2(-aim.x, -aim.z)  # a caged rat can't walk to turn: face the spit
 	_cooldown_left[id] = data.cooldown_s
 	Session.current.abilities.request_use_ability.rpc_id(1, id, aim)
 	if data.kind == AbilityData.Kind.MELEE_STUN and body.rig is FirstPersonRig:
 		(body.rig as FirstPersonRig).swing()
 	if body.anim != null:  # the others see it when the server's cosmetic RPC comes back
-		body.anim.play_one_shot("swing" if data.kind == AbilityData.Kind.MELEE_STUN else "bite")
+		body.anim.play_one_shot("swing" if data.kind == AbilityData.Kind.MELEE_STUN else "bite")  # (spit too)
 	return true
 
 

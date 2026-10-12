@@ -2,7 +2,7 @@
 
 ## 1. Art direction
 - **Low-poly cartoon** with chunky shapes, exaggerated proportions (big hands and heads on supervisors, big ears and tails on rats), and no fine detail.
-- **Flat colours** sampled from a single **palette texture** (`assets/palette.png`: 8 × 8 named swatches of 16 × 16 px, defined in `tools/art/palette.py`, preview in `docs/art/palette_preview.png`). No detailed textures. Third-party models are recoloured onto the palette, so packs from different authors look like one game.
+- **Flat colours** sampled from a single **palette texture** (`assets/palette.png`: named swatches of 16 × 16 px, the original 8 × 8 plus extra colours slotted between them without moving any UV, defined in `tools/art/palette.py`, preview in `docs/art/palette_preview.png`). No detailed textures. Third-party models are recoloured onto the palette, so packs from different authors look like one game.
 - **Toon shading** (as built in M7):
   - `shaders/toon_light.gdshaderinc`: the shared `light()`: a stepped ramp (shadow, mid and lit bands, or a ramp texture) per light, and a rim light on the lit side. The ramp is exactly 0 without light (Forward+ evaluates a light only in the screen tiles it touches; leftover light shows as blocks).
   - `shaders/toon.gdshader`: models: palette texture × colour, an emissive slot, and per-instance `tint` / `glow` (instance uniforms: a lamp changes colour without a material copy).
@@ -74,7 +74,7 @@ godot tests/helpers/ArtGallery.tscn -- --files crate,lever [--anim idle]   # the
 | `furniture.py` | Control desks, break-room table and chairs, bench, lockers, vending machine, coffee station, donut counter, shelves, pallet, water cooler, whiteboard, office desk, donut, donut box |
 | `dressing.py` | Barrels, junk piles, trash bags, rat beds, cones, signs, mop bucket, fire extinguisher, toolbox, cable spool, papers, clocks, pipe bundles, vial crates |
 | `kenney.py` | Kenney CC0 models recoloured onto the palette and rescaled (`k_*`) |
-| `supervisor.py`, `rat.py`, `fp_arms.py`, `broom.py`, `hamster.py` | Characters (§5) |
+| `supervisor.py`, `supervisor_general.py`, `rat.py`, `fp_arms.py`, `broom.py`, `hamster.py` | Characters (§5) |
 | `intro_props.py` | The intro cinematic's props (`client/intro/`): the supervisors' desk, the hamster cages (`Door`, `Roof`, the wheel cage's `Wheel`), the yellow bottle of radioactive goo, the "days without an incident" board (its words are Label3Ds), and effect meshes: a heart, a goo blob, a goo puddle, a "!" mark |
 
 Animatable parts are **separately named child objects** with their pivot as origin; Godot code finds them by name (`Art.part()`), so mesh names must not collide with gameplay node names. Gameplay collision never comes from the art: the level keeps its layout boxes (`solid()` in `gen_plant.py`) and the interactable scenes their own shapes.
@@ -85,6 +85,7 @@ Animatable parts are **separately named child objects** with their pivot as orig
 | Role | Model | Clips |
 |---|---|---|
 | Supervisor | Kenney Mini Character *male-d* recoloured (white shirt, red tie, navy trousers, boots), a separate `HardHat` mesh (lobby bodies tint it per player), a badge; 1.85 m (`supervisor.py`). Bones: root, leg-left, leg-right, torso, arm-left, arm-right, head | idle, walk, run, jump, fall, swing, carry_idle, place, interact, knocked, get_up (knocked reversed), eat (new), sit, emote, emote_no; for the intro: carry_walk, trip, faceplant, cheer (upper body), startle, cower, ouch, chase (broom overhead), point |
+| Supervisor skin: Soviet general (not in the game yet) | `supervisor_general.py`: the supervisor's body, rig, clips and scale, recoloured (olive tunic, khaki shirt, gold cuffs, navy breeches with double red stripes, black boots) plus a peaked cap (the `HardHat` part), medals, belt, shoulder boards, eyebrows and a moustache; 3.8k tris. Preview: `tests/helpers/SkinPreview.tscn` (open it in the editor) | same as the supervisor |
 | Broom | `broom.py`, held in the right hand through a BoneAttachment3D (`CharacterVisual`) | – |
 | Rat | Generated in the Mini Characters style (`rat.py`): 0.5 m, 2.4k tris, rigid skinning. Bones: root, body, head, jaw, ear_l/r, arm_l/r, leg_l/r, tail_1..4 | idle, run, jump, fall, crawl, bite, gnaw, stunned, dangle, caged, squeak |
 | Hamster (intro) | `hamster.py`, in the rat's style but round where the rat is boxy: 0.27 m, 3.3k tris, three coats (`hamster` golden, `hamster_cream`, `hamster_cocoa`), rat.py's rig helpers. Bones: root, body, head, jaw, ear_l/r, arm_l/r, leg_l/r, tail | idle, nibble, run (the wheel), beg, hop, shiver (dripping with goo), wash, look_up |

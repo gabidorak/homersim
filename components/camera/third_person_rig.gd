@@ -66,9 +66,8 @@ func _process(delta: float) -> void:
 func _update_cage() -> void:
 	var bars: StaticBody3D = null
 	if body.status.has(StatusComponent.Status.CAGED):
-		for node in get_tree().get_nodes_in_group(Cage.CAGE_GROUP):
-			if (node as Cage).has_occupant(body.peer_id):
-				bars = (node as Cage).bars
+		var cage := Cage.of_occupant(get_tree(), body.peer_id)
+		bars = cage.bars if cage != null else null
 	if bars == _cage_bars:
 		return
 	if is_instance_valid(_cage_bars):

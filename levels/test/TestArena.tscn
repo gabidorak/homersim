@@ -425,6 +425,81 @@ role = 2
 position = Vector3(-14, 0, -19)
 rotation = Vector3(0, -2.35619, 0)
 
+[node name="Supervisor4" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 1
+position = Vector3(15, 0, 17.5)
+
+[node name="Supervisor5" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 1
+position = Vector3(12.5, 0, 15)
+
+[node name="Supervisor6" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 1
+position = Vector3(12.5, 0, 17.5)
+
+[node name="Supervisor7" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 1
+position = Vector3(15, 0, 12.5)
+
+[node name="Supervisor8" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 1
+position = Vector3(17.5, 0, 12.5)
+
+[node name="Rat7" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-16.75, 0, -16.75)
+
+[node name="Rat8" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-19, 0, -19)
+
+[node name="Rat9" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-16.75, 0, -19.2)
+
+[node name="Rat10" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-19.2, 0, -16.75)
+
+[node name="Rat11" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-14, 0, -16.75)
+
+[node name="Rat12" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-16.75, 0, -14)
+
+[node name="Rat13" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-14, 0, -14)
+
+[node name="Rat14" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-17.5, 0, -14.5)
+
+[node name="Rat15" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-14.5, 0, -17.5)
+
+[node name="Rat16" type="Marker3D" parent="SpawnPoints"]
+script = ExtResource("spawn_point")
+role = 2
+position = Vector3(-19.2, 0, -15)
+
 [node name="Stations" type="Node3D" parent="."]
 
 [node name="ControlRods" type="Node3D" parent="Stations"]

@@ -199,6 +199,7 @@ func _capture_supervisor() -> void:
 		await cage_carried(cage_a)
 	var victim := body_named("VictimBot")
 	await wait_until(func() -> bool: return has(victim, StatusComponent.Status.CAGED), 2.0, "VictimBot caged")
+	await wait(1.5)  # at the door, in spitting range
 	await teleport(SUPERVISOR_SPOT)  # out of the rescuer's way
 	# The rescuer frees it; the victim runs back to its spot and its invulnerability runs out.
 	await wait_until(func() -> bool: return not has(victim, StatusComponent.Status.CAGED), 15.0, "the rescue")
@@ -217,6 +218,15 @@ func _capture_victim() -> void:
 	await teleport(VICTIM_SPOT)
 	await wait_until(func() -> bool: return has(me(), StatusComponent.Status.CAGED), 20.0, "being caged")
 	Log.info("bot", "I'm caged")
+	# Bored in the cage: spit at the supervisor who just caged us (it still stands at the door).
+	session.abilities.spat.connect(func(attacker: int, victim: int, _aim: Vector3, stunned: bool) -> void:
+		if attacker == session.local_peer_id:
+			Log.info("bot", "my spit hit %s, stunned: %s" % [session.name_of(victim) if victim != 0 else "nobody", stunned]),
+		CONNECT_ONE_SHOT)
+	await wait(0.5)  # until the server's move into the cage reaches us
+	var sup := body_named("SupervisorBot")
+	Log.info("bot", "caged: LMB is %s, spat: %s" % [me().abilities.primary().id,
+		me().abilities.use(&"spit", Interactable.origin_of(sup) - Interactable.origin_of(me()))])
 	await wait_until(func() -> bool: return not has(me(), StatusComponent.Status.CAGED), 15.0, "being freed")
 	Log.info("bot", "freed, invulnerable: %s" % has(me(), StatusComponent.Status.INVULNERABLE))
 	await wait(0.5)
@@ -251,6 +261,7 @@ func _swarm_supervisor() -> void:
 
 
 func _swarm_rat(index: int) -> void:
+	await wait(0.5)  # until the server's move into the cage reaches us
 	var sup := body_named("SupervisorBot")
 	if index == 1:
 		await teleport(VICTIM_SPOT)
@@ -364,6 +375,7 @@ func _items_supervisor() -> void:
 
 
 func _items_rat() -> void:
+	await wait(0.5)  # until the server's move into the cage reaches us
 	var sup := body_named("SupervisorBot")
 	var steal := sup.get_node("StealHandle") as StealHandle
 	var door := session.get_node("World/TestArena/PvP/BreakRoomKeycardDoor") as Door
@@ -436,6 +448,7 @@ func _hack_rat() -> void:
 	var abilities := session.abilities
 	var items := session.items
 	var interactions := session.interactions
+	await wait(0.5)  # until the server's move into the cage reaches us
 	var sup := body_named("SupervisorBot")
 	Log.info("bot", "hack: sending bad requests")
 	abilities.request_use_ability.rpc_id(1, &"broom", Vector3.FORWARD)  # wrong role

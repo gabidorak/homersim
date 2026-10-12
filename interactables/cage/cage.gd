@@ -45,6 +45,14 @@ func _synced_properties() -> Array[String]:
 	return list
 
 
+## The cage `peer_id` sits in, or null.
+static func of_occupant(tree: SceneTree, peer_id: int) -> Cage:
+	for node in tree.get_nodes_in_group(CAGE_GROUP):
+		if (node as Cage).has_occupant(peer_id):
+			return node
+	return null
+
+
 func slots() -> Array[Node3D]:
 	var out: Array[Node3D] = []
 	for child in get_children():

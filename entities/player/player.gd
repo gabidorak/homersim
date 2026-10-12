@@ -69,6 +69,7 @@ var validator_grace_until_ms := 0
 @onready var status_tag: Label3D = $StatusTag
 
 var _revealed_shown := false
+var _bot_badge: Label3D  ## clients, bots only
 
 
 static func color_for_peer(id: int) -> Color:
@@ -142,7 +143,6 @@ func _ready() -> void:
 	status_tag.visible = false
 	status.changed.connect(_update_collision)
 	if is_local() and not Net.is_server:  # (a bot body is "local" on the server)
-		name_tag.visible = false
 		# In first person our own body would only get in the way of the camera.
 		visual.visible = role_data.camera_kind == RoleData.CameraKind.THIRD_PERSON
 		Events.local_player_spawned.emit(self)
@@ -312,6 +312,7 @@ func _on_status_applied(what: StatusComponent.Status) -> void:
 ## A yellow "BOT" tag above the name, in the title font with an ink outline (M10).
 func _add_bot_badge() -> void:
 	var badge := Label3D.new()
+	_bot_badge = badge
 	badge.name = "BotBadge"
 	badge.text = tr("BOT")
 	badge.font = BADGE_FONT
@@ -344,8 +345,14 @@ func show_ai_label(text: String) -> void:
 
 
 func _update_feedback(delta: float) -> void:
+	# The rat we carry hangs right in front of our camera: its tags would fill the screen.
+	var carried_by_me := status.carrier == multiplayer.get_unique_id() \
+		and status.has(StatusComponent.Status.CARRIED)
+	name_tag.visible = not is_local() and not carried_by_me
+	if _bot_badge != null:
+		_bot_badge.visible = not carried_by_me
 	var labels := StatusComponent.describe(status.flags)
-	status_tag.visible = not is_local() and not labels.is_empty()
+	status_tag.visible = not is_local() and not carried_by_me and not labels.is_empty()
 	if status_tag.visible:
 		status_tag.text = tr(labels[0][0])
 		status_tag.modulate = labels[0][1]

@@ -279,29 +279,25 @@ def add_intro_clips(anim, idle_arms):
     anim.clip("point", 12, R.keyed([(0, dict(idle_arms)), (4, aim, "out"), (7, shake), (12, aim, "io")]))
 
 
-def build():
+def load_source():
+    """Kenney's model, imported: (armature, body mesh, head mesh, the texture its colours come from)."""
     bpy.ops.import_scene.gltf(filepath=SOURCE)
     for o in list(bpy.data.objects):
         if o.name.startswith("Icosphere"):
             bpy.data.objects.remove(o)
     arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
     arm.name = arm.data.name = "Armature"
-    body = bpy.data.objects["body-mesh"]
-    head = bpy.data.objects["head-mesh"]
     img = next(i for i in bpy.data.images if i.size[0] > 0)
-    print("recolour body:")
-    recolour(body, img, body_rule)
-    print("recolour head:")
-    recolour(head, img, head_rule)
-    # Hat and badge (unscaled Kenney units: the head is a ~0.45 m cube on top of a 0.34 m body).
-    head_top = max((head.matrix_world @ Vector(c)).z for c in head.bound_box)
-    hat = hard_hat(head_top, 0.235)
-    R.skin_rigid(hat, arm, "head")
-    badge = chest_badge(0.27)
-    R.skin_rigid(badge, arm, "torso")
-    R.join([body, badge, head], "Supervisor")
-    # Scale everything (armature, meshes, root motion) to the game's size.
-    s = HEIGHT / max((hat.matrix_world @ Vector(c)).z for c in hat.bound_box)
+    return arm, bpy.data.objects["body-mesh"], bpy.data.objects["head-mesh"], img
+
+
+def top(obj):
+    return max((obj.matrix_world @ Vector(c)).z for c in obj.bound_box)
+
+
+def finish(arm, s):
+    """Scales everything (armature, meshes, root motion) by `s` to the game's size, keeps and renames
+    Kenney's useful clips, adds ours and stores the outline normals."""
     arm.scale = (s, s, s)
     bpy.ops.object.select_all(action="DESELECT")
     for o in [arm] + list(arm.children):
@@ -330,6 +326,22 @@ def build():
     for name in sorted(a.name for a in bpy.data.actions):
         a = bpy.data.actions[name]
         print("  clip %-11s frames %5.1f..%5.1f" % (name, *a.frame_range))
+
+
+def build():
+    arm, body, head, img = load_source()
+    print("recolour body:")
+    recolour(body, img, body_rule)
+    print("recolour head:")
+    recolour(head, img, head_rule)
+    # Hat and badge (unscaled Kenney units: the head is a ~0.45 m cube on top of a 0.34 m body).
+    head_top = top(head)
+    hat = hard_hat(head_top, 0.235)
+    R.skin_rigid(hat, arm, "head")
+    badge = chest_badge(0.27)
+    R.skin_rigid(badge, arm, "torso")
+    R.join([body, badge, head], "Supervisor")
+    finish(arm, HEIGHT / top(hat))
     return [arm]
 
 

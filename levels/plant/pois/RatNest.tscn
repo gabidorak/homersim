@@ -133,6 +133,66 @@ rotation = Vector3(0, 0, 0)
 script = ExtResource("6_spawn_point")
 role = 2
 
+[node name="Rat7" type="Marker3D" parent="."]
+position = Vector3(-31, 0, 35.5)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
+[node name="Rat8" type="Marker3D" parent="."]
+position = Vector3(-29, 0, 35.5)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
+[node name="Rat9" type="Marker3D" parent="."]
+position = Vector3(-33, 0, 35.5)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
+[node name="Rat10" type="Marker3D" parent="."]
+position = Vector3(-27, 0, 35.5)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
+[node name="Rat11" type="Marker3D" parent="."]
+position = Vector3(-34, 0, 34)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
+[node name="Rat12" type="Marker3D" parent="."]
+position = Vector3(-26, 0, 34)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
+[node name="Rat13" type="Marker3D" parent="."]
+position = Vector3(-34, 0, 37)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
+[node name="Rat14" type="Marker3D" parent="."]
+position = Vector3(-31, 0, 38.5)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
+[node name="Rat15" type="Marker3D" parent="."]
+position = Vector3(-29, 0, 38.5)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
+[node name="Rat16" type="Marker3D" parent="."]
+position = Vector3(-33, 0, 32.5)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("6_spawn_point")
+role = 2
+
 [node name="Light2" type="OmniLight3D" parent="Lights"]
 position = Vector3(-30, 2.4, 35)
 light_color = Color(0.5, 1, 0.4, 1)

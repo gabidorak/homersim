@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ability_data.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+id = &"spit"
+display_name = "Spit"
+kind = 3
+input_action = &"primary"
+range = 6.0
+cone_deg = 40.0
+cooldown_s = 3.0
+status = 1
+status_duration = 1.5
+extra = {
+"stun_chance": 0.2,
+"stun_cooldown_s": 10.0
+}

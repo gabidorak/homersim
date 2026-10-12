@@ -189,6 +189,36 @@ rotation = Vector3(0, 0, 0)
 script = ExtResource("10_spawn_point")
 role = 1
 
+[node name="Supervisor4" type="Marker3D" parent="."]
+position = Vector3(-24, 0, 9)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("10_spawn_point")
+role = 1
+
+[node name="Supervisor5" type="Marker3D" parent="."]
+position = Vector3(-24, 0, 15)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("10_spawn_point")
+role = 1
+
+[node name="Supervisor6" type="Marker3D" parent="."]
+position = Vector3(-20, 0, 9)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("10_spawn_point")
+role = 1
+
+[node name="Supervisor7" type="Marker3D" parent="."]
+position = Vector3(-20, 0, 15)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("10_spawn_point")
+role = 1
+
+[node name="Supervisor8" type="Marker3D" parent="."]
+position = Vector3(-27, 0, 15)
+rotation = Vector3(0, 0, 0)
+script = ExtResource("10_spawn_point")
+role = 1
+
 [node name="Sign" type="Label3D" parent="."]
 position = Vector3(-26, 3.2, 13)
 billboard = 1

@@ -99,6 +99,9 @@ func _ready() -> void:
 		abilities.bitten.connect(func(attacker: int, _victim: int, _result: int) -> void:
 			if attacker == body.peer_id and not body.is_local():
 				play_one_shot("bite"))
+		abilities.spat.connect(func(attacker: int, _victim: int, _aim: Vector3, _stunned: bool) -> void:
+			if attacker == body.peer_id and not body.is_local():
+				play_one_shot("bite"))  # (no clip of its own: the same lunge)
 	_last_donuts = body.inventory.donuts
 
 
@@ -134,11 +137,9 @@ func start_emote() -> void:
 	_emote_until = now + EMOTE_S
 
 
-## Owner: what this body is doing, packed into Player.sync_anim. (A rat gliding into place at a
-## sabotage box scurries there first, then gnaws.)
+## Owner: what this body is doing, packed into Player.sync_anim.
 func local_flags() -> int:
-	var interacting := body.interactor.holding != null and not body.movement.gliding()
-	return flags_for(body, interacting or _minigame_open(),
+	return flags_for(body, body.interactor.holding != null or _minigame_open(),
 		Time.get_ticks_msec() / 1000.0 < _emote_until, _in_vent)
 
 

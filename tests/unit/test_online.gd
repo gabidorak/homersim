@@ -12,7 +12,7 @@ func _bytes(text: String) -> PackedByteArray:
 
 func test_options_are_clamped_like_the_host_card() -> void:
 	var clean := OnlineApi.sanitize_options({"name": "  Friday [b]night[/b]  ", "password": " cheese ", "max_players": 99.0,
-		"supervisors": 3.0, "rats": 9, "bots": 5.0, "difficulty": -3})
+		"supervisors": 3.0, "rats": 99, "bots": 5.0, "difficulty": -3})
 	assert_eq(clean["name"], ChatService.clean("Friday [b]night[/b]").strip_edges(), "cleaned like chat")
 	assert_false(str(clean["name"]).contains("[b]"), "no BBCode")
 	assert_eq(clean["password"], "cheese")

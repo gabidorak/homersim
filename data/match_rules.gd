@@ -4,8 +4,8 @@ extends Resource
 ## The server can override any of these in server.cfg's [match] section.
 
 ## The most seats a team can have: the plant has this many spawn points per team (gen_plant.py).
-const SUPERVISORS_LIMIT := 3
-const RATS_LIMIT := 6
+const SUPERVISORS_LIMIT := 8
+const RATS_LIMIT := 16
 
 @export var duration_s := 540  ## used from M3
 @export var duration_single_supervisor_s := 480  ## used from M3
@@ -16,8 +16,8 @@ const RATS_LIMIT := 6
 ## The teams' seats (GDD §2): the most supervisors and rats a match has. With fewer players the teams
 ## are split in the same proportion (supervisors_for); players past the seats become spectators.
 ## The host picks them (Play solo, Host a game); 1..SUPERVISORS_LIMIT and 1..RATS_LIMIT.
-@export_range(1, 3) var max_supervisors := 2
-@export_range(1, 6) var max_rats := 4
+@export_range(1, 8) var max_supervisors := 2
+@export_range(1, 16) var max_rats := 4
 @export var swarm_bonus := 15.0  ## meltdown % when every supervisor is knocked down at once
 @export var swarm_cooldown_s := 45.0
 ## AI bots (M10, GDD §2 and §5.5): at role assignment, bots fill the match up to this many players
