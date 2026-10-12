@@ -28,6 +28,7 @@ const UI_K := "res://assets/third_party/kenney_interface-sounds/"
 const SCIFI := "res://assets/third_party/kenney_sci-fi-sounds/"
 const DIGITAL := "res://assets/third_party/kenney_digital-audio/"
 const RPG := "res://assets/third_party/kenney_rpg-audio/"
+const FAA := "res://assets/third_party/faa-sound/"
 
 ## name → {kind, files, db (volume), pitch (random pitch scale, 1 = none), loop, also (another
 ## sound played with it)}
@@ -42,6 +43,7 @@ const SOUNDS := {
 	"trap_place": {"kind": Kind.SFX, "files": [IMPACT + "impactWood_light_000.ogg", IMPACT + "impactWood_light_001.ogg",
 		IMPACT + "impactWood_light_002.ogg"], "pitch": 1.1},
 	"cage_slam": {"kind": Kind.SFX, "files": [RPG + "metalLatch.ogg"], "db": 2.0, "also": "metal_heavy"},
+	"caged_faa": {"kind": Kind.SFX, "files": [FAA + "faaa.mp3"]},  # the caged rat only (client/hud.gd)
 	"cage_open": {"kind": Kind.SFX, "files": [RPG + "creak1.ogg"], "pitch": 1.1},
 	"powerup": {"kind": Kind.SFX, "files": [DIGITAL + "powerUp2.ogg"], "db": -4.0},
 	# Voices

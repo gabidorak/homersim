@@ -20,6 +20,7 @@ Add one row **at the moment an asset is imported**, including CC0 assets: credit
 | Sci-fi Sounds (selected OGGs) | Kenney | https://kenney.nl/assets/sci-fi-sounds | CC0 1.0 | door slides, the meltdown explosion | assets/third_party/kenney_sci-fi-sounds/ |
 | Digital Audio (selected OGGs) | Kenney | https://kenney.nl/assets/digital-audio | CC0 1.0 | keycard beeps, zap, power-up | assets/third_party/kenney_digital-audio/ |
 | RPG Audio (selected OGGs) | Kenney | https://kenney.nl/assets/rpg-audio | CC0 1.0 | cage latch, creak | assets/third_party/kenney_rpg-audio/ |
+| FAA alert sound (faaa.mp3) | Pradeep Kumar Awasthi | https://github.com/pradeep-gif-hub/FAA-Sound-Extension | MIT (License.txt) | the caged rat's "FAA" | assets/third_party/faa-sound/ |
 | Game Icons (37 of the white PNGs) | Kenney | https://kenney.nl/assets/game-icons | CC0 1.0 | menu icons: lock, ping bars, star, trophy, trash, info (M8) | assets/third_party/kenney_game-icons/ |
 
 ## Fonts

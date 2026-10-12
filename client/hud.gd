@@ -32,6 +32,7 @@ var _banner_until_ms := 0
 var _flash_until_ms := 0
 var _hotbar: HotbarView
 var _lifted := false
+var _was_caged := false  # the local player's CAGED last frame, for the FAA when it turns on
 var _stamina_offsets := Vector2.ZERO  # the scene's offset_top / offset_bottom (no hotbar)
 var _status_offsets := Vector2.ZERO
 
@@ -173,7 +174,11 @@ func _update_statuses() -> void:
 	for entry: Array in StatusComponent.describe(_player.status.flags):
 		parts.append("[color=#%s]%s[/color]" % [(entry[1] as Color).to_html(false), tr(entry[0])])
 	status_label.text = "  ".join(parts)
-	if _player.status.has(StatusComponent.Status.CAGED):
+	var caged := _player.status.has(StatusComponent.Status.CAGED)
+	if caged and not _was_caged:
+		Sfx.play(self, "caged_faa")  # only on the caged rat's own screen, not the supervisor's
+	_was_caged = caged
+	if caged:
 		banner_label.text = tr("You're caged! A free rat can let you out (hold %s at the cage)") % Keys.label(&"interact")
 		_banner_until_ms = Time.get_ticks_msec() + 200
 
