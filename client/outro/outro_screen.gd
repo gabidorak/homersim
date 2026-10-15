@@ -20,6 +20,7 @@ static var enabled := true
 
 var outro: Outro
 var _ending := Outro.Ending.SUPERVISORS
+var _rats := Outro.DEFAULT_RATS
 var _delay := 0.0
 var _fade: ColorRect
 var _view: SubViewport
@@ -44,12 +45,23 @@ static func ending_for(winner: MatchRulesModel.Team) -> Outro.Ending:
 	return Outro.Ending.RATS if winner == MatchRulesModel.Team.RATS else Outro.Ending.SUPERVISORS
 
 
+## How many rats played the match `result` (MatchManager.result: its stats have a row per player,
+## bots too): the rats' ending shows a pair of eyes for each (Outro clamps it to its spots).
+static func rats_in(result: Dictionary) -> int:
+	var count := 0
+	for row: Dictionary in result.get("stats", []):
+		if row.get("role") == Role.Kind.RAT:
+			count += 1
+	return count
+
+
 ## Plays the cinematic for `winner` over everything under `parent`, after `delay` s (a meltdown's
-## boom lands first). Free once it has finished.
-static func play(parent: Node, winner: MatchRulesModel.Team, delay := 0.0) -> OutroScreen:
+## boom lands first); `rats`: how many rats won (the rats' ending). Free once it has finished.
+static func play(parent: Node, winner: MatchRulesModel.Team, delay := 0.0, rats := Outro.DEFAULT_RATS) -> OutroScreen:
 	var screen := OutroScreen.new()
 	screen.name = "OutroScreen"
 	screen._ending = ending_for(winner)
+	screen._rats = rats
 	screen._delay = delay
 	parent.add_child(screen)
 	return screen
@@ -67,8 +79,8 @@ func _ready() -> void:
 	tween.tween_property(_fade, ^"color:a", 1.0, LEAD_IN).set_trans(Tween.TRANS_SINE)
 	tween.tween_callback(_start)
 	Events.outro_started.emit()
-	Log.info("outro", "the %s ending in %.1f s" % ["rats'" if _ending == Outro.Ending.RATS else "supervisors'",
-		_delay + LEAD_IN])
+	Log.info("outro", "the %s ending in %.1f s" % ["rats' (%d rats)" % clampi(_rats, 1, Outro.MAX_RATS)
+		if _ending == Outro.Ending.RATS else "supervisors'", _delay + LEAD_IN])
 
 
 func _exit_tree() -> void:
@@ -101,7 +113,7 @@ func _start() -> void:
 	_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_picture)
 	move_child(_fade, -1)
-	outro = Outro.new(_ending)
+	outro = Outro.new(_ending, _rats)
 	outro.finished.connect(_on_finished)
 	_view.add_child(outro)
 	_fade.color.a = 0.0  # (the cinematic fades in from black itself)

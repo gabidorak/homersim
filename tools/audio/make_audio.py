@@ -940,6 +940,87 @@ def outro_blow():
     return S.fade(S.normalize(x, 0.6))
 
 
+@sound("outro_heart")
+def outro_heart():
+    """The cooling towers puff a heart: a soft, round pomf far away, then a rising glassy "aww"."""
+    r = rng(95)
+    out = np.zeros(samples(1.1))
+    t = t_axis(0.3)
+    pomf = np.sin(S.phase(90 * (1 + 0.8 * np.exp(-t / 0.04)), len(t))) * np.exp(-t / 0.09)
+    pomf += 0.6 * S.lowpass(S.noise(0.3, r), 700) * S.env_exp(0.3, 0.08, 0.01)
+    S.mix_at(out, pomf, 0, 0.8)
+    for k, note in enumerate((84, 88, 91, 96)):  # the heart swelling: a little harp-ish rise
+        S.mix_at(out, S.glockenspiel(S.midi(note), 0.7, 0.35), samples(0.12 + k * 0.07), 0.35 + 0.08 * k)
+    return S.fade(S.normalize(out, 0.6))
+
+
+@sound("outro_wink")
+def outro_wink():
+    """Her grandson winks back from his photo: a bright cartoon "ting!" with a sparkle."""
+    out = np.zeros(samples(0.7))
+    S.mix_at(out, S.glockenspiel(S.midi(100), 0.6, 0.3), 0, 0.9)
+    S.mix_at(out, S.glockenspiel(S.midi(107), 0.5, 0.2), samples(0.05), 0.5)
+    S.mix_at(out, S.highpass(S.noise(0.35, rng(96)), 7000) * S.bell(0.35) * 0.08, samples(0.03))
+    return S.fade(S.normalize(out, 0.55))
+
+
+@sound("outro_rat_hmph")
+def outro_rat_hmph():
+    """The caged rat turns its back on her: a squeaky, huffy "hmph!" (a nasal hum falling, then the ph)."""
+    r = rng(97)
+    out = np.zeros(samples(0.45))
+
+    def pitch(u):
+        return 640 - 260 * u ** 0.8
+
+    def formants(u):
+        return [320 + 0 * u, 2100 + 0 * u, 3200 + 0 * u]
+    hum = S.lowpass(_shout(0.2, pitch, formants, 98, vib=(9.0, 0.02), breath=0.04), 3500)
+    S.mix_at(out, hum, 0)
+    S.mix_at(out, S.bandpass(S.noise(0.11, r), 1800, 4500) * S.env_exp(0.11, 0.03) * S.bell(0.11, 0.3), samples(0.17),
+             0.3)  # the "ph"
+    return S.fade(S.normalize(out, 0.65))
+
+
+@sound("outro_cough")
+def outro_cough():
+    """Sunny Acres coughs, far away: a muffled, gloopy "hu-KOFF" (the goo bubbling in it)."""
+    r = rng(99)
+    out = np.zeros(samples(1.2))
+    for at, d, f, gain in ((0.0, 0.16, 70, 0.45), (0.2, 0.42, 58, 1.0)):
+        t = t_axis(d)
+        burst = S.lowpass(S.noise(d, r), 420) * S.env_exp(d, d * 0.35, 0.012)
+        thump = np.sin(S.phase(f * (1 + 0.5 * np.exp(-t / 0.05)), len(t))) * np.exp(-t / (d * 0.5))
+        glop = 1.0 + 0.5 * np.sin(2 * np.pi * 23 * t) * np.exp(-t / 0.2)  # the goo
+        S.mix_at(out, S.fade((burst + 0.8 * thump) * glop, 0.004, d * 0.4), samples(at), gain)
+    for k in range(6):  # bubbles popping after it
+        t = t_axis(0.06)
+        S.mix_at(out, np.sin(S.phase(300 + 140 * k + 500 * t / 0.06, len(t))) * S.bell(0.06) * 0.25,
+                 samples(0.55 + k * 0.07 + r.uniform(0, 0.03)))
+    return S.fade(S.normalize(S.lowpass(out, 1800), 0.8), 0.003, 0.2)
+
+
+@sound("outro_click")
+def outro_click():
+    """A house's lights going out: a switch's tk and a tiny falling "bwip" (the power dying)."""
+    out = np.zeros(samples(0.22))
+    t = t_axis(0.03)
+    S.mix_at(out, S.bandpass(S.noise(0.03, rng(100)), 1800, 7000) * np.exp(-t / 0.004), 0, 0.8)
+    t2 = t_axis(0.16)
+    S.mix_at(out, S.fade(np.sin(S.phase(900 * (1 - 0.6 * t2 / 0.16), len(t2))) * np.exp(-t2 / 0.05), 0.002, 0.06),
+             samples(0.01), 0.5)
+    return S.fade(S.normalize(out, 0.6))
+
+
+@sound("outro_giggle")
+def outro_giggle():
+    """The last rat, by her ear in the dark: a small, close "hee-hee"."""
+    out = np.zeros(samples(0.42))
+    for k in range(3):
+        S.mix_at(out, _chirp(3600 - k * 220, 2900 - k * 220, 0.06, 70), samples(k * 0.11), 0.75 - k * 0.15)
+    return S.fade(S.normalize(S.lowpass(out, 6000), 0.5))
+
+
 SFX_ONLY = set(SOUNDS)
 
 

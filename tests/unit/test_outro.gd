@@ -5,31 +5,38 @@ extends GutTest
 ## every 1/120 s by OutroPhysics (tests/helpers/outro_physics.gd), which finds anything going
 ## through anything, resting things that sink or float, a lever moving by itself, slices flying
 ## against gravity and a camera inside the set. Last, the checks themselves: broken copies of a
-## timeline (a slice pushed 5 cm into the plate...) must fail them.
+## timeline (a slice pushed 5 cm into the plate...) must fail them. And the rats: the caged rat in its
+## cage, the rats in the dark on their spots with their eyes in sight, one pair per winning rat, the
+## town's lights going out towards her.
 
 const SCRIPTS: Array[String] = ["res://client/outro/outro.gd", "res://client/outro/outro_kitchen.gd",
 	"res://client/outro/outro_fx.gd"]
 ## Parts the cinematics look up by name, per model (tools/blender/kitchen.py).
 const PARTS := {"toaster": ["Body", "Lever", "Glow", "Slot1", "Slot2"], "toast_limp": ["Middle", "Top"],
 	"plate": ["Surface"], "teacup": ["Steam"], "butter_dish": ["Butter", "ButterBitten"], "photo_frame": ["Picture"],
-	"cat_clock": ["Pupils", "SecondHand", "Tail"], "ceiling_lamp": ["Bulb"], "match": ["Flame"]}
+	"cat_clock": ["Pupils", "SecondHand", "Tail"], "ceiling_lamp": ["Bulb"], "match": ["Flame"], "garden_lamp": ["Lamp"],
+	"house_blue": ["Windows"], "plant_building": ["Windows"]}
 const MARKS: Array[String] = ["MarkIsland", "MarkToaster", "MarkPlate", "MarkTeacup", "MarkButter", "MarkPhoto"]
 ## Outro's hit points and where else they are written: grandma.py's name, music.py's name ("" none).
 const HITS := {
-	"A_CLICK": ["A_CLICK", "OUTRO_A_CLICK"], "A_DING": ["A_DING", "OUTRO_A_DING"], "A_JOY": ["A_JOY", "OUTRO_A_JOY"],
-	"A_SPARKLE": ["", "OUTRO_A_SPARKLE"], "A_GRAB": ["A_GRAB", ""], "A_BITE": ["A_BITE", "OUTRO_A_BITE"],
+	"A_CLICK": ["A_CLICK", "OUTRO_A_CLICK"], "A_DING": ["A_DING", "OUTRO_A_DING"], "A_HEART": ["", "OUTRO_A_HEART"],
+	"A_JOY": ["A_JOY", "OUTRO_A_JOY"], "A_SPARKLE": ["", "OUTRO_A_SPARKLE"], "A_WINK": ["", "OUTRO_A_WINK"],
+	"A_GRAB": ["A_GRAB", ""], "A_BITE": ["A_BITE", "OUTRO_A_BITE"], "A_HMPH": ["", "OUTRO_A_HMPH"],
 	"B_FLICKER": ["", "OUTRO_B_FLICKER"], "B_CLICK": ["B_CLICK", "OUTRO_B_CLICK"], "B_PWOMP": ["B_PWOMP", "OUTRO_B_PWOMP"],
-	"B_SHOCK": ["B_SHOCK", "OUTRO_B_SHOCK"], "B_BLACKOUT": ["B_BLACKOUT", "OUTRO_B_BLACKOUT"],
-	"B_EYES": ["", "OUTRO_B_EYES"], "B_STRIKE": ["B_STRIKE", ""], "B_LIGHT": ["", "OUTRO_B_LIGHT"],
-	"B_BLOW": ["B_BLOW", "OUTRO_B_BLOW"]}
+	"B_SHOCK": ["B_SHOCK", "OUTRO_B_SHOCK"], "B_COUGH": ["B_COUGH", "OUTRO_B_COUGH"], "B_ROLL": ["B_ROLL", ""],
+	"B_BLACKOUT": ["B_BLACKOUT", "OUTRO_B_BLACKOUT"], "B_EYES": ["", "OUTRO_B_EYES"], "B_SNICKER": ["", "OUTRO_B_SNICKER"],
+	"B_STRIKE": ["B_STRIKE", ""], "B_LIGHT": ["", "OUTRO_B_LIGHT"], "B_BLOW": ["B_BLOW", "OUTRO_B_BLOW"],
+	"B_BUTTON": ["B_BUTTON", "OUTRO_B_BUTTON"]}
+## The clips the outro plays on its rats (tools/blender/rat.py): the spots' and the caged rat's, and the dive.
+const RAT_CLIPS: Array[String] = ["sulk", "hmph", "crawl"]
 
 const PostMatch := preload("res://client/post_match.gd")
 
 var _outro: Outro
 
 
-func _make(ending: Outro.Ending) -> Outro:
-	_outro = Outro.new(ending)
+func _make(ending: Outro.Ending, rats := Outro.DEFAULT_RATS) -> Outro:
+	_outro = Outro.new(ending, rats)
 	_outro.playing = false
 	add_child_autofree(_outro)
 	return _outro
@@ -57,20 +64,23 @@ func test_the_winners_get_their_ending() -> void:
 
 ## The server keeps POST_MATCH for post_match_s: the longest wait for the cinematic (a meltdown's
 ## boom, the fade to black, the rats' ending) and the result's MIN_SHOW_S must fit, with time to read.
+## The wait from the whistle to the result stays under 14 s (the rats' ending got its rolling
+## blackout, its eyes and its last gag), and the result keeps the ~14 s it had before the cinematic.
 func test_post_match_leaves_time_for_the_cinematic_and_the_result() -> void:
 	var rules: MatchRules = load(Config.DEFAULT_MATCH_RULES)
 	var longest := maxf(Outro.LENGTHS[Outro.Ending.SUPERVISORS], Outro.LENGTHS[Outro.Ending.RATS])
 	var cinematic := PostMatch.MELTDOWN_BOOM_S + OutroScreen.LEAD_IN + longest
-	assert_lt(cinematic, 12.0, "the cinematic keeps the wait short")
-	assert_gte(rules.post_match_s - cinematic, PostMatch.MIN_SHOW_S + 8.0, "the result stays up long enough to read")
+	assert_lt(cinematic, 14.0, "the cinematic keeps the wait short")
+	assert_gte(rules.post_match_s - cinematic, PostMatch.MIN_SHOW_S + 8.5, "the result stays up long enough to read")
 
 
 # --- The timeline -----------------------------------------------------------------------------------------
 
-func test_each_ending_lasts_5_to_10_s() -> void:
+## Long enough for their beats, short enough not to drag (the post-match budget above).
+func test_each_ending_lasts_8_to_12_s() -> void:
 	for ending: Outro.Ending in [Outro.Ending.SUPERVISORS, Outro.Ending.RATS]:
 		var length: float = Outro.LENGTHS[ending]
-		assert_between(length, 5.0, 10.0)
+		assert_between(length, 8.0, 12.0)
 		var music := load(Outro.MUSIC[ending]) as AudioStream
 		assert_not_null(music, Outro.MUSIC[ending])
 		if music != null:
@@ -104,6 +114,13 @@ func test_hit_points_agree_with_the_performances_and_the_scores() -> void:
 	assert_eq(taps.size(), Outro.B_TAPS.size())
 	for i in taps.size():
 		assert_almost_eq(float(taps[i]), Outro.B_TAPS[i], 0.001, "B_TAPS")
+	# The score's steps down come as each of the town's lights goes out.
+	var rats := _make(Outro.Ending.RATS)
+	var rolls: Array = score["OUTRO_B_ROLLS"]
+	var times := rats.roll_times()
+	assert_eq(rolls.size(), times.size(), "music.py OUTRO_B_ROLLS: one per light out there")
+	for i in mini(rolls.size(), times.size()):
+		assert_almost_eq(float(rolls[i]), times[i], 0.001, "music.py OUTRO_B_ROLLS[%d]" % i)
 	# The score's plops come as the slices land (their flights decide when).
 	var outro := _make(Outro.Ending.SUPERVISORS)
 	var lands: Array = score["OUTRO_A_LANDS"]
@@ -116,7 +133,7 @@ func test_shots_start_at_zero_in_order_inside_the_room() -> void:
 	for ending: Outro.Ending in [Outro.Ending.SUPERVISORS, Outro.Ending.RATS]:
 		var outro := Outro.new(ending)
 		var shots := outro._shot_list()
-		assert_between(shots.size(), 2, 4, "one to three cuts")
+		assert_between(shots.size(), 2, 8, "one to seven cuts")
 		assert_eq(shots[0]["start"], 0.0)
 		for i in shots.size():
 			if i > 0:
@@ -140,7 +157,11 @@ func test_clips_marks_parts_models_and_sounds_exist() -> void:
 	grandma.free()
 	var rat := Art.instance("rat")
 	var rat_player := rat.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
-	for clip: String in _literals([r'rat\.pose_at\("([a-z_]+)"']):
+	var clips: Array[String] = RAT_CLIPS.duplicate()
+	for spot in _make(Outro.Ending.RATS, Outro.MAX_RATS).spots():
+		if spot.has("clip"):
+			clips.append(spot["clip"])
+	for clip in clips:
 		assert_true(rat_player.has_animation(clip), "the rat's clip '%s'" % clip)
 	rat.free()
 	var models := _literals([r'Art\.(?:add|instance)\([^"\n]*"([a-z0-9_]+)"', r'_on_mark\("([a-z0-9_]+)"'])
@@ -152,7 +173,7 @@ func test_clips_marks_parts_models_and_sounds_exist() -> void:
 		for part: String in PARTS[model]:
 			assert_not_null(Art.part(node, part), "%s has no part '%s'" % [model, part])
 		node.free()
-	var sounds := _literals([r'_sfx\([^,]+,\s*"([a-z0-9_]+)"', r'_loop\("([a-z0-9_]+)"'])
+	var sounds := _literals([r'_sfx(?:_pitched)?\([^,]+,\s*"([a-z0-9_]+)"', r'_loop\("([a-z0-9_]+)"'])
 	assert_gt(sounds.size(), 20)
 	for sound: String in sounds:
 		assert_true(Sfx.has_sound(sound), "sound '%s' (%s) is not in Sfx.SOUNDS" % [sound, sounds[sound]])
@@ -218,6 +239,101 @@ func test_grandma_sinking_into_the_floor_fails() -> void:
 	var report := OutroPhysics.new(_make(Outro.Ending.RATS)).run(func(o: Outro, _time: float) -> void:
 		o.grandma.position.y = -0.01, 0.0, 0.2)
 	assert_true(_mentions(report, "slippers"), "\n".join(report))
+
+
+# --- The rats ----------------------------------------------------------------------------------------------
+
+## Every spot (the most rats: all six) in the dark: each rat on its surface, in no prop, its eyes in
+## sight as they open, and the last pair by her face (the whole sweep covers the default four).
+func test_every_rat_spot_is_on_its_surface_and_in_sight() -> void:
+	var report := OutroPhysics.new(_make(Outro.Ending.RATS, Outro.MAX_RATS)).run(Callable(), Outro.B_EYES - 0.1,
+		Outro.LENGTHS[Outro.Ending.RATS])
+	assert_true(report.is_empty(), "\n" + "\n".join(report))
+
+
+## One pair of eyes per winning rat, each at a spot of its own: 1, the default, the most; fewer than
+## one or more than the spots clamp. The mess follows: more rats, more crumbs; the butter's bitten when
+## its rat (the third) is there.
+func test_the_eyes_follow_the_rat_count() -> void:
+	var crumbs: Array[int] = []
+	for asked: int in [1, Outro.DEFAULT_RATS, Outro.MAX_RATS, 0, -3, Outro.MAX_RATS + 1, 99]:
+		var outro := _make(Outro.Ending.RATS, asked)
+		var expected := clampi(asked, 1, Outro.MAX_RATS)
+		assert_eq(outro.rats, expected, "%d rats asked" % asked)
+		assert_eq(_open_eyes(outro, Outro.B_SNICKER - 0.1), expected, "%d rats: one pair each, all open" % asked)
+		var spots := {}
+		for member in outro.gang:
+			spots[member["spot"]["name"]] = true
+		assert_eq(spots.size(), expected, "each at a spot of its own")
+		assert_eq(_open_eyes(outro, Outro.B_EYES - 0.05), 0, "none before the first")
+		crumbs.append(outro._crumbs.size())
+		outro.seek(Outro.B_LIGHT + 0.1)
+		assert_eq(outro.set_.butter_bitten.visible, expected >= 3,
+			"%d rats: the butter's bitten when its rat is there" % asked)
+	assert_lt(crumbs[0], crumbs[1], "more rats, more crumbs")
+	assert_lt(crumbs[1], crumbs[2], "more rats, more crumbs")
+
+
+## The plant goes dark first, then each house from the farthest to the nearest, the garden's lantern,
+## and her lamp last of all; each light out there is lit until its turn, out after it.
+func test_the_lights_go_out_towards_her() -> void:
+	var report := _roll_problems(_make(Outro.Ending.RATS))
+	assert_true(report.is_empty(), "\n".join(report))
+
+
+func test_the_caged_rat_stays_in_its_cage_on_its_counter() -> void:
+	var outro := _make(Outro.Ending.SUPERVISORS)
+	assert_not_null(outro.set_.cage, "the supervisors' kitchen has its hamster cage")
+	assert_not_null(outro.cage_rat, "with a rat in it")
+	var report := OutroPhysics.new(outro).run(Callable(), 0.0, 0.05)  # (the props' rest, and the rat at the start)
+	report.append_array(OutroPhysics.new(outro).run(Callable(), Outro.A_DING, Outro.LENGTHS[Outro.Ending.SUPERVISORS]))
+	assert_true(report.is_empty(), "\n".join(report))
+
+
+## The checks catch what they're for (the rats' too).
+func test_a_rat_out_of_its_cage_fails() -> void:
+	var report := OutroPhysics.new(_make(Outro.Ending.SUPERVISORS)).run(func(o: Outro, _time: float) -> void:
+		o.cage_rat.position.z += 0.3, 7.0, 7.2)  # (through the front bars)
+	assert_true(_mentions(report, "caged rat is out of its cage"), "\n".join(report))
+
+
+func test_a_floating_cage_fails() -> void:
+	var outro := _make(Outro.Ending.SUPERVISORS)
+	outro.set_.cage.position.y += 0.01
+	var report := OutroPhysics.new(outro).run(Callable(), 0.0, 0.02)
+	assert_true(_mentions(report, "cage on the sink counter", "floating"), "\n".join(report))
+
+
+func test_a_rat_sunk_in_the_fridge_fails() -> void:
+	var report := OutroPhysics.new(_make(Outro.Ending.RATS)).run(func(o: Outro, _time: float) -> void:
+		var actor: IntroActor = o.gang[1]["actor"]
+		actor.position.y -= 0.03, Outro.eyes_at(1) + 0.05, Outro.eyes_at(1) + 0.15)
+	assert_true(_mentions(report, "Rat_fridge on the fridge", "sunk in"), "\n".join(report))
+
+
+func test_eyes_behind_grandma_fail() -> void:
+	var report := OutroPhysics.new(_make(Outro.Ending.RATS)).run(func(o: Outro, time: float) -> void:
+		if time >= Outro.eyes_at(2):  # the butter rat's eyes, behind her head
+			for glint: MeshInstance3D in o.gang[2]["glints"]:
+				glint.global_position = Outro.bone_xform(o.grandma, "head") * Vector3(0.0, 0.18, -0.12),
+		Outro.eyes_at(2) - 0.05, Outro.eyes_at(2) + 0.2)
+	assert_true(_mentions(report, "eyes at the butter", "hidden"), "\n".join(report))
+
+
+func test_houses_going_out_out_of_order_fail() -> void:
+	var outro := _make(Outro.Ending.RATS)
+	var lights := outro.set_.town_lights
+	var distances := outro.set_.town_distances
+	var near := lights.size() - 2  # the nearest house goes out before a farther one
+	lights.insert(1, lights.pop_at(near))
+	distances.insert(1, distances.pop_at(near))
+	assert_true(_mentions(_roll_problems(outro), "farther"), "\n".join(_roll_problems(outro)))
+
+
+func test_a_missing_pair_of_eyes_fails() -> void:
+	var outro := _make(Outro.Ending.RATS, 3)
+	outro.gang.pop_back()  # a rat short
+	assert_ne(_open_eyes(outro, Outro.B_SNICKER - 0.1), clampi(outro.rats, 1, Outro.MAX_RATS))
 
 
 # --- The skip ------------------------------------------------------------------------------------------
@@ -292,6 +408,48 @@ func _step_tweens(seconds: float) -> void:
 
 static func _mentions(report: Array[String], a: String, b := "") -> bool:
 	return report.any(func(line: String) -> bool: return line.contains(a) and (b == "" or line.contains(b)))
+
+
+## How many pairs of eyes are open in the dark at `time` (both glints of a pair showing).
+static func _open_eyes(outro: Outro, time: float) -> int:
+	outro.seek(time)
+	var open := 0
+	for member in outro.gang:
+		var glints: Array = member["glints"]
+		if glints.all(func(g: MeshInstance3D) -> bool: return g.visible and g.scale.y > 0.3):
+			open += 1
+	return open
+
+
+## What's wrong with the rolling blackout: each of the town's lights (the plant first, then nearer and
+## nearer) goes out after the one before, lit until then and out after, all before her lamp dies.
+static func _roll_problems(outro: Outro) -> Array[String]:
+	var out: Array[String] = []
+	var times := outro.roll_times()
+	var distances := outro.set_.town_distances
+	if times.size() != outro.set_.town_lights.size() or times.size() < 7:
+		out.append("the plant, the houses and the lantern: %d lights, %d times" % [outro.set_.town_lights.size(),
+			times.size()])
+		return out
+	for k in times.size():
+		if k > 0 and times[k] <= times[k - 1]:
+			out.append("light %d goes out before light %d" % [k, k - 1])
+		if k > 0 and distances[k] > distances[k - 1]:
+			out.append("light %d (%.0f m) is farther than light %d (%.0f m) but goes out after it" % [k, distances[k],
+				k - 1, distances[k - 1]])
+		if times[k] >= Outro.B_BLACKOUT:
+			out.append("light %d goes out after her lamp" % k)
+		var before: Array[float] = outro.town_lights_at(times[k] - 0.01)
+		var after: Array[float] = outro.town_lights_at(times[k] + 0.1)
+		if before[k] < 1.0 or after[k] > 0.0:
+			out.append("light %d isn't lit until its turn, out after it" % k)
+	outro.seek(Outro.B_BLACKOUT - 0.01)
+	if outro.set_.lamp_light.light_energy <= 0.0:
+		out.append("her lamp is out before its turn")
+	outro.seek(Outro.B_BLACKOUT + 0.3)
+	if outro.set_.lamp_light.light_energy > 0.0 or outro.set_.town_lights.size() == 0:
+		out.append("her lamp is still on after the blackout")
+	return out
 
 
 ## Every string the patterns' first group catches in the outro's scripts (value -> script file).

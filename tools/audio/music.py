@@ -448,23 +448,30 @@ def intro():
 # Written to the cinematics' clock, in seconds: each section starts on a cue of outro.gd (Outro.A_*,
 # B_*). Move a cue there, move it here too (tests/unit/test_outro.gd checks the lengths).
 
-OUTRO_A_S = 8.3
+OUTRO_A_S = 9.5
 OUTRO_A_CLICK = 0.9  # the lever goes down
 OUTRO_A_DING = 3.8
+OUTRO_A_HEART = 4.05  # the cooling towers puff a heart
 OUTRO_A_LANDS = (4.56, 4.80)  # the slices land (their flights decide: client/outro/outro.gd _throw)
 OUTRO_A_JOY = 5.05
 OUTRO_A_SPARKLE = 6.05
-OUTRO_A_BITE = 6.95  # CRUNCH: the music stops dead
-OUTRO_B_S = 9.3
+OUTRO_A_WINK = 6.5  # the photo winks back
+OUTRO_A_BITE = 7.65  # CRUNCH: the music stops dead
+OUTRO_A_HMPH = 8.15  # the caged rat turns its back
+OUTRO_B_S = 11.9
 OUTRO_B_FLICKER = 0.4
 OUTRO_B_CLICK = 0.9
 OUTRO_B_PWOMP = 3.8
 OUTRO_B_SHOCK = 4.6
 OUTRO_B_POUT = 5.1
-OUTRO_B_BLACKOUT = 5.8  # the power-down: the music runs down like a record losing power
-OUTRO_B_EYES = 6.8  # the sneaky pizzicato
-OUTRO_B_LIGHT = 7.9  # the match
-OUTRO_B_BLOW = 8.8
+OUTRO_B_COUGH = 5.9  # the plant coughs: the music box sours
+OUTRO_B_ROLLS = (6.4, 6.54, 6.66, 6.77, 6.87, 6.96, 7.04, 7.12)  # each light out there going out (outro.gd roll_times)
+OUTRO_B_BLACKOUT = 7.35  # her lamp: the music runs down like a record losing power
+OUTRO_B_EYES = 8.1  # the sneaky pizzicato
+OUTRO_B_SNICKER = 9.6  # it stops for the snicker chorus
+OUTRO_B_LIGHT = 9.77  # the match
+OUTRO_B_BLOW = 10.67
+OUTRO_B_BUTTON = 11.2  # the last eyes: a cheeky plink-plonk
 
 
 def _tape_stop(x, at, dur):
@@ -485,9 +492,10 @@ def _tape_stop(x, at, dur):
 def outro_supervisors():
     """Grandma's golden toast: a jaunty little piece in F. Morning (a glockenspiel over soft strings),
     the wait (pizzicato tick-tock, a tuba, a glockenspiel climbing), a snare roll into the DING (a brass
-    stab), the slices flipping (a xylophone run up, a hang, down; woodblock plops as they land), joy
-    (a strummed, oompah'd tune with a brass melody), a twinkle on the photo, a dead stop on the CRUNCH,
-    then a warm cadence while she chews."""
+    stab), the slices flipping (a xylophone run up, a hang, down; woodblock plops as they land), a harp
+    rising with the towers' heart, joy (a strummed, oompah'd tune with a brass melody), a twinkle on the
+    photo and another as it winks back, a dead stop on the CRUNCH, then a warm cadence while she chews,
+    with a sulky muted "wah-wah" for the caged rat's hmph."""
     sc = Score(OUTRO_A_S)
     rng = np.random.default_rng(31)
     # Morning: F major strings swelling in, a rising glockenspiel motif.
@@ -523,45 +531,60 @@ def outro_supervisors():
         sc.add(S.xylophone(S.midi(84 if j % 2 == 0 else 86), 0.2), 4.2 + j * 0.035, 0.3, 0.2)
     for j, n in enumerate(reversed(up)):
         sc.add(S.xylophone(S.midi(n + 12), 0.25), 4.42 + j * 0.038, 0.4, 0.2 - j * 0.04)
+    # The heart over the towers: a soft harp rising behind it, and a warm "aww" chord.
+    for j, n in enumerate((65, 69, 72, 77, 81, 84)):
+        sc.add(S.pluck(S.midi(n), 0.9, 0.6, 0.997, rng), OUTRO_A_HEART + 0.05 + j * 0.05, 0.22, 0.4)
+    sc.add(_strings([65, 69, 72, 77], 0.9, 0.3, attack=0.25, cutoff=2600), OUTRO_A_HEART + 0.1, 0.6, 0.3)
     for at in OUTRO_A_LANDS:
         sc.add(S.woodblock(700, 0.9), at, 0.7)
         sc.add(S.pluck(S.midi(53), 0.4, 0.4, 0.99, rng), at, 0.6)
-    # Joy: a strummed oompah and a brass tune, F - Bb - C - F.
+    # Joy: a strummed oompah and a brass tune, F - Bb - C - F (and again, until the CRUNCH).
     jb = 0.26
     bars = [([53, 57, 60, 65], 41), ([53, 58, 62, 65], 46), ([55, 60, 64, 67], 48), ([53, 57, 60, 65], 41)]
     tune = [(0, 77, 1), (1, 81, 1), (2, 84, 2), (4, 82, 1), (5, 81, 1), (6, 79, 2), (8, 76, 1), (9, 79, 1),
-            (10, 84, 2)]
-    for b, (chord, root) in enumerate(bars):
+            (10, 84, 2), (12, 81, 1), (13, 77, 1), (14, 79, 2), (16, 77, 2)]
+    for b in range(8):
+        chord, root = bars[b % 4]
         b0 = OUTRO_A_JOY + 0.02 + b * 4 * jb
         if b0 > OUTRO_A_BITE - 0.05:
             break
         sc.add(S.tuba(S.midi(root), jb * 0.8, 0.9), b0, 0.55)
-        sc.add(S.tuba(S.midi(root + 7), jb * 0.8, 0.8), b0 + 2 * jb, 0.45)
-        for s in (1, 3):
-            strum = sum(S.pluck(S.midi(n + 12), jb * 1.2, 0.6, 0.99, rng) for n in chord)
-            sc.add(strum, b0 + s * jb, 0.18, 0.3)
+        if b0 + 2 * jb < OUTRO_A_BITE - 0.05:
+            sc.add(S.tuba(S.midi(root + 7), jb * 0.8, 0.8), b0 + 2 * jb, 0.45)
+        for st in (1, 3):
+            if b0 + st * jb < OUTRO_A_BITE - 0.08:
+                strum = sum(S.pluck(S.midi(n + 12), jb * 1.2, 0.6, 0.99, rng) for n in chord)
+                sc.add(strum, b0 + st * jb, 0.18, 0.3)
     for at, n, length in tune:
         when = OUTRO_A_JOY + 0.02 + at * jb
         if when > OUTRO_A_BITE - 0.08:
             break
         sc.add(S.brass(S.midi(n - 12), min(length * jb, OUTRO_A_BITE - when - 0.02), 0.8, 2600), when, 0.42, -0.2)
         sc.add(S.glockenspiel(S.midi(n), 0.5, 0.3), when, 0.18, 0.25)
-    for k2, n in enumerate((96, 100, 103)):  # the photo's twinkle
+    for k2, n in enumerate((96, 100, 103)):  # the photo's twinkle...
         sc.add(S.glockenspiel(S.midi(n), 0.6, 0.25), OUTRO_A_SPARKLE + k2 * 0.05, 0.3, 0.3)
+    for k2, n in enumerate((103, 100, 108)):  # ...and its wink back
+        sc.add(S.glockenspiel(S.midi(n), 0.5, 0.25), OUTRO_A_WINK + k2 * 0.06, 0.28, -0.3)
     # CRUNCH: everything stops dead, reverb and all (the bite is alone), then the warm ending swells in
-    # with her "mmm".
+    # with her "mmm", the caged rat's sulky muted wah-wah under it.
     buf = sc.reverb(0.18, 1.0).buf
     gap0, gap1 = samples(OUTRO_A_BITE - 0.03), samples(OUTRO_A_BITE + 0.02)
     buf[gap0:gap1] *= np.linspace(1, 0, gap1 - gap0)[:, None] ** 2
     buf[gap1:] = 0.0
     warm = OUTRO_A_BITE + 0.28
     end = Score(OUTRO_A_S)
-    end.add(_strings([53, 57, 60, 65], 1.1, 0.7, attack=0.3), warm, 0.9)
-    end.add(_strings([58, 62, 65, 70], 0.7, 0.6, attack=0.3), warm, 0.5, 0.2)
+    end.add(_strings([53, 57, 60, 65], 1.4, 0.7, attack=0.3), warm, 0.9)
+    end.add(_strings([58, 62, 65, 70], 0.9, 0.6, attack=0.3), warm, 0.5, 0.2)
     for k2, n in enumerate((65, 69, 72, 77, 81, 84)):  # a harp-ish arpeggio
         end.add(S.pluck(S.midi(n), 1.2, 0.7, 0.997, rng), warm + 0.06 + k2 * 0.08, 0.3, -0.3 + k2 * 0.12)
-    end.add(_strings([53, 60, 65, 69, 72], 0.75, 0.8, attack=0.2), warm + 0.62, 0.8)
-    end.add(S.glockenspiel(S.midi(89), 1.0, 0.5), warm + 0.62, 0.3, 0.3)
+    for at, (a, b), d in ((OUTRO_A_HMPH + 0.04, (58, 56), 0.22), (OUTRO_A_HMPH + 0.3, (56, 53), 0.34)):
+        tt = np.arange(samples(d)) / SR  # the hmph: a muted trombone's wah-wah, down
+        f = S.midi(a) * (S.midi(b) / S.midi(a)) ** np.clip(tt / d * 1.4, 0, 1)
+        x = S.saw(f, d) + 0.6 * S.saw(f * 1.004, d)
+        x = S.sweep_filter(x, lambda u: 80, lambda u: 450 + 1100 * np.sin(np.pi * min(1.0, u * 1.2)))
+        end.add(x * S.env_adsr(d, 0.03, 0.08, 0.8, 0.1), at, 0.32, 0.4)
+    end.add(_strings([53, 60, 65, 69, 72], 1.0, 0.8, attack=0.2), warm + 0.95, 0.8)
+    end.add(S.glockenspiel(S.midi(89), 1.0, 0.5), warm + 0.95, 0.3, 0.3)
     out = buf + end.reverb(0.18, 1.0).buf
     out[-samples(0.5):] *= np.linspace(1, 0, samples(0.5))[:, None]
     return out
@@ -570,9 +593,11 @@ def outro_supervisors():
 def outro_rats():
     """Grandma's power cut: a wobbly music box at dawn (A minor, detuned, the flicker bends it), the
     wait gone thin, a deflated "wah" for the pale slices, a stab for her shock, a sad "wah" for the
-    pout; at the blackout the whole thing runs down like a turntable losing power. A beat of silence.
-    The eyes: a sneaky pizzicato, staccato and low. The match: a soft glassy chord, held, cut by her
-    breath."""
+    pout; the plant's cough sours it (a low, queasy brass), then it steps down a note for each light
+    going out, nearer and nearer, and when her lamp dies the whole thing runs down like a turntable
+    losing power. A beat of silence. The eyes: a sneaky pizzicato, staccato and low, that stops dead for
+    the snicker. The match: a soft glassy chord, held, cut by her breath. Then the last eyes: a cheeky
+    plink-plonk, and nothing."""
     sc = Score(OUTRO_B_S)
     rng = np.random.default_rng(32)
     melody = [(0.0, 76), (0.3, 72), (0.6, 69), (0.9, 72), (1.2, 76), (1.5, 77), (1.8, 76), (2.1, 72), (2.4, 71),
@@ -600,13 +625,24 @@ def outro_rats():
     for at, n in ((5.2, 69), (5.45, 67), (5.65, 64)):  # the music box, sadder
         sc.add(S.glockenspiel(S.midi(n) * 0.995, 0.8, 0.4), at, 0.3, 0.2)
     sc.add(_strings([57, 60, 64], 0.9, 0.5, attack=0.4, cutoff=1300), 5.0, 0.6)
+    # The cough: a low, queasy brass cluster swelling under it, the music box off key.
+    sc.add(sum(S.brass(S.midi(n) * 0.99, 0.5, 0.8, 1200) for n in (40, 41, 46)) * S.env_adsr(0.5, 0.12, 0.1, 0.7, 0.2),
+           OUTRO_B_COUGH + 0.05, 0.4, -0.1)
+    sc.add(S.glockenspiel(S.midi(70) * 0.97, 0.7, 0.4), OUTRO_B_COUGH + 0.3, 0.3, 0.2)
+    # The lights going out: a pizzicato stepping down, one note each, nearer (louder) each time.
+    steps = [69, 68, 67, 66, 65, 64, 63, 62]
+    for j, at in enumerate(OUTRO_B_ROLLS):
+        sc.add(S.pluck(S.midi(steps[j % len(steps)]), 0.2, 0.4, 0.98, rng) * S.env_exp(0.2, 0.06),
+               at, 0.3 + 0.05 * j, 0.3 - 0.08 * j)
+    sc.add(_strings([45, 48, 51], OUTRO_B_BLACKOUT - OUTRO_B_ROLLS[0] + 0.1, 0.35, attack=0.6, cutoff=900),
+           OUTRO_B_ROLLS[0], 0.6)
     buf = _tape_stop(sc.reverb(0.16, 1.0).buf, OUTRO_B_BLACKOUT - 0.02, 0.45)  # the power goes
-    # The eyes: a sneaky pizzicato (staccato, chromatic, low), a soft tick.
+    # The eyes: a sneaky pizzicato (staccato, chromatic, low), a soft tick; it stops for the snicker.
     sneak = Score(OUTRO_B_S)
-    line = [45, 48, 47, 46, 45, 52, 51, 50, 45, 48]
+    line = [45, 48, 47, 46, 45, 52, 51, 50, 45, 48, 47, 46, 45, 40]
     for k, n in enumerate(line):
         at = OUTRO_B_EYES + 0.05 + k * 0.105
-        if at > OUTRO_B_LIGHT - 0.08:
+        if at > OUTRO_B_SNICKER - 0.06:
             break
         sneak.add(S.pluck(S.midi(n), 0.14, 0.4, 0.98, rng) * S.env_exp(0.14, 0.05), at, 0.75, -0.1)
         if k % 2 == 0:
@@ -616,10 +652,16 @@ def outro_rats():
     sneak.add(sum(S.glockenspiel(S.midi(n), 1.2, 0.5) for n in (81, 85, 88)), OUTRO_B_LIGHT, 0.25, 0.2)
     sneak.add(_strings([57, 64, 69, 73], hold, 0.35, attack=0.25, cutoff=1600), OUTRO_B_LIGHT, 0.7)
     b = sneak.reverb(0.16, 1.0).buf
-    cut = samples(OUTRO_B_BLOW + 0.02)  # her breath cuts it: the dark is silent
+    cut = samples(OUTRO_B_BLOW + 0.02)  # her breath cuts it: the dark is silent...
     b[cut:cut + samples(0.08)] *= np.linspace(1, 0, samples(0.08))[:, None]
     b[cut + samples(0.08):] = 0.0
-    return buf + b
+    # ...but for the last eyes: a cheeky pizzicato plink-plonk, dry and close, then the cut.
+    tag = Score(OUTRO_B_S)
+    for at, n in ((OUTRO_B_BUTTON + 0.02, 64), (OUTRO_B_BUTTON + 0.16, 57)):
+        tag.add(S.pluck(S.midi(n), 0.18, 0.5, 0.98, rng) * S.env_exp(0.18, 0.05), at, 0.6, 0.2)
+    out = buf + b + tag.buf
+    out[-samples(0.03):] *= np.linspace(1, 0, samples(0.03))[:, None]
+    return out
 
 
 def _master(stems, level=0.85):

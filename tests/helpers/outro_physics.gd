@@ -23,6 +23,14 @@ extends RefCounted
 ## following its bone. A slice meets her with points all over its real surface (its rounded
 ## outline, not its box). Her slippers and her hand on the lever are checked with their vertices.
 ##
+## The rats. In the dark (RATS) each rat sits on what its spot says (Outro.spots(): the counter, the
+## fridge, the windowsill, her plate) while it's there, no deeper than PENETRATION and no higher than
+## CONTACT, and never goes into a prop; its eyes, when they open, are seen from the camera (no mesh and
+## no piece of grandma on the way), and so is the last pair, by her face. The caged rat (SUPERVISORS)
+## stays inside its cage, sits on its floor (but for its hop) and never goes into the bars, the
+## wheel or the bowl; the cage stands on the sink counter, in nothing. A rat is checked with its
+## vertices (rigid skin, like grandma's: each follows its bone), against the props' cells.
+##
 ## run() returns the problems, one line each with its worst moment (empty: all good). A test passes
 ## a `tweak` to break a timeline on purpose (a slice pushed into the plate...): the checks must
 ## catch it.
@@ -74,12 +82,25 @@ const HANG_PULL := 1.5  ## x G
 const CELL := 0.1
 const TIGHT := 0.004
 const PROP_CELLS := {"the toaster": 0.06, "the lever": 0.05, "the counter": 0.3, "the plate": 0.06, "her cup": 0.05,
-	"the butter dish": 0.08}
+	"the butter dish": 0.08, "the cage": 0.05, "the fridge": 0.3, "the window": 0.1, "the sink counter": 0.15}
+## The rats are checked every RAT_STEP (they sit and nibble: slower than the slices).
+const RAT_STEP := 1.0 / 30.0
+const FRIDGE_TOP := 1.45  ## kitchen.py build_fridge H
+## The cage (tools/blender/intro_props.py, in its own space, unscaled): its floor (the tray's top: the
+## bedding is under it), and the room inside its bars and under its roof.
+const CAGE_FLOOR := 0.08
+const CAGE_INSIDE := AABB(Vector3(-0.305, 0.075, -0.195), Vector3(0.61, 0.403, 0.39))
+## A hit on the way to an eye this close to it is what it sits on (an eye on the cat clock's face).
+const EYE_CLEARANCE := 0.03
+## The last pair of eyes is right by her face: within this of her head's middle.
+const BUTTON_REACH := 0.42
 
 # Cut once per process (the cells take a moment): mesh id -> ...
 static var _surfaces: Dictionary[int, PackedVector3Array] = {}  # points over its surface (its space)
 static var _mesh_cells: Dictionary[int, Array] = {}  # its cells [Piece] (its space)
 static var _grandmas: Dictionary[int, Dictionary] = {}  # {pieces: bone -> [Piece], points: bone -> vertices, reach}
+static var _actors: Dictionary[int, Dictionary] = {}  # a rat's mesh -> {bone -> its vertices (bone space)}
+static var _triangles: Dictionary[int, TriangleMesh] = {}  # a mesh -> its triangles (for the eyes' sight lines)
 
 var outro: Outro
 var _problems: Dictionary[String, Dictionary] = {}  # key -> {text, worst, at, from, to, count}
@@ -95,6 +116,10 @@ var _toaster_solid: Array[AABB] = []  # in the toaster's frame
 var _furniture: Array[Dictionary] = []
 var _slots: Array[AABB] = []
 var _samples: Array[Dictionary] = []  # per step: {t, toasts (positions), states, lever, contact}
+var _rat_props: Array[Dictionary] = []  # what the rats mustn't go into: like _furniture, and the fridge, window...
+var _cage_boxes: Array[Box] = []  # the cage's cells (SUPERVISORS)
+var _tweak := Callable()
+var _next_rat_check := 0.0
 
 
 ## A box in the world: a frame (orthonormal), half sizes, and an all-round rounding (0: sharp).
@@ -342,10 +367,13 @@ func run(tweak := Callable(), from := 0.0, to := INF) -> Array[String]:
 	_problems.clear()
 	_samples.clear()
 	outro.playing = false
+	_tweak = tweak
 	_build_grandma()
 	_build_toaster()
 	_check_props_rest()
 	_build_furniture()
+	_build_rat_props()
+	_next_rat_check = from
 	var end := minf(to, outro.length())
 	var steps := int(ceil((end - from) / STEP))
 	for i in steps + 1:
@@ -360,6 +388,8 @@ func run(tweak := Callable(), from := 0.0, to := INF) -> Array[String]:
 		_check_grab()
 	if outro.ending == Outro.Ending.SUPERVISORS and from <= Outro.A_BITE and end >= Outro.A_BITE:
 		_check_bite()
+	if outro.ending == Outro.Ending.RATS:
+		_check_eyes(from, end)
 	var lines: Array[String] = []
 	for key: String in _problems:
 		var p := _problems[key]
@@ -805,6 +835,12 @@ func _check_moment(time: float) -> void:
 	_check_feet(time)
 	_check_grandma(time)
 	_check_camera(time)
+	if time >= _next_rat_check - 1e-6:
+		_next_rat_check += RAT_STEP
+		if outro.ending == Outro.Ending.RATS:
+			_check_gang(time)
+		else:
+			_check_cage_rat(time)
 
 
 func _check_toast(time: float, k: int, boxes: Array, state: Dictionary) -> void:
@@ -905,12 +941,24 @@ func _gap(time: float, what: String, gap: float) -> void:
 		_problem(what + "-float", what + ": floating", time, gap)
 
 
-## The props stand on the counter (they don't move: once).
+## The props stand on the counter (they don't move: once); the cage on the sink counter, in nothing.
 func _check_props_rest() -> void:
 	outro.seek(0.0)
 	var counter := world_aabb(outro.set_.island).end.y
 	for prop: Node3D in [outro.set_.toaster, outro.set_.plate, outro.set_.teacup, outro.set_.butter.get_parent()]:
 		_gap(0.0, "the %s on the counter" % prop.name, world_aabb(prop).position.y - counter)
+	var cage := outro.set_.cage
+	if cage != null:
+		_gap(0.0, "the cage on the sink counter", world_aabb(cage).position.y - OutroKitchen.COUNTER_TOP)
+		var counter_cells := _cells_of(outro.set_.sink_counter, "the sink counter")
+		for mesh in Art.meshes(cage):
+			for cell in mesh_cells(mesh.mesh, PROP_CELLS["the cage"]):
+				var box := Box.make("the cage", mesh.global_transform * Transform3D(cell.basis, Vector3.ZERO), cell.aabb,
+					cell.radius)
+				for other: Box in counter_cells:
+					var d := depth(box, other)
+					if d > PENETRATION and box.lowest() > OutroKitchen.COUNTER_TOP - 0.01:  # (its tray on the top is the gap above)
+						_problem("cage-counter", "the cage goes into the sink counter (its sink, tap or canisters)", 0.0, d)
 
 
 ## Her slippers are on the floor, unless she hops; never through it.
@@ -1128,3 +1176,299 @@ func _check_flights() -> void:
 			var step: float = (_samples[i]["toasts"][k] as Vector3).distance_to(_samples[i - 1]["toasts"][k])
 			if step > MAX_SPEED * STEP:
 				_problem(label + "-jump", label + " jumps", _samples[i]["t"], step)
+
+
+# --- The rats -----------------------------------------------------------------------------------------
+
+## What the rats mustn't go into, cut in cells: the counter, the toaster and its lever, the plate, her
+## cup, the butter dish, the fridge, the window (its sill and geraniums), the sink counter.
+func _build_rat_props() -> void:
+	_rat_props.clear()
+	var set_ := outro.set_
+	var things := {"the counter": set_.island, "the toaster": Art.part(set_.toaster, "Body"), "the lever": set_.lever,
+		"the plate": set_.plate, "her cup": set_.teacup, "the butter dish": set_.butter.get_parent(),
+		"the fridge": set_.fridge, "the window": set_.window, "the sink counter": set_.sink_counter}
+	for thing: String in things:
+		var node: Node3D = things[thing]
+		if node == null:
+			continue
+		for mesh in Art.meshes(node):
+			if mesh.mesh != null and mesh.is_visible_in_tree():
+				var item := {"name": thing, "mesh": mesh, "cells": mesh_cells(mesh.mesh, PROP_CELLS[thing]),
+					"moves": thing == "the lever"}
+				_place(item)
+				_rat_props.append(item)
+
+
+## A node's meshes cut in cells, placed (they don't move).
+func _cells_of(node: Node3D, label: String) -> Array[Box]:
+	var out: Array[Box] = []
+	if node == null:
+		return out
+	for mesh in Art.meshes(node):
+		for cell in mesh_cells(mesh.mesh, PROP_CELLS.get(label, CELL)):
+			out.append(Box.make(label, mesh.global_transform * Transform3D(cell.basis, Vector3.ZERO), cell.aabb, cell.radius))
+	return out
+
+
+## A rat's vertices now, in the world (every other one: enough to find a rat in a prop), from its
+## skeleton's pose.
+func _rat_points(actor: IntroActor) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	if actor == null or actor.skeleton == null:
+		return out
+	var mesh_instance: MeshInstance3D = null
+	for node in actor.model.find_children("*", "MeshInstance3D", true, false):
+		if (node as MeshInstance3D).skin != null:
+			mesh_instance = node
+	var id := mesh_instance.mesh.get_instance_id()
+	if not _actors.has(id):
+		_actors[id] = bone_vertices(mesh_instance, 2)
+	var skel := actor.skeleton
+	var by_bone: Dictionary = _actors[id]
+	for bone: String in by_bone:
+		var xform := skel.global_transform * skel.get_bone_global_pose(skel.find_bone(bone))
+		for p: Vector3 in by_bone[bone]:
+			out.append(xform * p)
+	return out
+
+
+## A rigid-skinned mesh's vertices by bone, in their bone's space (every `every`-th).
+static func bone_vertices(mesh_instance: MeshInstance3D, every := 1) -> Dictionary:
+	var skin := mesh_instance.skin
+	var out := {}
+	for s in mesh_instance.mesh.get_surface_count():
+		var arrays := mesh_instance.mesh.surface_get_arrays(s)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
+		var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+		var per := bones.size() / verts.size()
+		for v in range(0, verts.size(), every):
+			var best := 0
+			for j in per:
+				if weights[v * per + j] > weights[v * per + best]:
+					best = j
+			var bind := bones[v * per + best]
+			var bone := skin.get_bind_name(bind)
+			if not out.has(bone):
+				out[bone] = PackedVector3Array()
+			out[bone].append(skin.get_bind_pose(bind) * verts[v])
+	return out
+
+
+## The rats in the dark: each, while it's there, on what it sits on and in no prop.
+func _check_gang(time: float) -> void:
+	for i in outro.gang.size():
+		var member: Dictionary = outro.gang[i]
+		var actor: IntroActor = member["actor"]
+		if actor == null or not actor.visible:
+			continue  # (eyes alone; not there yet)
+		if i == 0 and time >= Outro.B_LEAP:
+			if time >= Outro.B_LEAP + 0.13 and time < Outro.B_SLIP + 0.2:
+				_check_hang(time, actor)
+			continue
+		var spot: Dictionary = member["spot"]
+		var label: String = actor.name
+		var points := _rat_points(actor)
+		var lowest := INF
+		var centre := Vector3.ZERO
+		for p in points:
+			lowest = minf(lowest, p.y)
+			centre += p
+		centre /= points.size()
+		_gap(time, "%s on %s" % [label, spot["on"]], lowest - _surface(spot["on"]))
+		var reach := AABB(points[0], Vector3.ZERO)
+		for p in points:
+			reach = reach.expand(p)
+		reach = reach.grow(0.01)
+		for item in _rat_props:
+			if item["moves"]:
+				_place(item)
+			if (item["centre"] as Vector3).distance_to(centre) > float(item["reach"]) + 0.5:
+				continue
+			for thing: Box in item["boxes"]:
+				if not reach.intersects(AABB(thing.origin - thing.extent, thing.extent * 2.0)):
+					continue
+				var deepest := 0.0
+				for p in points:
+					deepest = maxf(deepest, -thing.sdf(p))
+				if deepest > PENETRATION:
+					_problem("%s-%s" % [label, item["name"]], "%s goes into %s" % [label, item["name"]], time, deepest)
+
+
+## The rat hanging by its tail from the counter's front edge: in nothing, and (until it slips) its tail
+## resting on the counter's top, over the edge.
+func _check_hang(time: float, actor: IntroActor) -> void:
+	var points := _rat_points(actor)
+	for item in _rat_props:
+		if item["name"] != "the counter":
+			continue
+		for thing: Box in item["boxes"]:
+			var deepest := 0.0
+			for p in points:
+				deepest = maxf(deepest, -thing.sdf(p))
+			if deepest > PENETRATION:
+				_problem("hang-counter", "the hanging rat goes into the counter", time, deepest)
+	if time >= Outro.B_SLIP:
+		return
+	var edge := outro.set_.island.global_position.z + Outro.ISLAND_FRONT
+	var lowest := INF
+	for p in _rat_bone_points(actor, ["tail_3", "tail_4"]):
+		if p.z < edge - 0.004:
+			lowest = minf(lowest, p.y)
+	if lowest == INF:
+		_problem("hang-unhooked", "the hanging rat's tail doesn't reach over the counter's edge", time, 0.0)
+	else:
+		_gap(time, "the hanging rat's tail on the counter's top", lowest - OutroKitchen.COUNTER_TOP)
+
+
+## A rat's vertices of `bones` now, in the world.
+func _rat_bone_points(actor: IntroActor, bones: Array[String]) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var mesh_instance: MeshInstance3D = null
+	for node in actor.model.find_children("*", "MeshInstance3D", true, false):
+		if (node as MeshInstance3D).skin != null:
+			mesh_instance = node
+	var id := mesh_instance.mesh.get_instance_id()
+	if not _actors.has(id):
+		_actors[id] = bone_vertices(mesh_instance, 2)
+	var skel := actor.skeleton
+	for bone in bones:
+		var xform := skel.global_transform * skel.get_bone_global_pose(skel.find_bone(bone))
+		for p: Vector3 in _actors[id].get(bone, PackedVector3Array()):
+			out.append(xform * p)
+	return out
+
+
+## How high what a rat sits on is (Outro.spots()'s "on").
+func _surface(on: String) -> float:
+	match on:
+		"the fridge":
+			return FRIDGE_TOP
+		"the windowsill":
+			return OutroKitchen.SILL.y
+		"the plate":
+			var surface := Art.part(outro.set_.plate, "Surface")
+			return surface.global_position.y if surface != null else OutroKitchen.COUNTER_TOP + 0.01
+	return OutroKitchen.COUNTER_TOP
+
+
+## The caged rat: inside its cage (in the cage's own space), on its bedding but for its hop, in none
+## of the cage's parts (its bars, wheel, bowl, bottle).
+func _check_cage_rat(time: float) -> void:
+	var rat := outro.cage_rat
+	var cage := outro.set_.cage
+	if rat == null or cage == null:
+		return
+	var points := _rat_points(rat)
+	var inv := cage.global_transform.affine_inverse()
+	var scale := cage.global_transform.basis.get_scale().x
+	var out := 0.0
+	var lowest := INF
+	for p in points:
+		var l := inv * p
+		lowest = minf(lowest, l.y)
+		var q := (l - CAGE_INSIDE.get_center()).abs() - CAGE_INSIDE.size * 0.5
+		out = maxf(out, maxf(q.x, maxf(q.y, q.z)))
+	if out > PENETRATION / scale:
+		_problem("cage-rat-out", "the caged rat is out of its cage", time, out * scale)
+	var hopping := time > Outro.A_HMPH and time < Outro.A_HMPH + 0.26
+	var gap := (lowest - CAGE_FLOOR) * scale
+	if gap < -PENETRATION or not hopping:
+		_gap(time, "the caged rat on its floor", gap)
+	var reach := AABB(points[0], Vector3.ZERO)
+	for p in points:
+		reach = reach.expand(p)
+	reach = reach.grow(0.01)
+	for box in _cage_cells():
+		if not reach.intersects(AABB(box.origin - box.extent, box.extent * 2.0)):
+			continue
+		var deepest := 0.0
+		for p in points:
+			deepest = maxf(deepest, -box.sdf(p))
+		if deepest > PENETRATION:
+			_problem("cage-rat-" + box.name, "the caged rat goes into the cage (%s)" % box.name, time, deepest)
+
+
+## The cage's cells above its bedding (its bars, roof, wheel, bowl, bottle), placed (it doesn't move),
+## without the rat in it.
+func _cage_cells() -> Array[Box]:
+	if not _cage_boxes.is_empty():
+		return _cage_boxes
+	var cage := outro.set_.cage
+	var floor_y := cage.global_position.y + CAGE_FLOOR * cage.global_transform.basis.get_scale().x + 0.002
+	for mesh in Art.meshes(cage):
+		if outro.cage_rat.is_ancestor_of(mesh):
+			continue
+		for cell in mesh_cells(mesh.mesh, PROP_CELLS["the cage"]):
+			var box := Box.make(mesh.name, mesh.global_transform * Transform3D(cell.basis, Vector3.ZERO), cell.aabb,
+				cell.radius)
+			if box.highest() >= floor_y:  # (the tray and the bedding under the rat: its _gap)
+				_cage_boxes.append(box)
+	return _cage_boxes
+
+
+## The rats' eyes, each pair as it opens (a little after: open), and the last pair by her face: the
+## camera sees them, no mesh nor grandma on the way.
+func _check_eyes(from: float, to: float) -> void:
+	for i in outro.gang.size():
+		var at := Outro.eyes_at(i) + 0.12
+		if at < from or at > to:
+			continue
+		_seek(at)
+		var member: Dictionary = outro.gang[i]
+		var label: String = member["spot"]["name"]
+		for glint: MeshInstance3D in member["glints"]:
+			if not glint.visible:
+				_problem("eyes-shut-" + label, "the eyes at the %s aren't open" % label, at, 0.0)
+				continue
+			_sight(at, "the eyes at the " + label, glint.global_position, member["actor"])
+	var at := Outro.B_BUTTON + 0.2
+	if at >= from and at <= to:
+		_seek(at)
+		var head := Outro.bone_xform(outro.grandma, "head") * Vector3(0.0, 0.19, 0.0)
+		for glint in outro._button_glints:
+			_sight(at, "the last eyes", glint.global_position, null)
+			var far := glint.global_position.distance_to(head) - BUTTON_REACH
+			if far > 0.0:
+				_problem("button-far", "the last eyes aren't by her face", at, far)
+
+
+## Seeks `time` for a check of its own (the test's tweak too).
+func _seek(time: float) -> void:
+	outro.seek(time)
+	if _tweak.is_valid():
+		_tweak.call(outro, time)
+	_bone_now.clear()
+	_boxes_now.clear()
+
+
+## Whether the camera sees `eye`: a problem names what's in the way (a mesh of the set, or grandma).
+## `owner`'s own meshes don't hide its eyes.
+func _sight(time: float, what: String, eye: Vector3, owner: Node) -> void:
+	var from := outro.camera.global_position
+	var length := from.distance_to(eye)
+	var to := from + (eye - from) * (length - EYE_CLEARANCE) / length
+	for mesh: MeshInstance3D in outro.set_.find_children("*", "MeshInstance3D", true, false):
+		var effect := mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # (glints, crumbs, effects)
+		if mesh.mesh == null or not mesh.is_visible_in_tree() or effect or (owner != null and owner.is_ancestor_of(mesh)) \
+				or mesh.get_viewport() != outro.get_viewport():
+			continue
+		var box := mesh.global_transform * mesh.mesh.get_aabb()
+		if not box.grow(0.01).intersects_segment(from, to):
+			continue
+		var id := mesh.mesh.get_instance_id()
+		if not _triangles.has(id):
+			_triangles[id] = mesh.mesh.generate_triangle_mesh()
+		var inv := mesh.global_transform.affine_inverse()
+		var hit := _triangles[id].intersect_segment(inv * from, inv * to)
+		if not hit.is_empty():
+			_problem("sight-%s-%s" % [what, mesh.name], "%s are hidden from the camera by %s" % [what, mesh.get_path()], time,
+				0.0)
+	for bone in BODY_BONES:
+		for k in int(length / 0.01):
+			var p := from.lerp(to, float(k) / (length / 0.01))
+			for piece in _pieces_near(bone, p, 0.0):
+				if piece.sdf(p) < 0.0:
+					_problem("sight-%s-grandma" % what, "%s are hidden from the camera by %s" % [what, piece.name], time, 0.0)
+					return

@@ -5,6 +5,8 @@
 Standing on its hind legs, slightly hunched, facing -Y (Godot +Z), feet on the origin. About 0.5 m to
 the ear tips, 0.4 m wide, 0.55 m nose to rump plus a 0.5 m tail. One skinned mesh, every part
 weighted 100 % to one bone.
+Clips: the game's (idle, run, jump, fall, crawl, bite, gnaw, stunned, dangle, caged, squeak) and
+the end-of-match cinematics' (sulk, hmph, sit_gnaw: add_outro_clips).
 
 The first half of this file holds small rig helpers that supervisor.py and fp_arms.py import too
 (common.py stays prop-only): make_armature(), skin_rigid(), join(), and Animator, which writes
@@ -539,6 +541,63 @@ def add_clips(anim):
                  "arm_l": P((0, 0, 15 * arms)), "arm_r": P((0, 0, 15 * arms))}
         return add(base(f), extra, tail_wave(f, 8, amp_z=15 * bump(f, 0, 24), lag=0.12))
     anim.clip("squeak", 24, squeak)
+    add_outro_clips(anim)
+
+
+# Sitting on its bottom (the caged pose's legs, its seat on the origin: client/outro/ puts it on a
+# surface), its tail off the floor; with its arms crossed over its chest, for the end-of-match
+# cinematic (client/outro/): a rat caged after the supervisors' win sulks.
+SIT = {"root": P(loc=(0, 0, -0.0401)), "leg_l": P((-78, 0, 8)), "leg_r": P((-78, 0, -8))}
+CROSSED = {"arm_l": P((-72, -8, -62), (0, -0.012, 0.004)), "arm_r": P((-62, 8, 58), (0, 0.004, -0.014))}
+CURLED = (-55, -50, -45, -40)  # the tail wrapped round its feet (each segment bends further to its left)
+
+
+def add_outro_clips(anim):
+    """Clips for the end-of-match cinematics (client/outro/outro.gd poses them to its own clock): sulk
+    (loop), hmph (once, from sulk's first frame: a huff, its nose in the air, held at the end) and
+    sit_gnaw (loop: sitting, nibbling something held in both hands, the tail wrapped round its feet)."""
+    # sulk: arms crossed, head down and turned aside, ears drooping, a slow sigh, a tail-tip flick (3 s).
+    def sulk(f):
+        sigh, flick = bump(f, 20, 70), bump(f, 60, 75)
+        p = dict(SIT, **CROSSED)
+        p.update({"body": P((14 - 5 * sigh, 0, 0)), "head": P((16 - 6 * sigh, 0, 18)),
+                  "jaw": P((0, 0, 0))})
+        p.update(pair("ear", (28 - 10 * sigh, 38, 0)))
+        tail = {"tail_%d" % (k + 1): P((6 if k == 0 else 0, 0, CURLED[k] + (14 * flick if k == 3 else 0)))
+                for k in range(4)}
+        return add(p, tail)
+    anim.clip("sulk", 90, sulk, loop=True)
+
+    # hmph: a huff (shoulders up), the nose up in the air and turned away, ears flicked up, then
+    # settled like that, arms still crossed (0.6 s, held at its last frame).
+    up = dict(SIT, **CROSSED)
+    up.update({"body": P((-6, 0, 0), (0, 0, 0.012)), "head": P((-34, 0, 30)), "jaw": P((0, 0, 0)),
+               **pair("ear", (-24, 6, 0))})
+    settled = dict(up, body=P((2, 0, 0)), head=P((-24, 0, 36)), **pair("ear", (6, 22, 0)))
+    start = sulk(0)
+    base = keyed([(0, start), (4, up, "out"), (10, up), (18, settled, "io")])
+
+    def hmph(f):
+        tail = {"tail_%d" % (k + 1): P((10 if k == 0 else 0, 0, CURLED[k] - 10 * bump(f, 2, 14))) for k in range(4)}
+        pose = base(f)
+        for k in range(4):  # the tail lashes once with the huff
+            pose["tail_%d" % (k + 1)] = tail["tail_%d" % (k + 1)]
+        return pose
+    anim.clip("hmph", 18, hmph)
+
+    # sit_gnaw: sitting, hands up at its mouth, jaw chattering, ears twitching, the tail round its feet
+    # (it fits on a windowsill or a fridge's top) (0.6 s loop).
+    def sit_gnaw(f):
+        tug = wave(f, 18)
+        p = dict(SIT)
+        p.update({"body": P((10 + 3 * tug, 0, 0)), "head": P((10 + 5 * tug, 0, 5 * wave(f, 9))),
+                  "jaw": P((14 + 14 * wave(f, 6), 0, 0)),
+                  "arm_l": P((-96 + 6 * tug, 0, -26)), "arm_r": P((-96 + 6 * tug, 0, 26))})
+        p.update(pair("ear", (5 * wave(f, 6), 14, 0)))
+        tail = {"tail_%d" % (k + 1): P((8 if k == 0 else 0, 0, CURLED[k] + (8 * tug if k == 3 else 0)))
+                for k in range(4)}
+        return add(p, tail)
+    anim.clip("sit_gnaw", 18, sit_gnaw, loop=True)
 
 
 if __name__ == "__main__":

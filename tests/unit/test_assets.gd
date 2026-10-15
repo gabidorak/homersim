@@ -8,6 +8,8 @@ const MODELS: Array[String] = [
 	"lever", "cage", "door_panel", "door_panel_keycard", "keycard_reader", "cctv_box", "cctv_conduit", "cctv_head",
 	"cctv_head_broken", "cctv_chair", "snap_trap", "cheese_lure", "trap_refill", "cheese_box", "keycard", "donut_box",
 	"console_coolant", "console_scram", "pipe_2m",
+	# The end-of-match cinematics (client/outro/; test_outro.gd checks the rest of their models)
+	"grandma", "hamster_cage", "donut_bitten", "garden_lamp", "sink_counter",
 ]
 ## model → parts code looks up by name
 const PARTS := {
@@ -16,7 +18,11 @@ const PARTS := {
 	"console_coolant": ["Button"], "console_scram": ["Button", "Cover"], "supervisor": ["HardHat"],
 	"machine_valves": ["Wheel1", "Wheel2"], "machine_grid": ["Switch1", "Switch8"], "machine_ventilation": ["Fan"],
 	"turbine": ["Shaft"], "reactor_core": ["Rod1", "Rod6"], "roof_fan": ["Fan"], "valve_rack_4m": ["Wheel1", "Wheel4"],
+	"garden_lamp": ["Lamp"],
 }
+## The end-of-match cinematics' sounds (client/outro/outro.gd): the newest beats' too.
+const OUTRO_SOUNDS: Array[String] = ["outro_heart", "outro_wink", "outro_rat_hmph", "outro_cough", "outro_click",
+	"outro_giggle", "outro_snicker", "outro_crunch", "outro_ding"]
 
 
 func test_every_sound_file_exists() -> void:
@@ -73,6 +79,18 @@ func test_character_clips_exist() -> void:
 		for looping in ["idle", "run"]:
 			assert_ne(player.get_animation(looping).loop_mode, Animation.LOOP_NONE, "%s should loop" % looping)
 		model.free()
+
+
+func test_outro_sounds_and_rat_clips_exist() -> void:
+	for sound in OUTRO_SOUNDS:
+		assert_true(Sfx.has_sound(sound), "%s is in the Sfx bank" % sound)
+		for path: String in Sfx.SOUNDS.get(sound, {}).get("files", []):
+			assert_true(ResourceLoader.exists(path), path)
+	var rat := Art.instance("rat")
+	var player := rat.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
+	for clip in ["sulk", "hmph", "sit_gnaw"]:
+		assert_true(player.has_animation(clip), "rat: missing the cinematics' clip '%s'" % clip)
+	rat.free()
 
 
 func test_first_person_arms_clips() -> void:

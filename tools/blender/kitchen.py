@@ -22,6 +22,7 @@ Parts and markers the cinematic looks up by name:
   ceiling_lamp  "Bulb" (emissive)
   match         "Flame" (emissive), the head at the top
   house, plant_building   "Windows" (emissive)
+  garden_lamp   "Lamp" (emissive)
 The dimensions the cinematic's physics depends on are constants here (TOASTER_*, TOAST_*, PLATE_*):
 grandma.py imports them for her hand targets, and client/outro/ reads the markers.
 """
@@ -73,13 +74,15 @@ def rbox(b, size, loc, color, radius, segments=3, rot=(0, 0, 0), material=C.MAT_
     return b
 
 
-def _apply_boolean(obj, cutter, operation="DIFFERENCE"):
+def _apply_boolean(obj, cutter, operation="DIFFERENCE", overlapping=False):
     """Cuts `cutter` out of `obj` (exact solver; the new faces keep the cutter's colours) and deletes
-    the cutter."""
+    the cutter. `overlapping`: `obj` is made of closed parts that go through each other (a donut's
+    icing on its dough)."""
     mod = obj.modifiers.new("cut", "BOOLEAN")
     mod.operation = operation
     mod.object = cutter
     mod.solver = "EXACT"
+    mod.use_self = overlapping
     if hasattr(mod, "material_mode"):
         mod.material_mode = "TRANSFER"
     with bpy.context.temp_override(object=obj, active_object=obj, selected_objects=[obj],
@@ -600,8 +603,10 @@ def build_sink_counter(name="SinkCounter", length=2.4, depth=0.5):
     b.sphere(0.034, (tx, 0, H + dome + 0.02), "white", segments=10, rings=6)
     M.tube(b, [(tx + 0.1, -0.02, H + 0.05), (tx + 0.16, -0.03, H + 0.1), (tx + 0.18, -0.03, H + 0.12)], 0.014, "white",
            seg=8, caps=True)
-    for k, (r, h) in enumerate(((0.07, 0.2), (0.06, 0.16), (0.05, 0.12))):  # canisters: no words, gingham lids
-        x = 0.75 + k * 0.17
+    # Canisters (no words, gingham lids) at the right end: the space between them and the sink is where
+    # the cinematic's hamster cage stands (client/outro/outro_kitchen.gd CAGE).
+    for k, (r, h) in enumerate(((0.06, 0.16), (0.05, 0.12))):
+        x = 1.0 + k * 0.13
         b.cylinder(r, h, (x, 0.04, H), "cream", base=True, segments=16)
         b.cylinder(r + 0.004, 0.025, (x, 0.04, H + h), "gingham", base=True, segments=16)
         b.cylinder(0.012, 0.015, (x, 0.04, H + h + 0.025), "cream", base=True, segments=8)
@@ -660,6 +665,20 @@ def build_window(name="Window"):
 
 
 # --- Little props ---------------------------------------------------------------------------------------------
+
+def build_donut_bitten(name="DonutBitten"):
+    """The grandson's donut (furniture.py's), with a bite out of its rim: for his photo, once he's taken a
+    bite (client/outro/outro_kitchen.gd renders it). Lying flat like the donut; the bite is on its -Y side."""
+    import furniture as F
+    b = C.Builder(name)
+    F.donut(b, (0, 0, 0), "icing_pink", r=0.1, seed=1)
+    root = b.finish()
+    cut = C.Builder("Bite")
+    for a, r in ((-0.42, 0.034), (0.0, 0.04), (0.42, 0.034)):  # three tooth marks, the middle one deepest
+        cut.sphere(r, (math.sin(a) * 0.1, -math.cos(a) * 0.1, 0.035), "dough", segments=14, rings=8)
+    _apply_boolean(root, cut.finish(), overlapping=True)
+    return root
+
 
 def build_match(name="Match"):
     """A match (bigger than life, so it reads), held at the bottom (the origin); "Flame" sits on its
@@ -722,6 +741,25 @@ def build_plant_building(name="PlantBuilding"):
     return root
 
 
+def build_garden_lamp(name="GardenLamp"):
+    """A lantern on a post in the back garden, by the fence (real size, 2.1 m): a green post, a black
+    lantern with lit glass panes ("Lamp", emissive), a little roof and finial."""
+    b = C.Builder(name)
+    b.cylinder(0.06, 1.75, (0, 0, 0), "pipe_green", base=True, segments=8)
+    b.cylinder(0.11, 0.08, (0, 0, 0), "pipe_green", base=True, segments=8)
+    b.box((0.24, 0.24, 0.03), (0, 0, 1.75), "charcoal", base=True)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            b.box((0.025, 0.025, 0.3), (sx * 0.11, sy * 0.11, 1.78), "charcoal", base=True)
+    b.prism([(-0.17, 0.0), (0.17, 0.0), (0.0, 0.14)], 0.34, (0, 0.17, 2.08), "charcoal", rot=(90, 0, 0))
+    b.sphere(0.03, (0, 0, 2.24), "charcoal", segments=8, rings=5)
+    root = b.finish()
+    lamp = C.Builder("Lamp")
+    lamp.box((0.2, 0.2, 0.28), (0, 0, 1.79), "butter", base=True, material=E)
+    lamp.finish().parent = root
+    return root
+
+
 def build_power_pole(name="PowerPole"):
     b = C.Builder(name)
     b.cylinder(0.14, 9.0, (0, 0, 0), "brown", base=True, segments=8)
@@ -742,8 +780,9 @@ BUILDERS = {"toaster": build_toaster, "toast": build_toast, "toast_limp": build_
             "butter_dish": build_butter_dish, "teacup": build_teacup, "photo_frame": build_photo_frame,
             "cat_clock": build_cat_clock, "calendar": build_calendar, "ceiling_lamp": build_ceiling_lamp,
             "fridge": build_fridge, "island": build_island, "sink_counter": build_sink_counter, "window": build_window,
-            "match": build_match, "matchbox": build_matchbox, "house": build_house,
-            "plant_building": build_plant_building, "power_pole": build_power_pole, "tree": build_tree}
+            "match": build_match, "matchbox": build_matchbox, "donut_bitten": build_donut_bitten, "house": build_house,
+            "plant_building": build_plant_building, "power_pole": build_power_pole, "tree": build_tree,
+            "garden_lamp": build_garden_lamp}
 
 ASSETS = [
     ("toaster", {"kind": "toaster"}),
@@ -764,11 +803,13 @@ ASSETS = [
     ("kitchen_window", {"kind": "window"}),
     ("match", {"kind": "match"}),
     ("matchbox", {"kind": "matchbox"}),
+    ("donut_bitten", {"kind": "donut_bitten"}),
     ("house_blue", {"kind": "house", "name": "HouseBlue"}),
     ("house_yellow", {"kind": "house", "wall": "butter", "roof": "brown_dark", "name": "HouseYellow"}),
     ("house_pink", {"kind": "house", "wall": "pastel_pink", "roof": "grey_dark", "name": "HousePink"}),
     ("plant_building", {"kind": "plant_building"}),
     ("power_pole", {"kind": "power_pole"}),
+    ("garden_lamp", {"kind": "garden_lamp"}),
     ("tree_round", {"kind": "tree"}),
 ]
 

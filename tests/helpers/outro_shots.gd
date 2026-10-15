@@ -2,21 +2,27 @@ extends Node
 ## Visual check of the end-of-match cinematics (client/outro/), windowed: plays each ending and saves
 ## a PNG at each of its key moments (and wherever --times says).
 ##   godot --fixed-fps 60 tests/helpers/OutroShots.tscn -- [--out DIR] [--ending supervisors|rats]
-##       [--times 0.5,3.9] [--seek] [--cam x,y,z --look x,y,z [--fov F]]
+##       [--rats N] [--size WxH] [--times 0.5,3.9] [--seek] [--cam x,y,z --look x,y,z [--fov F]]
 ## --fixed-fps keeps the clock exact (each frame is 1/60 s whatever the machine). --seek jumps
-## straight to each moment instead of playing up to it (no particles, faster).
+## straight to each moment instead of playing up to it (no particles, faster). --rats: how many rats
+## won (the rats' ending: one pair of eyes each, 1 to Outro.MAX_RATS; Outro.DEFAULT_RATS without it).
+## --size: render in a viewport of that size (as OutroScreen does in the game), whatever the window
+## (a maximized or fullscreen window ignores --resolution): 1680x1050, 2560x1080, 1024x768...
 
 const SHOTS := {
 	Outro.Ending.SUPERVISORS: [["a_00_open", 0.5], ["a_01_press", 0.84], ["a_02_wait", 2.2], ["a_03_sniff", 2.9],
-		["a_04_ding", 3.95], ["a_05_flip", 4.2], ["a_06_land", 4.8], ["a_07_stack", 5.05], ["a_08_hop", 5.3],
-		["a_09_photo", 6.05], ["a_10_bite", 6.8], ["a_11_bliss", 7.4], ["a_12_end", 8.1]],
+		["a_04_ding", 3.86], ["a_05_flip", 4.05], ["a_06_heart", 4.3], ["a_07_land", 4.6], ["a_08_stack", 4.85],
+		["a_09_joy", 5.15], ["a_10_hop", 5.32], ["a_11_photo", 6.2], ["a_12_wink", 6.6], ["a_13_grab", 7.3],
+		["a_14_bite", 7.7], ["a_15_hmph", 8.3], ["a_16_bliss", 9.05], ["a_17_end", 9.4]],
 	Outro.Ending.RATS: [["b_00_open", 0.45], ["b_01_press", 0.84], ["b_02_sniff", 2.3], ["b_03_tap", 3.2],
-		["b_04_pwomp", 4.1], ["b_05_flop", 4.55], ["b_06_shock", 4.85], ["b_07_pout", 5.25], ["b_08_photo", 5.75],
-		["b_09_dark", 6.4], ["b_10_eyes", 7.0], ["b_11_crunch", 7.4], ["b_12_match", 8.15], ["b_13_tail", 8.5],
-		["b_14_blow", 8.85]],
+		["b_04_pwomp", 4.1], ["b_05_flop", 4.55], ["b_06_shock", 4.75], ["b_07_pout", 5.25], ["b_08_photo", 5.6],
+		["b_09_cough", 6.0], ["b_10_roll", 6.75], ["b_11_lamp", 7.3], ["b_12_dark", 7.85], ["b_13_eyes", 8.6],
+		["b_14_chorus", 9.1], ["b_15_snicker", 9.55], ["b_16_match", 9.85], ["b_17_tail", 10.2], ["b_18_blow", 10.65],
+		["b_19_button", 11.35], ["b_20_end", 11.74]],
 }
 
 var _out := ""
+var _view: SubViewport  # --size
 
 
 func _ready() -> void:
@@ -31,8 +37,19 @@ func _ready() -> void:
 			shots = []
 			for text in Cli.get_str("times").split(",", false):
 				shots.append(["%s_%s" % ["a" if ending == Outro.Ending.SUPERVISORS else "b", text], text.to_float()])
-		var outro := Outro.new(ending)
-		add_child(outro)
+		var outro := Outro.new(ending, int(Cli.get_float("rats", Outro.DEFAULT_RATS)))
+		if Cli.has_arg("size"):
+			var size := Cli.get_str("size").split("x")
+			_view = SubViewport.new()
+			_view.size = Vector2i(size[0].to_int(), size[1].to_int())
+			_view.own_world_3d = true
+			_view.msaa_3d = get_viewport().msaa_3d
+			_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+			add_child(_view)
+			_view.add_child(outro)
+		else:
+			add_child(outro)
+		outro.set_process_unhandled_input(false)  # (a stray key on the desktop mustn't skip it)
 		if Cli.has_arg("cam"):  # a fixed camera of our own (looking at a detail): --cam x,y,z --look x,y,z
 			var eye := _vec(Cli.get_str("cam"))
 			var look := _vec(Cli.get_str("look", "0,1,0"))
@@ -48,6 +65,9 @@ func _ready() -> void:
 					await get_tree().process_frame
 				await _save(shot[0])
 		outro.queue_free()
+		if _view != null:
+			_view.queue_free()
+			_view = null
 		await get_tree().process_frame
 	Log.info("outro_shots", "saved in %s" % ProjectSettings.globalize_path(_out))
 	get_tree().quit()
@@ -61,4 +81,4 @@ static func _vec(text: String) -> Vector3:
 func _save(shot_name: String) -> void:
 	await RenderingServer.frame_post_draw
 	var path := ProjectSettings.globalize_path(_out.path_join("%s.png" % shot_name))
-	get_viewport().get_texture().get_image().save_png(path)
+	(_view if _view != null else get_viewport()).get_texture().get_image().save_png(path)

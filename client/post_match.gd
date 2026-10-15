@@ -2,8 +2,8 @@ extends Control
 ## The post-match screen (M8), from POST_MATCH: the winning team's banner pops in with confetti,
 ## "You win!" or "You lose...", the reason, each team's stats and scores (MatchManager.result, best
 ## first), and the fun awards (Awards). AI bots (M10) get a BOT badge after their name.
-## First comes the end-of-match cinematic (client/outro/, OutroScreen: the winners' ending, 8 to 9 s, a
-## click skips it), for every client that saw the match being played: players and spectators alike (a
+## First comes the end-of-match cinematic (client/outro/, OutroScreen: the winners' ending, 9.5 or 11.8 s,
+## a click skips it), for every client that saw the match being played: players and spectators alike (a
 ## client that joins during POST_MATCH gets the result straight away). After a meltdown it waits for
 ## the boom (MusicDirector) to land first.
 ## After MIN_SHOW_S the buttons appear: "Back to the lobby" closes it, and in solo "Quit to menu" too.
@@ -114,7 +114,8 @@ func _play_outro(result: Dictionary) -> void:
 	_saw_play = false
 	_outro_for = result
 	var meltdown := str(result.get("reason", "")).begins_with("Meltdown")
-	_outro = OutroScreen.play(self, result.get("winner", MatchRulesModel.Team.NONE), MELTDOWN_BOOM_S if meltdown else 0.0)
+	var delay := MELTDOWN_BOOM_S if meltdown else 0.0
+	_outro = OutroScreen.play(self, result.get("winner", MatchRulesModel.Team.NONE), delay, OutroScreen.rats_in(result))
 	_outro.finished.connect(func() -> void:
 		_outro = null
 		var mm := Session.current.match_manager

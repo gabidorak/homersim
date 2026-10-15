@@ -157,6 +157,12 @@ const SOUNDS := {
 	"outro_strike": {"kind": Kind.SFX, "files": [A + "outro_strike.ogg"]},
 	"outro_huh": {"kind": Kind.VOICE, "files": [A + "outro_huh.ogg"]},
 	"outro_blow": {"kind": Kind.VOICE, "files": [A + "outro_blow.ogg"]},
+	"outro_heart": {"kind": Kind.SFX, "files": [A + "outro_heart.ogg"]},
+	"outro_wink": {"kind": Kind.SFX, "files": [A + "outro_wink.ogg"]},
+	"outro_rat_hmph": {"kind": Kind.VOICE, "files": [A + "outro_rat_hmph.ogg"]},
+	"outro_cough": {"kind": Kind.SFX, "files": [A + "outro_cough.ogg"]},
+	"outro_click": {"kind": Kind.SFX, "files": [A + "outro_click.ogg"]},
+	"outro_giggle": {"kind": Kind.VOICE, "files": [A + "outro_giggle.ogg"]},
 }
 
 static var _cache: Dictionary[String, AudioStream] = {}

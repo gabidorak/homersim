@@ -10,11 +10,11 @@ const RATS_LIMIT := 16
 @export var duration_s := 540  ## used from M3
 @export var duration_single_supervisor_s := 480  ## used from M3
 @export var countdown_s := 10
-## Used from M3. 25 since the end-of-match cinematic (client/outro/): it plays first, up to ~10.8 s
-## (1 s for a meltdown's boom, 0.45 s fade, 9.3 s for the rats' ending), and the result then keeps
+## Used from M3. 27 since the end-of-match cinematic (client/outro/): it plays first, up to ~13.4 s
+## (1 s for a meltdown's boom, 0.45 s fade, 11.9 s for the rats' ending), and the result then keeps
 ## about the 14 s it had before the cinematic (MIN_SHOW_S of them before its buttons show) until the
 ## server goes back to the lobby. Skipping the cinematic leaves the result up longer, not the lobby sooner.
-@export var post_match_s := 25
+@export var post_match_s := 27
 @export var min_players := 3  ## the ready vote can't pass with fewer players (nor with more than the seats)
 @export_range(0.0, 1.0) var ready_fraction := 0.5  ## strictly more than this share must be ready
 ## The teams' seats (GDD §2): the most supervisors and rats a match has. With fewer players the teams

@@ -636,19 +636,22 @@ def ik_arm(pose, side, palm, hand_rot, pole):
 # score (tools/audio/music.py, outro_*) hits them. Move one, move it there too.
 
 PERF_FPS = 60  # (her hit points land on frames: a hand meets the lever or the slice on the frame it should)
-A_LENGTH, B_LENGTH = 8.3, 9.3
+A_LENGTH, B_LENGTH = 9.5, 11.9
 A_CLICK = 0.9  # the lever latches down (on a frame: her palm is all the way down there)
 A_DING = 3.8
 A_JOY = 5.05
-A_GRAB = 6.55  # her left hand takes the top slice
-A_BITE = 6.95
+A_GRAB = 7.25  # her left hand takes the top slice (after the photo's insert: she holds her thumbs up through it)
+A_BITE = 7.65
 B_CLICK = 0.9
 B_TAPS = (3.08, 3.32)
 B_PWOMP = 3.8
 B_SHOCK = 4.6
-B_BLACKOUT = 5.8
-B_STRIKE = 7.85
-B_BLOW = 8.8
+B_COUGH = 5.9  # the plant coughs: she looks round at the window
+B_ROLL = 6.4  # its lights go out, then the town's, house by house towards her...
+B_BLACKOUT = 7.35  # ...and her lamp, last
+B_STRIKE = 9.72
+B_BLOW = 10.67
+B_BUTTON = 11.2  # in the dark, a last pair of eyes opens by her face
 
 EASES = {
     "lin": lambda u: u,
@@ -902,7 +905,7 @@ BITE_PALM = BITE_LIPS - q_of(BITE_ROT) @ _IN_HAND
 def supervisors():
     """The golden toast (A): click, a glance at us, drumming fingers, a nose-up sniff, DING, the slices
     flip onto her plate (she follows them up and down), a hop of joy, a winking thumbs up to her
-    grandson's photo, CRUNCH, bliss."""
+    grandson's photo (held while the photo winks back), CRUNCH, bliss."""
     p = Performance(A_LENGTH, {"r": REST_R, "l": REST_L})
     knob = PRESS_AT
     # 0.42: she reaches for the lever (anticipation: the hand rises above it, she leans in, eyes on it)...
@@ -971,35 +974,43 @@ def supervisors():
           r=((-0.4, 0.02, 0.95), thumbs, (-0.6, 0.4, -0.5)))
     p.hold(5.8, "thumb_r")
     p.key(5.92, "back", thumb_r=-50.0, lid_l=1.0, r=((-0.42, 0.03, 0.99), None, None))
+    p.hold(5.92, "look", "turn")
+    p.key(6.12, "io", look=-26.0, turn=-10.0)  # (her face half back to us: the wink reads)
     p.key(6.25, "io", nod=-8.0, r=((-0.415, 0.03, 0.98), None, None))
-    # 6.4 - 6.55: back to the plate; her left hand comes down on the top slice...
+    # 6.3 - 7.0: the photo's insert (he winks back): she holds her thumbs up, opens her eye, a proud nod.
+    p.key(6.55, "io", nod=-5.0, lid_l=0.0, r=((-0.418, 0.03, 0.985), None, None))
+    p.key(6.85, "io", nod=-9.0)
+    # 7.1 - 7.25: back to the plate; her left hand comes down on the top slice...
     flat_l = GRAB_ROT
     on_slice = GRAB_AT
-    p.key(6.42, "io", lean=5.0, turn=-10.0, look=14.0, nod=6.0, tilt=0.0, thumb_r=0.0, lid_l=None, r=REST_R,
+    p.key(A_GRAB - 0.13, "io", lean=5.0, turn=-10.0, look=14.0, nod=6.0, tilt=0.0, thumb_r=0.0, lid_l=None, r=REST_R,
           gaze_x=0.006, gaze_z=-0.007, l=(grip_on(on_slice + Vector((0, 0.01, 0.05)), flat_l), flat_l, POLE_UP_L))
     p.key(A_GRAB, "in", lean=5.0, turn=-11.0, look=14.0, nod=10.0, l=(grip_on(on_slice, flat_l), flat_l, None))
     # ...lifts it, turns it up to her mouth, opens wide, and CRUNCH on its top.
-    p.key(6.66, "out", lean=5.0, look=8.0, nod=6.0, l=(grip_on(on_slice + Vector((0.0, 0.0, 0.1)), flat_l), flat_l,
-                                                      None))
-    p.key(6.76, "io", l=((0.13, -0.3, 0.87), None, None))
-    p.key(6.85, "io", lean=5.0, turn=-8.0, look=4.0, nod=3.0, mouth="grin", gaze_x=0.0, gaze_z=-0.004,
+    p.key(A_GRAB + 0.11, "out", lean=5.0, look=8.0, nod=6.0,
+          l=(grip_on(on_slice + Vector((0.0, 0.0, 0.1)), flat_l), flat_l, None))
+    p.key(A_GRAB + 0.21, "io", l=((0.13, -0.3, 0.87), None, None))
+    p.key(A_BITE - 0.1, "io", lean=5.0, turn=-8.0, look=4.0, nod=3.0, mouth="grin", gaze_x=0.0, gaze_z=-0.004,
           l=(BITE_PALM + Vector((0.0, -0.022, 0.015)), BITE_ROT, POLE_UP_L))
     p.key(A_BITE, "in", l=(BITE_PALM, BITE_ROT, POLE_UP_L), **BITE_POSE)
     p.hold(A_BITE, "chew", "blush")
-    p.key(7.05, "out", lean=2.0, turn=-3.0, nod=-4.0, mouth="smile", happy=1.0,
+    p.key(A_BITE + 0.1, "out", lean=2.0, turn=-3.0, nod=-4.0, mouth="smile", happy=1.0,
           l=((0.09, -0.2, 0.75), look_rot((0.0, -0.15, 1.0), (-1.0, 0.0, 0.0)), POLE_UP_L), chew=1.0, blush=1.45,
           gaze_z=0.0)
-    # 7.05 - 8.3: bliss: chewing, eyes closed, a little sway.
-    p.key(7.45, "io", l=(None, None, POLE_L))
-    p.key(7.6, "io", tilt=6.0, nod=-6.0)
-    p.key(8.1, "io", tilt=-3.0, nod=-4.0)
+    # 7.75 - 9.5: bliss: chewing, eyes closed, a little sway (the caged rat turns its back on her).
+    p.key(A_BITE + 0.5, "io", l=(None, None, POLE_L))
+    p.key(A_BITE + 0.65, "io", tilt=6.0, nod=-6.0)
+    p.key(A_BITE + 1.15, "io", tilt=-3.0, nod=-4.0)
+    p.key(A_BITE + 1.65, "io", tilt=3.0, nod=-5.0)
     return p
 
 
 def rats():
     """The power cut (B): the lamp flickers, a feeble click, a nose-up sniff... nothing. Two raps on the
-    toaster, pwomp, a limp slice: shock, a pout, a glance at the photo; the lights go out; in the dark
-    she finds her matches, strikes one, looks round, baffled, and blows it out."""
+    toaster, pwomp, a limp slice: shock, a pout, a glance at the photo; a cough from the plant: she
+    looks round at the window while the town's lights go out towards her, then up at her lamp as it
+    dies; in the dark she finds her matches, strikes one, looks round, baffled, and blows it out; her
+    eyes slide round to the last pair of eyes by her face."""
     p = Performance(B_LENGTH, {"r": REST_R, "l": REST_L})
     knob = PRESS_AT
     p.key(0.3, "io", lid=0.15)
@@ -1055,29 +1066,44 @@ def rats():
     p.hold(5.3, "turn", "look", "gaze_x", "gaze_z")
     p.key(5.5, "io", turn=-20.0, look=-58.0, nod=-10.0, gaze_x=-0.008, gaze_z=0.006, lid=0.3)
     p.key(5.74, "io", turn=-6.0, look=-10.0, nod=4.0, gaze_x=0.0, gaze_z=-0.004, lid=0.45)
-    # 5.8: the lights go out. A small start, wide eyes in the dark.
-    p.hold(B_BLACKOUT, "hop", "wide", "droop")
-    p.key(B_BLACKOUT + 0.05, "out", wide=1.25, lid=0.0, brow=0.02, brow_tilt=4.0, mouth="flat", hop=0.006, droop=0.0)
-    p.key(B_BLACKOUT + 0.2, "io", hop=0.0)
-    # 7.0 - 7.8: in the dark she fishes her matches out of her apron and gets ready to strike.
-    p.hold(6.85, "palm_r", "rot_r", "lean", "nod")
-    p.hold(7.1, "palm_l", "rot_l")
+    # 5.9: a cough out there: she looks round at the window, over her left shoulder (hm?)...
+    p.hold(B_COUGH + 0.05, "turn", "look", "nod", "lid", "brow", "brow_tilt", "droop", "blush", "wide", "gaze_x",
+           "gaze_z")
+    p.key(B_COUGH + 0.3, "io", turn=24.0, look=62.0, nod=-4.0, lid=0.0, wide=1.1, brow=0.012, brow_tilt=0.0,
+          mouth="flat", droop=0.0, blush=1.0, gaze_x=0.009, gaze_z=0.003)
+    # ...the plant's lights go out, then the town's, house by house, coming her way: her eyes go wide...
+    p.key(B_ROLL + 0.45, "io", wide=1.3, brow=0.024, nod=-2.0, mouth="o")
+    # ...she turns back and looks up at her lamp: it stutters, and goes out.
+    p.hold(B_BLACKOUT - 0.25, "turn", "look", "nod", "gaze_x", "gaze_z", "wide", "brow")
+    p.key(B_BLACKOUT - 0.1, "io", turn=-2.0, look=-2.0, nod=-15.0, gaze_x=0.0, gaze_z=0.01, wide=1.25, brow=0.022,
+          mouth="flat")
+    # The dark. A small start, wide eyes; she lowers her head, peering.
+    p.hold(B_BLACKOUT + 0.25, "hop", "wide", "nod")
+    p.key(B_BLACKOUT + 0.3, "out", wide=1.3, lid=0.0, brow=0.02, brow_tilt=4.0, hop=0.006)
+    p.key(B_BLACKOUT + 0.45, "io", hop=0.0)
+    p.key(B_BLACKOUT + 0.9, "io", nod=2.0, look=0.0, gaze_z=-0.002)
+    # 8.7 - 9.7: in the dark she fishes her matches out of her apron and gets ready to strike.
+    p.hold(B_STRIKE - 1.0, "palm_r", "rot_r", "lean", "nod")
+    p.hold(B_STRIKE - 0.75, "palm_l", "rot_l")
     box_l = ((0.06, -0.24, 0.82), (-90, 0, -70), POLE_L)
-    p.key(7.1, "io", r=((-0.19, -0.1, 0.56), (-60, 0, 20), POLE_R), lean=4.0, nod=6.0)
-    p.key(7.55, "io", l=box_l, r=((-0.03, -0.25, 0.86), (-90, 0, 60), POLE_R), nod=4.0)
-    # 7.85 scritch: the match strikes along the box. 7.9 the flame: her baffled face.
+    p.key(B_STRIKE - 0.75, "io", r=((-0.19, -0.1, 0.56), (-60, 0, 20), POLE_R), lean=4.0, nod=6.0)
+    p.key(B_STRIKE - 0.3, "io", l=box_l, r=((-0.03, -0.25, 0.86), (-90, 0, 60), POLE_R), nod=4.0)
+    # 9.72 scritch: the match strikes along the box. 9.77 the flame: her baffled face.
     p.key(B_STRIKE - 0.04, "in", r=((0.02, -0.26, 0.82), None, None))
     p.key(B_STRIKE + 0.05, "out", r=((-0.06, -0.26, 0.9), (-75, 0, 30), None), lean=4.0, nod=0.0, wide=1.25,
           brow=0.018, brow_l=0.005, brow_tilt=0.0, brow_tilt_l=-10.0, mouth="wavy", l=((0.08, -0.2, 0.74), None, None))
-    # 8.0 the toaster (empty), 8.25 her plate (crumbs), 8.45 the tail slipping over the edge.
-    p.hold(7.8, "turn", "look", "gaze_x", "gaze_z", "lid")
-    p.key(8.0, "io", look=-22.0, nod=8.0, turn=-5.0, gaze_x=-0.008, gaze_z=-0.006)
-    p.key(8.25, "io", look=16.0, nod=9.0, turn=4.0, gaze_x=0.008, gaze_z=-0.007)
-    p.key(8.45, "io", look=4.0, nod=10.0, wide=1.4, brow=0.026, brow_l=0.012, gaze_x=0.002, gaze_z=-0.01)
-    # 8.72: the match to her lips, and fft.
-    p.key(8.72, "io", look=0.0, nod=2.0, r=((-0.03, -0.28, 0.86), None, None), mouth="blow", wide=1.0, brow=0.008,
-          brow_l=None, gaze_x=0.0, gaze_z=-0.006)
+    # 9.87 the toaster (empty), 10.12 her plate (crumbs), 10.32 the tail slipping over the edge.
+    p.hold(B_STRIKE - 0.05, "turn", "look", "gaze_x", "gaze_z", "lid")
+    p.key(B_STRIKE + 0.15, "io", look=-22.0, nod=8.0, turn=-5.0, gaze_x=-0.008, gaze_z=-0.006)
+    p.key(B_STRIKE + 0.4, "io", look=16.0, nod=9.0, turn=4.0, gaze_x=0.008, gaze_z=-0.007)
+    p.key(B_STRIKE + 0.6, "io", look=4.0, nod=10.0, wide=1.4, brow=0.026, brow_l=0.012, gaze_x=0.002, gaze_z=-0.01)
+    # 10.59: the match to her lips, and fft.
+    p.key(B_BLOW - 0.08, "io", look=0.0, nod=2.0, r=((-0.03, -0.28, 0.86), None, None), mouth="blow", wide=1.0,
+          brow=0.008, brow_l=None, gaze_x=0.0, gaze_z=-0.006)
     p.key(B_BLOW + 0.1, "out", mouth="flat", lid=0.2)
+    # 11.2: one more pair of eyes, right by her face (on her left): her eyes slide round to it, wide.
+    p.hold(B_BUTTON + 0.05, "gaze_x", "gaze_z", "wide", "lid", "brow")
+    p.key(B_BUTTON + 0.3, "io", gaze_x=0.01, gaze_z=0.0, wide=1.35, lid=0.0, brow=0.022)
     return p
 
 

@@ -39,7 +39,7 @@ func test_supervisors_do_not_fit_through_vents() -> void:
 
 func test_match_rules_match_gdd() -> void:
 	var m: MatchRules = load(Config.DEFAULT_MATCH_RULES)
-	assert_eq([m.duration_s, m.duration_single_supervisor_s, m.countdown_s, m.post_match_s], [540, 480, 10, 25])
+	assert_eq([m.duration_s, m.duration_single_supervisor_s, m.countdown_s, m.post_match_s], [540, 480, 10, 27])
 	assert_eq(m.min_players, 3)
 	assert_eq([m.max_supervisors, m.max_rats], [2, 4], "the default seats")
 	for n: int in {2: 1, 3: 1, 4: 1, 5: 2, 6: 2}:
