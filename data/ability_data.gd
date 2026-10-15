@@ -1,6 +1,6 @@
 class_name AbilityData
 extends Resource
-## One ability (GDD §5): broom, bite, traps, spit. Saved as data/abilities/*.tres and listed in the
+## One ability (GDD §5): broom, bite, traps, spit, tail spin. Saved as data/abilities/*.tres and listed in the
 ## role's RoleData.abilities. Keep them in sync with the GDD.
 
 enum Kind {
@@ -8,6 +8,7 @@ enum Kind {
 	BITE,  ## bite: slow the nearest target, knock down on repeated bites
 	TRAP,  ## place a trap on the floor (snap trap, cheese lure)
 	SPIT,  ## caged rats only: spit at the nearest target in a cone, with a chance to stun it
+	TAIL_SPIN,  ## rats: spin around and smash every trap within `range` (no target, no aim)
 }
 
 @export var id: StringName = &""
@@ -20,7 +21,7 @@ enum Kind {
 @export var status := StatusComponent.Status.STUNNED  ## what a hit applies
 @export var status_duration := 2.0  ## s
 ## Kind-specific numbers: bite {slow_factor, knockdown_bites, knockdown_window_s, knockdown_s},
-## trap {trap_kind}, spit {stun_chance, stun_cooldown_s}.
+## trap {trap_kind}, spit {stun_chance, stun_cooldown_s}, tail spin {spin_s (how long the spin looks)}.
 @export var extra: Dictionary = {}
 
 

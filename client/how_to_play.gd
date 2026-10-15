@@ -57,7 +57,7 @@ func _build() -> void:
 		["rat_sabotage", tr("Sabotage!"),
 			tr("Sneak through the vents to the machines and hold %s at their red junction boxes. The critical machines (control rods, turbine) need two rats pulling their levers at the same time. Each broken machine pushes the meltdown meter up: reach 100%% and the rats win.") % interact],
 		["rat_bite", tr("Bite, steal, rescue"),
-			tr("Bite supervisors with %s: one bite makes them drop the rat they carry, and 3 bites within 6 seconds knock them down. Hold %s behind a supervisor to steal their keycard: without it they lose their shortcut doors. A friend in a cage? Hold %s at the cage to set them free.") % [primary, interact, interact]],
+			tr("Bite supervisors with %s: one bite makes them drop the rat they carry, and 3 bites within 6 seconds knock them down. A trap in your way? Press %s to spin and smash every trap and cheese lure around you with your tail (every 5 seconds). Hold %s behind a supervisor to steal their keycard: without it they lose their shortcut doors. A friend in a cage? Hold %s at the cage to set them free.") % [primary, Keys.label(&"tail_spin"), interact, interact]],
 	])
 	_controls_tab()
 	tabs.current_tab = keep

@@ -49,8 +49,16 @@ ROWS = [
 # one of SLOTS columns (column c -> 3c + 1, same centre u: (c + 0.5) / 8 == (3c + 1.5) / 24), and these
 # fill the free columns (3c and 3c + 2) of their row, left to right: up to 16 per row.
 EXTRA = {
-    # people: uniforms (tools/blender/supervisor_general.py)
-    5: [("olive", "5d6b33"), ("olive_dark", "414b24"), ("khaki", "c2bc8a")],
+    # warm environment: the pastels of grandma's 1950s kitchen (tools/blender/kitchen.py, the outro)
+    2: [("mint", "b5e2cc"), ("mint_dark", "79c2a2"), ("butter", "f8e3a1"), ("cream", "fff3da"),
+        ("pastel_pink", "f6c5ce"), ("pastel_blue", "bad8ee"), ("gingham", "d8414f")],
+    # people: uniforms (tools/blender/supervisor_general.py), then grandma (tools/blender/grandma.py)
+    5: [("olive", "5d6b33"), ("olive_dark", "414b24"), ("khaki", "c2bc8a"),
+        ("hair_silver", "e4e5ee"), ("hair_grey", "aab0c2"), ("blush", "f2a1a4"), ("lips", "c0596b"),
+        ("lilac", "c4b0e2"), ("lilac_dark", "9a84c6"), ("rose", "e49aaa"), ("stocking", "e8c4a8")],
+    # food: toast and tea (the outro's toaster)
+    7: [("toast", "d8953e"), ("toast_dark", "9c5a25"), ("bread", "f4e9cf"), ("crust_pale", "e2c48f"),
+        ("butter_pat", "ffe57e"), ("tea", "a8642d")],
 }
 
 ROW_COUNT = len(ROWS)

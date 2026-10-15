@@ -165,26 +165,26 @@ func _build_room() -> void:
 	var d := FRONT - BACK
 	var cx := (LEFT + RIGHT) * 0.5
 	var cz := (BACK + FRONT) * 0.5
-	_box(Vector3(cx, -0.25, cz), Vector3(w + 2 * THICK, 0.5, d + 2 * THICK), FLOOR)
-	_box(Vector3(cx, HEIGHT + 0.15, cz), Vector3(w + 2 * THICK, 0.3, d + 2 * THICK), WALL)
+	box(self, Vector3(cx, -0.25, cz), Vector3(w + 2 * THICK, 0.5, d + 2 * THICK), FLOOR)
+	box(self, Vector3(cx, HEIGHT + 0.15, cz), Vector3(w + 2 * THICK, 0.3, d + 2 * THICK), WALL)
 	# The back wall: the doorway on the left, the window onto the reactor hall on the right.
 	var bz := BACK - THICK * 0.5
 	var dx0 := DOOR_X - 1.0
 	var dx1 := DOOR_X + 1.0
-	_box(Vector3((LEFT + dx0) * 0.5, HEIGHT * 0.5, bz), Vector3(dx0 - LEFT, HEIGHT, THICK), WALL)
-	_box(Vector3(DOOR_X, (2.6 + HEIGHT) * 0.5, bz), Vector3(2.0, HEIGHT - 2.6, THICK), WALL)
-	_box(Vector3((dx1 + WINDOW_X.x) * 0.5, HEIGHT * 0.5, bz), Vector3(WINDOW_X.x - dx1, HEIGHT, THICK), WALL)
-	_box(Vector3((WINDOW_X.y + RIGHT) * 0.5, HEIGHT * 0.5, bz), Vector3(RIGHT - WINDOW_X.y, HEIGHT, THICK), WALL)
+	box(self, Vector3((LEFT + dx0) * 0.5, HEIGHT * 0.5, bz), Vector3(dx0 - LEFT, HEIGHT, THICK), WALL)
+	box(self, Vector3(DOOR_X, (2.6 + HEIGHT) * 0.5, bz), Vector3(2.0, HEIGHT - 2.6, THICK), WALL)
+	box(self, Vector3((dx1 + WINDOW_X.x) * 0.5, HEIGHT * 0.5, bz), Vector3(WINDOW_X.x - dx1, HEIGHT, THICK), WALL)
+	box(self, Vector3((WINDOW_X.y + RIGHT) * 0.5, HEIGHT * 0.5, bz), Vector3(RIGHT - WINDOW_X.y, HEIGHT, THICK), WALL)
 	var wx := (WINDOW_X.x + WINDOW_X.y) * 0.5
 	var ww := WINDOW_X.y - WINDOW_X.x
-	_box(Vector3(wx, WINDOW_Y.x * 0.5, bz), Vector3(ww, WINDOW_Y.x, THICK), WALL)
-	_box(Vector3(wx, (WINDOW_Y.y + HEIGHT) * 0.5, bz), Vector3(ww, HEIGHT - WINDOW_Y.y, THICK), WALL)
-	_box(Vector3(wx, (WINDOW_Y.x + WINDOW_Y.y) * 0.5, bz), Vector3(ww, WINDOW_Y.y - WINDOW_Y.x, 0.04), GLASS, false)
+	box(self, Vector3(wx, WINDOW_Y.x * 0.5, bz), Vector3(ww, WINDOW_Y.x, THICK), WALL)
+	box(self, Vector3(wx, (WINDOW_Y.y + HEIGHT) * 0.5, bz), Vector3(ww, HEIGHT - WINDOW_Y.y, THICK), WALL)
+	box(self, Vector3(wx, (WINDOW_Y.x + WINDOW_Y.y) * 0.5, bz), Vector3(ww, WINDOW_Y.y - WINDOW_Y.x, 0.04), GLASS, false)
 	_window_frame(wx, ww)
 	_reactor_hall(wx)
 	door = Art.add(self, "door_panel", Transform3D(Basis.IDENTITY, Vector3(DOOR_X, 1.3, BACK - 0.05)))
-	var corridor := _flat(Color(0.12, 0.14, 0.16))
-	_box(Vector3(DOOR_X, 1.3, BACK - THICK - 1.0), Vector3(2.0, 2.6, 2.0), corridor, false)
+	var corridor := flat(Color(0.12, 0.14, 0.16))
+	box(self, Vector3(DOOR_X, 1.3, BACK - THICK - 1.0), Vector3(2.0, 2.6, 2.0), corridor, false)
 	var light := OmniLight3D.new()  # the corridor beyond is lit too
 	light.light_color = Color(0.85, 0.9, 1.0)
 	light.light_energy = 0.8
@@ -192,37 +192,37 @@ func _build_room() -> void:
 	light.position = Vector3(DOOR_X, 2.2, BACK - 1.2)
 	add_child(light)
 	# The other walls; the right one has the vent (0.7 x 0.6, at the floor) and the dark duct behind.
-	_box(Vector3(cx, HEIGHT * 0.5, FRONT + THICK * 0.5), Vector3(w + 2 * THICK, HEIGHT, THICK), WALL)
-	_box(Vector3(LEFT - THICK * 0.5, HEIGHT * 0.5, cz), Vector3(THICK, HEIGHT, d), WALL)
+	box(self, Vector3(cx, HEIGHT * 0.5, FRONT + THICK * 0.5), Vector3(w + 2 * THICK, HEIGHT, THICK), WALL)
+	box(self, Vector3(LEFT - THICK * 0.5, HEIGHT * 0.5, cz), Vector3(THICK, HEIGHT, d), WALL)
 	var rx := RIGHT + THICK * 0.5
 	var vz0 := VENT_Z - 0.35
 	var vz1 := VENT_Z + 0.35
-	_box(Vector3(rx, HEIGHT * 0.5, (BACK + vz0) * 0.5), Vector3(THICK, HEIGHT, vz0 - BACK), WALL)
-	_box(Vector3(rx, HEIGHT * 0.5, (vz1 + FRONT) * 0.5), Vector3(THICK, HEIGHT, FRONT - vz1), WALL)
-	_box(Vector3(rx, (0.6 + HEIGHT) * 0.5, VENT_Z), Vector3(THICK, HEIGHT - 0.6, 0.7), WALL)
-	_box(Vector3(RIGHT + 0.65, 0.3, VENT_Z), Vector3(0.7, 0.6, 0.7), _flat(Color(0.02, 0.02, 0.025)), false)
+	box(self, Vector3(rx, HEIGHT * 0.5, (BACK + vz0) * 0.5), Vector3(THICK, HEIGHT, vz0 - BACK), WALL)
+	box(self, Vector3(rx, HEIGHT * 0.5, (vz1 + FRONT) * 0.5), Vector3(THICK, HEIGHT, FRONT - vz1), WALL)
+	box(self, Vector3(rx, (0.6 + HEIGHT) * 0.5, VENT_Z), Vector3(THICK, HEIGHT - 0.6, 0.7), WALL)
+	box(self, Vector3(RIGHT + 0.65, 0.3, VENT_Z), Vector3(0.7, 0.6, 0.7), flat(Color(0.02, 0.02, 0.025)), false)
 	Art.add(self, "vent_grille", Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(RIGHT - 0.04, 0.0, VENT_Z)))
 
 
 func _window_frame(wx: float, ww: float) -> void:
 	var z := BACK + 0.04
 	var h := WINDOW_Y.y - WINDOW_Y.x
-	var frame := _flat(Color(0.18, 0.36, 0.38))
+	var frame := flat(Color(0.18, 0.36, 0.38))
 	for y: float in [WINDOW_Y.x, WINDOW_Y.y]:
-		_box(Vector3(wx, y, z), Vector3(ww + 0.12, 0.08, 0.1), frame)
+		box(self, Vector3(wx, y, z), Vector3(ww + 0.12, 0.08, 0.1), frame)
 	for x: float in [WINDOW_X.x, WINDOW_X.y, wx]:
-		_box(Vector3(x, (WINDOW_Y.x + WINDOW_Y.y) * 0.5, z), Vector3(0.08, h, 0.1), frame)
-	_box(Vector3(wx, WINDOW_Y.x - 0.06, BACK + 0.1), Vector3(ww + 0.2, 0.05, 0.22), frame)  # the sill
+		box(self, Vector3(x, (WINDOW_Y.x + WINDOW_Y.y) * 0.5, z), Vector3(0.08, h, 0.1), frame)
+	box(self, Vector3(wx, WINDOW_Y.x - 0.06, BACK + 0.1), Vector3(ww + 0.2, 0.05, 0.22), frame)  # the sill
 
 
 ## What the window shows: the reactor hall in the dark, the core glowing green in its pool.
 func _reactor_hall(wx: float) -> void:
 	var hall := Vector3(wx, 0.0, BACK - 6.0)
-	var dark := _flat(Color(0.05, 0.08, 0.09))
-	_box(hall + Vector3(0, -2.0, 0), Vector3(14, 0.4, 11), dark)  # the hall floor, lower than ours
-	_box(hall + Vector3(0, 3.0, -5.6), Vector3(14, 12, 0.4), dark)
-	_box(hall + Vector3(-7.0, 3.0, 0), Vector3(0.4, 12, 11), dark)
-	_box(hall + Vector3(7.0, 3.0, 0), Vector3(0.4, 12, 11), dark)
+	var dark := flat(Color(0.05, 0.08, 0.09))
+	box(self, hall + Vector3(0, -2.0, 0), Vector3(14, 0.4, 11), dark)  # the hall floor, lower than ours
+	box(self, hall + Vector3(0, 3.0, -5.6), Vector3(14, 12, 0.4), dark)
+	box(self, hall + Vector3(-7.0, 3.0, 0), Vector3(0.4, 12, 11), dark)
+	box(self, hall + Vector3(7.0, 3.0, 0), Vector3(0.4, 12, 11), dark)
 	Art.add(self, "reactor_core", Transform3D(Basis(Vector3.UP, 0.4), hall + Vector3(0.6, -1.8, -0.6)))
 	var core := OmniLight3D.new()
 	core.light_color = Color(0.55, 1.0, 0.35)
@@ -266,7 +266,7 @@ func _plate_of_donuts() -> void:
 	disc.height = 0.025
 	disc.radial_segments = 20
 	plate.mesh = disc
-	plate.material_override = _flat(Color(0.93, 0.92, 0.88))
+	plate.material_override = flat(Color(0.93, 0.92, 0.88))
 	plate.position = PLATE + Vector3(0, 0.0125, 0)
 	add_child(plate)
 	for spot: Vector3 in [Vector3(-0.07, 0.025, 0.04), Vector3(0.08, 0.025, 0.02), Vector3(0.0, 0.025, -0.08),
@@ -301,7 +301,7 @@ func _build_dressing() -> void:
 	disc.height = 0.006
 	disc.radial_segments = 20
 	puddle.mesh = disc
-	puddle.material_override = _flat(Color(0.55, 0.78, 0.92), 0.15)
+	puddle.material_override = flat(Color(0.55, 0.78, 0.92), 0.15)
 	puddle.position = SIGN + Vector3(0.0, 0.004, -0.1)
 	puddle.scale = Vector3(0.8, 1.0, 1.3)
 	add_child(puddle)
@@ -396,21 +396,22 @@ func _prop(model: String, pos: Vector3, yaw: float) -> Node3D:
 	return Art.add(self, model, Transform3D(Basis(Vector3.UP, yaw), pos))
 
 
-func _box(pos: Vector3, size: Vector3, material: Material, shadows := true) -> MeshInstance3D:
+## A box of `size` at `pos` under `parent` (walls, floors: the cinematics' sets are built of them).
+static func box(parent: Node, pos: Vector3, size: Vector3, material: Material, shadows := true) -> MeshInstance3D:
 	var mesh := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = size
-	mesh.mesh = box
+	var shape := BoxMesh.new()
+	shape.size = size
+	mesh.mesh = shape
 	mesh.material_override = material
 	mesh.position = pos
 	if not shadows:
 		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mesh)
+	parent.add_child(mesh)
 	return mesh
 
 
 ## A plain toon material of one colour (no outline: walls and darkness).
-func _flat(color: Color, glow := 0.0) -> ShaderMaterial:
+static func flat(color: Color, glow := 0.0) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = TOON
 	mat.set_shader_parameter(&"albedo", color)

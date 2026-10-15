@@ -9,6 +9,7 @@ extends Node
 ##   carry     Blend2 with a filter on the arms: a supervisor carrying a rat holds it up while
 ##             the legs keep walking
 ##   action    OneShot for short clips fired by events: swing, bite, place, eat, get_up, emote
+##             (and tail_spin, which has no clip: the one_shot signal lets BodyFx spin the model)
 ##
 ## Everything comes from data every peer already has (ARCHITECTURE §3): the speed is measured from
 ## how the body moves (remote bodies glide toward their synced position), statuses from
@@ -102,6 +103,9 @@ func _ready() -> void:
 		abilities.spat.connect(func(attacker: int, _victim: int, _aim: Vector3, _stunned: bool) -> void:
 			if attacker == body.peer_id and not body.is_local():
 				play_one_shot("bite"))  # (no clip of its own: the same lunge)
+		abilities.tail_spun.connect(func(attacker: int, _smashed: PackedVector3Array) -> void:
+			if attacker == body.peer_id and not body.is_local():
+				play_one_shot("tail_spin"))  # (no clip: BodyFx spins the model)
 	_last_donuts = body.inventory.donuts
 
 

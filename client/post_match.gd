@@ -2,9 +2,16 @@ extends Control
 ## The post-match screen (M8), from POST_MATCH: the winning team's banner pops in with confetti,
 ## "You win!" or "You lose...", the reason, each team's stats and scores (MatchManager.result, best
 ## first), and the fun awards (Awards). AI bots (M10) get a BOT badge after their name.
+## First comes the end-of-match cinematic (client/outro/, OutroScreen: the winners' ending, 8 to 9 s, a
+## click skips it), for every client that saw the match being played: players and spectators alike (a
+## client that joins during POST_MATCH gets the result straight away). After a meltdown it waits for
+## the boom (MusicDirector) to land first.
 ## After MIN_SHOW_S the buttons appear: "Back to the lobby" closes it, and in solo "Quit to menu" too.
 ## The server goes back to the lobby on its own after post_match_s, but the screen stays until closed,
-## for whoever wants to study it; it closes by itself when the next match starts. Only reads replicated state.
+## for whoever wants to study it (it also shows when the cinematic ends after the server went back);
+## it closes by itself when the next match starts (and stops the cinematic). Only reads replicated
+## state. post_match_s leaves the result about as long on screen as before the cinematic came in:
+## see data/match_rules.gd.
 
 const SUPERVISOR_COLOR := Color("ffc93c")
 const RAT_COLOR := Color("7bd389")
@@ -15,7 +22,8 @@ const SUPERVISOR_COLUMNS := [["score", "Score"], ["repairs", "Repairs"], ["catch
 const RAT_COLUMNS := [["score", "Score"], ["sabotages", "Sabotages"], ["bites", "Bites"], ["knockdowns", "Knockdowns"],
 	["frees", "Frees"], ["steals", "Steals"], ["caught", "Caught"]]
 const DENSE_FROM := 9  ## players in a team from which the tables' rows get smaller (big bot matches)
-const MIN_SHOW_S := 5.0  ## the result stays at least this long before the buttons appear
+const MIN_SHOW_S := 5.0  ## the result stays at least this long before the buttons appear (counted from when it shows)
+const MELTDOWN_BOOM_S := 1.0  ## after a meltdown the cinematic waits for the boom
 const SCORE_COLOR := Color("7fb7e6")
 const CONFETTI := [Color("ffc93c"), Color("e84a5f"), Color("7bd389"), Color("7fb7e6"), Color("ff8fb8"), Color("ffffff")]
 
@@ -24,6 +32,9 @@ var _shown_at_ms := 0
 var _dismissed: Dictionary = {}  # the result closed with "Back to the lobby", not to show again
 var _dense := false  # this result's tables use small rows
 var _confetti: CPUParticles2D
+var _outro: OutroScreen  # the end-of-match cinematic, playing before the result shows
+var _outro_for: Dictionary = {}  # the result it plays for
+var _saw_play := false  # this client saw the match being played (it gets the cinematic)
 
 @onready var banner: Label = %Banner
 @onready var you_line: Label = %YouLine
@@ -66,14 +77,22 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	var mm := Session.current.match_manager
+	if mm.state == MatchManager.State.PLAYING:
+		_saw_play = true
 	if mm.state == MatchManager.State.POST_MATCH and not mm.result.is_empty():
 		# The result and the state can arrive in either order: rebuild on change.
-		if mm.result != _shown_result and mm.result != _dismissed:
-			_show(mm.result)
+		if mm.result != _shown_result and mm.result != _dismissed and mm.result != _outro_for:
+			if _saw_play and OutroScreen.wanted():
+				_play_outro(mm.result)
+			else:
+				_show(mm.result)
 	elif mm.state != MatchManager.State.LOBBY:
 		_dismissed = {}
+		_outro_for = {}
+		if _outro != null:
+			_outro.stop()  # the next match is starting
 		if visible:
-			_close()  # the next match is starting
+			_close()
 	if not visible:
 		return
 	var buttons_due := Time.get_ticks_msec() - _shown_at_ms >= MIN_SHOW_S * 1000.0
@@ -90,6 +109,19 @@ func _process(_delta: float) -> void:
 		footer.text = ""
 
 
+## The winners' ending first, then the result.
+func _play_outro(result: Dictionary) -> void:
+	_saw_play = false
+	_outro_for = result
+	var meltdown := str(result.get("reason", "")).begins_with("Meltdown")
+	_outro = OutroScreen.play(self, result.get("winner", MatchRulesModel.Team.NONE), MELTDOWN_BOOM_S if meltdown else 0.0)
+	_outro.finished.connect(func() -> void:
+		_outro = null
+		var mm := Session.current.match_manager
+		if mm.state in [MatchManager.State.POST_MATCH, MatchManager.State.LOBBY] and mm.result == result:
+			_show(result))
+
+
 func _close() -> void:
 	_dismissed = _shown_result
 	_shown_result = {}
@@ -101,6 +133,7 @@ func _show(result: Dictionary) -> void:
 	_shown_result = result
 	_shown_at_ms = Time.get_ticks_msec()
 	visible = true
+	Events.post_match_shown.emit()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	buttons.visible = false
 	var local := LocalServer.for_session()

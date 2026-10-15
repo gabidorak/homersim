@@ -6,12 +6,15 @@ extends Node
 ##   and dust, the vent crawl rattle, the gnawing loop or wrench clinks while interacting,
 ##   emotes (whistle, squeak), voices (a supervisor's "ow!" when knocked down, a rat's squeak when
 ##   stunned, grabbed or lured by cheese), a "yoink" when a rat steals a keycard, stun stars over the
-##   head, donut crumbs, hit-stop on a BONK.
+##   head, donut crumbs, hit-stop on a BONK, a rat's tail spin (the whole model whirls round with a
+##   little hop, double whoosh, speed streaks and dust: Vfx.tail_spin).
 
 const STRIDE := {Role.Kind.SUPERVISOR: 1.15, Role.Kind.RAT: 0.38, Role.Kind.NONE: 1.15}  ## m per step
 const STEP_SOUND := {Role.Kind.SUPERVISOR: "step_supervisor", Role.Kind.RAT: "step_rat", Role.Kind.NONE: "step_supervisor"}
 const WRENCH_EVERY_S := 0.6
 const HIT_STOP_S := 0.08
+const SPIN_TURNS := 3.0  ## full turns of the model in one tail spin
+const SPIN_HOP := 0.07  ## m: the rat hops a little while it spins
 
 var body: Player
 
@@ -26,6 +29,7 @@ var _was_knocked := false
 var _was_carried := false
 var _was_revealed := false
 var _had_stolen := false
+var _spin: Tween
 
 
 func setup(p_body: Player) -> void:
@@ -128,6 +132,34 @@ func _on_one_shot(clip: String) -> void:
 			Vfx.crumbs(body, head - Vector3.UP * 0.2)
 		"place":
 			Sfx.play_at(body, "trap_place", body.global_position)
+		"tail_spin":
+			_tail_spin()
+
+
+## The whole model whirls round (fast, then winding down) with a hop; the body itself never turns, so
+## the synced facing and the camera don't either.
+func _tail_spin() -> void:
+	var data := body.role_data.ability(&"tail_spin")
+	if data == null:
+		return
+	var duration := float(data.extra.get("spin_s", 0.6))
+	var visual := body.visual
+	if _spin != null and _spin.is_valid():
+		_spin.kill()
+	_spin = body.create_tween()
+	_spin.tween_method(func(u: float) -> void:
+		visual.rotation.y = -TAU * SPIN_TURNS * (1.0 - (1.0 - u) * (1.0 - u))
+		visual.position.y = sin(u * PI) * SPIN_HOP, 0.0, 1.0, duration)
+	_spin.tween_callback(func() -> void:
+		visual.rotation.y = 0.0
+		visual.position.y = 0.0)
+	var pos := body.global_position + Vector3.UP * 0.3
+	Sfx.play_at(body, "whoosh", pos, -2.0)
+	get_tree().create_timer(duration * 0.4).timeout.connect(func() -> void:
+		if is_instance_valid(body):
+			Sfx.play_at(body, "whoosh", body.global_position + Vector3.UP * 0.3, -5.0))
+	Sfx.play_at(body, "squeak", body.global_position + Vector3.UP * body.role_data.height, -4.0)
+	Vfx.tail_spin(body, data.range, duration)
 
 
 func _on_landed(fall_speed: float) -> void:

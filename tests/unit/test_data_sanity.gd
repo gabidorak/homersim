@@ -39,7 +39,7 @@ func test_supervisors_do_not_fit_through_vents() -> void:
 
 func test_match_rules_match_gdd() -> void:
 	var m: MatchRules = load(Config.DEFAULT_MATCH_RULES)
-	assert_eq([m.duration_s, m.duration_single_supervisor_s, m.countdown_s, m.post_match_s], [540, 480, 10, 15])
+	assert_eq([m.duration_s, m.duration_single_supervisor_s, m.countdown_s, m.post_match_s], [540, 480, 10, 25])
 	assert_eq(m.min_players, 3)
 	assert_eq([m.max_supervisors, m.max_rats], [2, 4], "the default seats")
 	for n: int in {2: 1, 3: 1, 4: 1, 5: 2, 6: 2}:
@@ -142,13 +142,35 @@ func test_spit_needs_a_cage() -> void:
 	assert_true(rat.ability(&"spit").usable(status))
 
 
+## GDD §5.2: rats only, X, 1.5 m all around, every 5 s; a rat that can't act (stunned, caged) can't.
+func test_tail_spin_matches_gdd() -> void:
+	var rat := Role.data(Role.Kind.RAT)
+	var spin := rat.ability(&"tail_spin")
+	assert_not_null(spin)
+	assert_eq([spin.kind, spin.input_action, spin.range, spin.cone_deg, spin.cooldown_s],
+		[AbilityData.Kind.TAIL_SPIN, &"tail_spin", 1.5, 360.0, 5.0])
+	assert_between(float(spin.extra["spin_s"]), 0.3, 1.0, "a quick spin")
+	assert_null(Role.data(Role.Kind.SUPERVISOR).ability(&"tail_spin"))
+	var status: StatusComponent = autofree(StatusComponent.new())
+	status.setup(rat)
+	assert_true(spin.usable(status))
+	status.apply(StatusComponent.Status.STUNNED, 1.0)
+	assert_false(spin.usable(status), "stunned")
+	var caged: StatusComponent = autofree(StatusComponent.new())
+	caged.setup(rat)
+	caged.apply(StatusComponent.Status.CAGED)
+	assert_false(spin.usable(caged), "caged")
+
+
 func test_every_ability_is_sane() -> void:
 	for kind: Role.Kind in [Role.Kind.SUPERVISOR, Role.Kind.RAT]:
 		for a in Role.data(kind).abilities:
 			assert_ne(a.id, &"", "id")
 			assert_false(a.display_name.is_empty(), "%s display name" % a.id)
-			assert_true(a.range > 0.0 and a.cooldown_s > 0.0 and a.status_duration > 0.0, String(a.id))
-			assert_true(a.input_action in [&"primary", &"secondary"], String(a.id))
+			assert_true(a.range > 0.0 and a.cooldown_s > 0.0, String(a.id))
+			if a.kind != AbilityData.Kind.TAIL_SPIN:  # (the only one that applies no status)
+				assert_true(a.status_duration > 0.0, "%s status duration" % a.id)
+			assert_true(a.input_action in Keys.REBINDABLE, "%s: players can rebind its key" % a.id)
 			assert_true(InputMap.has_action(a.input_action), "%s: input action exists" % a.id)
 			assert_between(a.cone_deg, 1.0, 360.0, String(a.id))
 

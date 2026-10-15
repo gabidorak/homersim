@@ -3,8 +3,9 @@ extends Node3D
 ## Client-only cosmetics for PvP events: broom whoosh and BONK (stars, a puff, a camera shake for
 ## the two involved), bite chomp, a caged rat's spit (the glob flies with a trail, splats, covers the
 ## screen of the supervisor it hits, and leaves a puddle on the floor until the match ends, the oldest
-## going first past MAX_PUDDLES), and the SNAP of a trap (only supervisors are sent that one). Also
-## forwards short lines to the HUD banner through `banner`.
+## going first past MAX_PUDDLES), the SNAP of a trap (only supervisors are sent that one), and the traps
+## a rat's tail spin smashes (only rats are sent where they were). Also forwards short lines to the HUD
+## banner through `banner`.
 
 signal banner(text: String)
 
@@ -20,6 +21,7 @@ func _ready() -> void:
 	session.abilities.broom_swung.connect(_on_broom)
 	session.abilities.bitten.connect(_on_bite)
 	session.abilities.spat.connect(_on_spit)
+	session.abilities.tail_spun.connect(_on_tail_spin)
 	_splat_layer = CanvasLayer.new()
 	_splat_layer.name = "SpitSplats"
 	_splat_layer.layer = 0
@@ -80,6 +82,17 @@ func _on_spit(attacker: int, victim: int, aim: Vector3, stunned: bool) -> void:
 				banner.emit(tr("PTOOEY! Rat spit in the eye: you're stunned"))
 		elif stunned and attacker == session.local_peer_id:
 			banner.emit(tr("Bullseye! The supervisor is stunned")))
+
+
+func _on_tail_spin(attacker: int, smashed: PackedVector3Array) -> void:
+	for pos in smashed:
+		Sfx.play_at(self, "crash", pos, -4.0)
+		Sfx.play_at(self, "trap_place", pos)
+		Vfx.smash(self, pos)
+	if attacker == session.local_peer_id and not smashed.is_empty():
+		banner.emit(tr("Tail spin! You smashed a trap") if smashed.size() == 1
+			else tr("Tail spin! You smashed %d traps") % smashed.size())
+		Vfx.shake(0.25)
 
 
 ## A puddle on the floor under `pos` (on the supervisor's feet too: it drips off).

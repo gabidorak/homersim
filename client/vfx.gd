@@ -151,6 +151,125 @@ static func bonk(parent: Node, pos: Vector3) -> void:
 	puff(parent, pos, Color(1, 1, 1, 0.8), 6, 0.4)
 
 
+## A rat's tail spin around `body` for `duration` s: two whirls of speed streaks (open cones, spinning
+## fast, following the rat), a swirl on the floor that grows out to `radius` (the reach), and a ring
+## of dust blown outward. Frees itself.
+static func tail_spin(body: Node3D, radius: float, duration: float) -> void:
+	if not enabled() or body == null or not body.is_inside_tree():
+		return
+	var root := Node3D.new()
+	root.name = "TailSpinFx"
+	body.add_child(root)
+	# [bottom radius, top radius, height, turns over the spin]
+	var whirls: Array[MeshInstance3D] = []
+	for spec: Array in [[0.28, 0.5, 0.45, 5.0], [0.55, 0.75, 0.2, 3.5]]:
+		var cone := CylinderMesh.new()
+		cone.bottom_radius = spec[0]
+		cone.top_radius = spec[1]
+		cone.height = spec[2]
+		cone.cap_top = false
+		cone.cap_bottom = false
+		cone.rings = 1
+		cone.radial_segments = 32
+		cone.material = _tail_spin_material()
+		var whirl := MeshInstance3D.new()
+		whirl.mesh = cone
+		whirl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		whirl.position.y = spec[2] * 0.5 + 0.03
+		whirl.set_meta("turns", spec[3])
+		whirl.set_instance_shader_parameter("fade", 0.0)
+		root.add_child(whirl)
+		whirls.append(whirl)
+	var swirl := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * radius * 2.0
+	quad.orientation = PlaneMesh.FACE_Y
+	quad.material = _ground_swirl_material()
+	swirl.mesh = quad
+	swirl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	swirl.position.y = 0.04
+	swirl.transparency = 1.0
+	root.add_child(swirl)
+	_dust_ring(body.get_parent(), body.global_position + Vector3.UP * 0.08, radius)
+	var tween := root.create_tween()
+	tween.tween_method(func(u: float) -> void:
+		var fade := minf(u / 0.12, 1.0) * clampf((1.0 - u) / 0.45, 0.0, 1.0)
+		var spun := 1.0 - (1.0 - u) * (1.0 - u)  # fast at first, winding down
+		for whirl in whirls:
+			whirl.rotation.y = -TAU * float(whirl.get_meta("turns")) * spun
+			whirl.set_instance_shader_parameter("fade", fade)
+		swirl.rotation.y = -TAU * 2.0 * spun
+		swirl.scale = Vector3.ONE * lerpf(0.35, 1.0, spun)
+		swirl.transparency = 1.0 - fade * 0.8, 0.0, 1.0, duration)
+	tween.tween_callback(root.queue_free)
+
+
+static func _tail_spin_material() -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/tail_spin.gdshader")
+	return mat
+
+
+static func _ground_swirl_material() -> StandardMaterial3D:
+	var key := "twirl_02:ground"
+	if not _materials.has(key):
+		var mat := StandardMaterial3D.new()
+		mat.albedo_texture = load(TEX % "twirl_02")
+		mat.albedo_color = Color(1.0, 0.97, 0.88)
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat.disable_receive_shadows = true
+		_materials[key] = mat
+	return _materials[key]
+
+
+## Dust blown outward along the floor, settling about `radius` from `pos` (world space: it stays put).
+static func _dust_ring(parent: Node, pos: Vector3, radius: float) -> void:
+	if parent == null:
+		return
+	var p := _particles("smoke_04", 0.35)
+	p.amount = 20
+	p.lifetime = 0.7
+	var m := p.process_material as ParticleProcessMaterial
+	m.direction = Vector3.RIGHT
+	m.spread = 180.0
+	m.flatness = 1.0  # a flat ring, not a ball
+	m.initial_velocity_min = radius * 2.6
+	m.initial_velocity_max = radius * 3.0
+	m.damping_min = radius * 2.6
+	m.damping_max = radius * 3.2
+	m.gravity = Vector3(0, 0.3, 0)
+	m.angle_min = -180.0
+	m.angle_max = 180.0
+	var ramps := _fade_ramp(DUST, 1.8)
+	m.color_ramp = ramps[0]
+	m.scale_curve = ramps[1]
+	_one_shot(parent, p, pos)
+
+
+## A trap smashed by a tail spin: splinters, sparks and a puff where it was.
+static func smash(parent: Node, pos: Vector3) -> void:
+	if not enabled() or parent == null or not parent.is_inside_tree():
+		return
+	var p := _particles("dirt_02", 0.09)
+	p.amount = 12
+	p.lifetime = 0.7
+	var m := p.process_material as ParticleProcessMaterial
+	m.direction = Vector3.UP
+	m.spread = 60.0
+	m.initial_velocity_min = 2.0
+	m.initial_velocity_max = 3.5
+	m.gravity = Vector3(0, -9.0, 0)
+	m.angular_velocity_min = -720.0
+	m.angular_velocity_max = 720.0
+	m.color_ramp = _fade_ramp(Color(0.55, 0.42, 0.3))[0]
+	_one_shot(parent, p, pos + Vector3.UP * 0.1)
+	sparks(parent, pos + Vector3.UP * 0.1, 10, Color.WHITE)
+	puff(parent, pos + Vector3.UP * 0.1, Vfx.DUST, 8, 0.45)
+	bonk(parent, pos + Vector3.UP * 0.3)
+
+
 ## Crumbs (eating a donut).
 static func crumbs(parent: Node, pos: Vector3) -> void:
 	if not enabled() or parent == null or not parent.is_inside_tree():

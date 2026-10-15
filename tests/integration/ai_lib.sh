@@ -29,10 +29,11 @@ check() {
 }
 
 # start_server <timeout_s> <extra server args...>   (writes $LOGS/server.log)
+# MATCH_CFG="key=value" adds lines to the [match] section (e.g. bot_difficulty=2).
 start_server() {
 	local limit=$1
 	shift
-	printf '[match]\ncountdown_s=3\n' > "$LOGS/server.cfg"
+	printf '[match]\ncountdown_s=3\n%s\n' "${MATCH_CFG:-}" > "$LOGS/server.cfg"
 	timeout -s KILL "$limit" "$GODOT" --headless --max-fps 120 -- --server --no-heatmap --no-lan --port "$PORT" \
 		--config "$LOGS/server.cfg" --allow-debug --ai-seed "$SEED" --exit-after-match --result-file "$RESULT" "$@" \
 		> "$LOGS/server.log" 2>&1 &

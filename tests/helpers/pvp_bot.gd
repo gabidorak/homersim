@@ -23,9 +23,17 @@ extends Node
 ##            tablet out and puts it away, then climbs
 ##            the yard ladder to the vent roof and is teleported out of bounds (it must come back
 ##            by itself); the rat climbs the vent shaft up to the roof.
+##   tailspin supervisor + rat: the supervisor lays a snap trap and a cheese lure side by side and
+##            another snap trap further off; the rat spins its tail by the pair: both smashed (neither
+##            goes off), the far one stays. A spin right after is refused (cooldown), and so is one
+##            from the supervisor and one from the rat once it's stunned. Then the rat smashes the far
+##            trap too. Both bots log what their client is told: only rats learn where traps broke.
 ##   ai_target (M10, TestArena, with one AI rat that stands still: server --ai-roles rat
 ##            --ai-goals rat:none) supervisor: stuns, grabs and cages the AI rat. The server moves a
 ##            bot's body directly (attach_to, force_position without RPCs). Every rat is caught.
+##   ai_tailspin (TestArena, one AI rat that stands still, hard bots) supervisor: lays three traps
+##            about 1 m around the AI rat, in its sight. The rat notices them and smashes them all
+##            with its tail (the spin reflex, a few spins: the cooldown).
 ##   ai_fill  (M10, a server with bot_fill_to) any role: logs the roster and the bot bodies it sees,
 ##            then quits mid-match (the server must go back to the lobby, without the bots).
 
@@ -67,8 +75,14 @@ func run(p_bot: Node, scenario: String) -> void:
 			await _plant_supervisor()
 		"plant:rat":
 			await _plant_rat()
+		"tailspin:supervisor":
+			await _tailspin_supervisor()
+		"tailspin:rat":
+			await _tailspin_rat()
 		"ai_target:supervisor":
 			await _ai_target_supervisor()
+		"ai_tailspin:supervisor":
+			await _ai_tailspin_supervisor()
 		"ai_fill:supervisor", "ai_fill:rat":
 			await _ai_fill()
 		_:
@@ -412,6 +426,72 @@ func _steal_from(sup: Player, steal: StealHandle) -> void:
 	Log.info("bot", "steal hold ended: %s, carrying '%s'" % [reason, me().inventory.stolen_item])
 
 
+# --- tailspin --------------------------------------------------------------------------------
+
+const SPIN_PAIR: Array[Vector3] = [Vector3(-4, 0, 2.5), Vector3(-5, 0, 2.5)]  ## snap trap, cheese lure
+const SPIN_FAR := Vector3(-2.2, 0, 2.5)  ## a snap trap 2.5 m from SPIN_SPOT: out of reach
+const SPIN_SPOT := Vector3(-4.5, 0, 3.5)  ## 1.1 m from both traps of the pair
+
+
+## What this client is told about tail spins and the feed (the test greps these lines).
+func _log_tail_spins() -> void:
+	session.abilities.tail_spun.connect(func(attacker: int, smashed: PackedVector3Array) -> void:
+		Log.info("bot", "tail spin seen: %s, %d smash position(s)" % [session.name_of(attacker), smashed.size()]))
+	Events.feed_event.connect(func(kind: String, a: String, _b: String) -> void:
+		Log.info("bot", "feed: %s %s" % [kind, a]))
+
+
+func _tailspin_supervisor() -> void:
+	_log_tail_spins()
+	await teleport(Vector3(-3.5, 0, 4))
+	await face(Vector3(-3.5, 0, 2))
+	me().abilities.selected_trap = 0
+	me().abilities.place_trap(SPIN_PAIR[0])
+	await wait_until(func() -> bool: return me().inventory.snap_charges == 2, 2.0, "the snap trap placed")
+	me().abilities.selected_trap = 1
+	me().abilities.place_trap(SPIN_PAIR[1])
+	await wait_until(func() -> bool: return me().inventory.lure_charges == 2, 2.0, "the lure placed")
+	await wait(1.2)  # the snap trap's cooldown
+	me().abilities.selected_trap = 0
+	me().abilities.place_trap(SPIN_FAR)
+	await wait_until(func() -> bool: return dynamic_of(Trap).size() == 3, 2.0, "the far trap placed")
+	Log.info("bot", "tail spin: %d traps laid" % dynamic_of(Trap).size())
+	session.abilities.request_use_ability.rpc_id(1, &"tail_spin", Vector3.ZERO)  # a supervisor has no tail
+	await wait_until(func() -> bool: return dynamic_of(Trap).size() == 1, 15.0, "the rat smashing the pair")
+	# Stun the rat: it tries to spin while stunned.
+	var rat := body_named("RatBot")
+	await teleport(rat.global_position + Vector3(0, 0, 1.4))
+	await face(Interactable.origin_of(rat))
+	for attempt in 3:
+		me().abilities.use(&"broom", Interactable.origin_of(rat) - Interactable.origin_of(me()))
+		if await wait_until(func() -> bool: return has(rat, StatusComponent.Status.STUNNED), 1.0, "the stun"):
+			break
+		await wait(1.3)  # the broom's cooldown
+	await wait_until(func() -> bool: return dynamic_of(Trap).is_empty(), 15.0, "the rat smashing the far trap")
+	Log.info("bot", "tail spin: every trap smashed")
+
+
+func _tailspin_rat() -> void:
+	_log_tail_spins()
+	await wait(0.5)  # until the server's move into the cage reaches us
+	await wait_until(func() -> bool: return dynamic_of(Trap).size() == 3, 20.0, "the three traps")
+	await teleport(SPIN_SPOT)
+	Log.info("bot", "spinning by the pair: %s" % me().abilities.use(&"tail_spin"))
+	await wait_until(func() -> bool: return dynamic_of(Trap).size() == 1, 3.0, "the pair smashed")
+	Log.info("bot", "after the first spin: %d trap(s) left, stunned %s, revealed %s" % [dynamic_of(Trap).size(),
+		has(me(), StatusComponent.Status.STUNNED), has(me(), StatusComponent.Status.REVEALED)])
+	session.abilities.request_use_ability.rpc_id(1, &"tail_spin", Vector3.ZERO)  # straight to the server: cooling down
+	await wait_until(func() -> bool: return has(me(), StatusComponent.Status.STUNNED), 15.0, "the broom")
+	Log.info("bot", "stunned, the client lets us spin: %s" % me().abilities.use(&"tail_spin"))
+	session.abilities.request_use_ability.rpc_id(1, &"tail_spin", Vector3.ZERO)  # can't act
+	await wait_until(func() -> bool: return not has(me(), StatusComponent.Status.STUNNED), 5.0, "the stun ending")
+	await wait_until(func() -> bool: return me().abilities.cooldown_left(&"tail_spin") <= 0.0, 6.0, "the cooldown")
+	await teleport(SPIN_FAR + Vector3(0.8, 0, 0.8))
+	Log.info("bot", "spinning by the far trap: %s" % me().abilities.use(&"tail_spin"))
+	await wait_until(func() -> bool: return dynamic_of(Trap).is_empty(), 3.0, "the far trap smashed")
+	Log.info("bot", "after the second spin: %d trap(s) left" % dynamic_of(Trap).size())
+
+
 # --- hack ------------------------------------------------------------------------------------
 
 func _hack_supervisor() -> void:
@@ -573,6 +653,26 @@ func _ai_target_supervisor() -> void:
 	await wait_until(func() -> bool: return has(rat, StatusComponent.Status.CAGED), 2.0, "the AI rat caged")
 	Log.info("bot", "AI rat caged: %s, inside the cage: %s" % [has(rat, StatusComponent.Status.CAGED),
 		rat.global_position.distance_to(cage("CageA").global_position) < 2.0])
+
+
+func _ai_tailspin_supervisor() -> void:
+	_log_tail_spins()
+	await wait(1.0)
+	var bots := _bot_bodies()
+	if bots.is_empty():
+		Log.warn("bot", "no AI rat")
+		return
+	var rat := bots[0]
+	var at := rat.global_position
+	await teleport(at + Vector3(0, 0, 1.8))
+	await face(at)
+	# [trap index (0 snap, 1 lure), offset from the rat]: ~1 m away, in reach but not underfoot.
+	for spec: Array in [[0, Vector3(0.9, 0, 0.5)], [1, Vector3(-0.9, 0, 0.5)], [0, Vector3(0, 0, 1.0)]]:
+		await wait(1.2)  # each kind's cooldown
+		me().abilities.selected_trap = spec[0]
+		Log.info("bot", "placing a trap by the AI rat: %s" % me().abilities.place_trap(at + (spec[1] as Vector3)))
+	await wait_until(func() -> bool: return dynamic_of(Trap).is_empty(), 20.0, "the AI rat smashing every trap")
+	Log.info("bot", "AI rat: traps left %d, stunned %s" % [dynamic_of(Trap).size(), has(rat, StatusComponent.Status.STUNNED)])
 
 
 func _ai_fill() -> void:

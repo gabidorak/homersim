@@ -15,3 +15,7 @@ signal local_hazard_hit(text: String)  ## a hazard hit the local player (HUD ban
 signal plant_announcement(text: String)  ## a plant-wide event (SCRAM, coolant) for the HUD banner, clients only
 @warning_ignore("unused_signal")
 signal feed_event(kind: String, a: String, b: String)  ## a line for the event feed (MatchManager.feed), clients only
+@warning_ignore("unused_signal")
+signal post_match_shown  ## the post-match screen is up (after the end-of-match cinematic), clients only
+@warning_ignore("unused_signal")
+signal outro_started  ## the end-of-match cinematic is coming (the game fades to black), clients only

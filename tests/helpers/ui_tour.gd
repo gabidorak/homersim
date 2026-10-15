@@ -20,6 +20,7 @@ var _only := ""
 
 
 func _ready() -> void:
+	OutroScreen.enabled = false  # (its post-match shots go straight to the result: OutroShots has the cinematics)
 	if get_tree().current_scene == self:
 		# The tour changes scenes, which frees the current one: run it from a node directly under root.
 		var runner: Node = (get_script() as GDScript).new()

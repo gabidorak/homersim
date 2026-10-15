@@ -91,6 +91,25 @@ func set_speed(speed: float) -> void:
 		tree.set(&"parameters/speed/scale", speed)
 
 
+## Shows `name_` frozen at `time` s, with no blending and no clock of its own: the same time always
+## gives the same pose, whatever the frame rate or the order of the calls (the outro samples its
+## timeline at any step, client/outro/). Switches the AnimationTree off for good.
+func pose_at(name_: String, time: float) -> void:
+	if not has_clip(name_):
+		return
+	if anim.callback_mode_process != AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL:
+		if tree != null:
+			tree.active = false
+		anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	if anim.current_animation != name_:
+		anim.play(name_)
+		clip = name_
+	var animation := anim.get_animation(name_)
+	if animation.loop_mode != Animation.LOOP_NONE:
+		time = fposmod(time, animation.length)
+	anim.seek(clampf(time, 0.0, animation.length), true)
+
+
 ## Hangs `node` on `bone` (it follows the animated bone), at `xform` in the bone's space.
 ## (Without that bone, it hangs on the actor itself.)
 func attach(node: Node3D, bone: String, xform := Transform3D.IDENTITY) -> BoneAttachment3D:

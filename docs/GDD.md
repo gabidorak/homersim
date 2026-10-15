@@ -44,7 +44,11 @@ A single rat can't do the **critical** sabotages (two levers held at once, §4.3
 2. **Role assign** (instant): roles are assigned from preferences plus the team seats and auto-balance above.
 3. **Countdown, 10 s**: everyone is spawned and frozen. Supervisors start in the Break Room, rats in the Rat Nest.
 4. **Playing, 9:00** (8:00 with one supervisor).
-5. **Post-match, 15 s**: winner banner, each team's stats (sabotages, repairs, catches, bites, hazard hits…) and a few fun awards (most bonks, sneakiest rat, donut addict…). Then everyone returns to the lobby.
+5. **Post-match, 25 s**: first the winners' end-of-match cinematic, **Grandma's Toast** (8–9 s, `client/outro/`; any key, click or gamepad button skips it), seen by everyone who saw the match played, both teams and the spectators. In a cosy pastel kitchen in town, at dawn, a grandma makes her breakfast toast with Sunny Acres' power, her grandson's photo on the wall (a supervisor, proudly holding up a donut).
+   - **Supervisors win:** DING, a golden slice flips high onto her plate, a second lands on it, she hops with joy, gives the photo a winking thumbs up, CRUNCH, bliss.
+   - **Rats win:** the toaster barely warms, two pale slices creep up and one flops over the slot; she pouts, the photo tilts on its nail, and the town's lights quietly go out. In the dark two goo-green eyes blink open by the toaster, crunch crunch crunch, a snicker. She strikes a match: her toaster and her plate are empty but for crumbs, and a tail slips over the counter's edge. Fft.
+
+   No words, nothing scary (the rats are cheeky winners, the power just goes out). Then the winner banner, each team's stats (sabotages, repairs, catches, bites, hazard hits…) and a few fun awards (most bonks, sneakiest rat, donut addict…), for the ~14 s the result had before the cinematic came in (a skip leaves it up longer; after a meltdown the cinematic waits a second for the boom). Then everyone returns to the lobby.
 
 ## 4. Plant simulation
 There are six subsystems, each with `health` from 0 to 100 that starts at 100.
@@ -133,6 +137,7 @@ Abilities:
 
 Abilities:
 - **Bite** (LMB): 1.2 m range, 2.5 s cooldown. It **slows a supervisor by 30% for 3 s**. **3 bites within 6 s (any rats) = knockdown for 4 s**, followed by 3 s of knockdown immunity.
+- **Tail spin** (X): the rat spins round and smashes **every trap within 1.5 m** (snap traps and cheese lures, in sight) with its tail, **5 s cooldown**. A smashed trap doesn't go off. Not while stunned, knocked down, carried or caged; the rat keeps moving while it spins (0.6 s of whirling model, speed streaks, a swirl on the floor showing the reach, dust). Every player's event feed gets one line per trap smashed ("RatBot's tail smashed a snap trap"), but only rats are told where it was: supervisors find out the trap is gone, not which one.
 - **Steal** (E behind a supervisor, 1 s hold): takes the supervisor's keycard (or broom, from M6). The rat carries it and moves 10% slower. If the rat is stunned, it drops the item. A supervisor without a keycard can get a spare from the Storage locker after a 30 s delay.
 - **Free a caged rat** (hold E for 4 s at a cage). One hold frees one rat, the one caged first.
 - **Break a CCTV camera** (hold E for 2 s). A supervisor fixes it with a 3 s hold.
@@ -161,7 +166,7 @@ Abilities:
 ### 5.5 Bots
 AI players fill empty slots (M10, [milestone](milestones/M10-ai-bots.md)). They play like humans:
 
-- **Bot rats** sabotage machines, team up on critical lever pairs (with a human rat too), use the vents and flee from supervisors. They bite, gang up on a busy supervisor, rescue a carried friend, free caged rats, break CCTV cameras, steal keycards and squeak.
+- **Bot rats** sabotage machines, team up on critical lever pairs (with a human rat too), use the vents and flee from supervisors. They bite, smash the traps they noticed with a tail spin, gang up on a busy supervisor, rescue a carried friend, free caged rats, break CCTV cameras, steal keycards and squeak.
 - **Bot supervisors** patrol, repair (always the hold repair, never the minigames) and reboot. They chase, bonk, grab and cage rats, set traps and refill them, and answer a SNAP. They also use their keycard, collect a spare when theirs is stolen, eat donuts, sit at the CCTV, fix cameras, and use the coolant and the SCRAM.
 
 **Fair play.** A bot only knows what a human in its seat could know:
@@ -251,6 +256,7 @@ player's keyboard. Esc can't be rebound (it always opens the menu).
 | Jump / sprint / crouch* | Space / Shift / Ctrl (*rats: squeeze) |
 | Primary (broom / bite) | LMB |
 | Secondary (trap / –) | RMB |
+| Tail spin (rats: smash the traps around you) | X |
 | Interact (hold) | E |
 | Chat / team chat | Enter / T |
 | Scoreboard and map of the plant (hold) | Tab |

@@ -12,7 +12,7 @@ extends RefCounted
 ## on purpose: it always opens the menu, so nobody can lock themselves out of the settings.
 const REBINDABLE: Array[StringName] = [
 	&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"sprint", &"crouch",
-	&"primary", &"secondary", &"interact", &"next_trap", &"cctv_tablet", &"slot_1", &"slot_2", &"slot_3", &"slot_next", &"slot_prev",
+	&"primary", &"secondary", &"tail_spin", &"interact", &"next_trap", &"cctv_tablet", &"slot_1", &"slot_2", &"slot_3", &"slot_next", &"slot_prev",
 	&"emote", &"chat", &"team_chat", &"scoreboard", &"map", &"lobby_ready", &"lobby_pref_any", &"lobby_pref_supervisor",
 	&"lobby_pref_rat", &"spectate_up", &"spectate_down", &"debug_overlay", &"debug_stopwatch",
 ]
@@ -28,6 +28,7 @@ const ACTION_NAMES := {
 	&"crouch": "Crouch / squeeze",
 	&"primary": "Broom / bite",
 	&"secondary": "Place a trap (hold, release)",
+	&"tail_spin": "Tail spin (rat: smash traps)",
 	&"interact": "Interact (hold)",
 	&"next_trap": "Switch trap (CCTV: previous camera)",
 	&"cctv_tablet": "CCTV tablet (supervisor)",
@@ -55,7 +56,7 @@ const ACTION_NAMES := {
 ## (Space for both "jump" and "fly up" is fine: a spectator has no body to jump with.)
 const GROUPS: Array[Array] = [
 	[&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"sprint", &"crouch", &"primary",
-		&"secondary", &"interact", &"next_trap", &"cctv_tablet", &"slot_1", &"slot_2", &"slot_3", &"slot_next", &"slot_prev", &"emote",
+		&"secondary", &"tail_spin", &"interact", &"next_trap", &"cctv_tablet", &"slot_1", &"slot_2", &"slot_3", &"slot_next", &"slot_prev", &"emote",
 		&"chat", &"team_chat", &"scoreboard", &"map", &"debug_overlay", &"debug_stopwatch"],
 	[&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"emote", &"chat", &"scoreboard",
 		&"map", &"lobby_ready", &"lobby_pref_any", &"lobby_pref_supervisor", &"lobby_pref_rat"],

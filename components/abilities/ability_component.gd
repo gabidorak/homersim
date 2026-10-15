@@ -1,8 +1,9 @@
 class_name AbilityComponent
 extends Node
-## The player's abilities (RoleData.abilities: broom / bite / traps / spit).
+## The player's abilities (RoleData.abilities: broom / bite / traps / spit / tail spin).
 ##   Owning client: LMB uses the primary ability (request_use_ability with the aim direction); a
-##     caged rat's LMB spits instead of biting, toward the cage camera's yaw.
+##     caged rat's LMB spits instead of biting, toward the cage camera's yaw. Rats spin their tail
+##     with X (the tail_spin action) to smash the traps around them.
 ##     Supervisors hold RMB to see where the selected trap would go (a preview only this client
 ##     ever draws, so rats never see it), release to place it (request_place_trap). The Hotbar
 ##     picks which trap (selected_trap: 1 2 3, the wheel, Q). Cooldowns start locally on use and are
@@ -33,6 +34,14 @@ func primary() -> AbilityData:
 	var caged := body.status.has(StatusComponent.Status.CAGED)
 	for a in body.role_data.abilities:
 		if a.input_action == &"primary" and (a.kind == AbilityData.Kind.SPIT) == caged:
+			return a
+	return null
+
+
+## The ability bound to its own key `action` (the tail spin), or null for this role.
+func for_action(action: StringName) -> AbilityData:
+	for a in body.role_data.abilities:
+		if a.input_action == action:
 			return a
 	return null
 
@@ -68,8 +77,17 @@ func use(id: StringName, aim: Vector3 = Vector3.ZERO) -> bool:
 	if data.kind == AbilityData.Kind.MELEE_STUN and body.rig is FirstPersonRig:
 		(body.rig as FirstPersonRig).swing()
 	if body.anim != null:  # the others see it when the server's cosmetic RPC comes back
-		body.anim.play_one_shot("swing" if data.kind == AbilityData.Kind.MELEE_STUN else "bite")  # (spit too)
+		body.anim.play_one_shot(_clip_for(data.kind))
 	return true
+
+
+static func _clip_for(kind: AbilityData.Kind) -> String:
+	match kind:
+		AbilityData.Kind.MELEE_STUN:
+			return "swing"
+		AbilityData.Kind.TAIL_SPIN:
+			return "tail_spin"  # (no clip: BodyFx spins the whole model)
+	return "bite"  # (spit too)
 
 
 ## Owner: place the selected trap at `pos` (also the bots' entry point).
@@ -95,6 +113,10 @@ func _process(delta: float) -> void:
 	var control := PlayerInput.has_control() and _playing() and not body.watching_cctv()
 	if control and Input.is_action_just_pressed("primary") and primary() != null:
 		use(primary().id)
+	if control and Input.is_action_just_pressed("tail_spin"):
+		var spin := for_action(&"tail_spin")
+		if spin != null:
+			use(spin.id)
 	var wants_preview := control and Input.is_action_pressed("secondary") and selected_trap_ability() != null
 	if _placing and not wants_preview:
 		if control and _preview_pos != null:

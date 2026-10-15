@@ -19,6 +19,7 @@ const REFLEX_CHECK_S := 0.05  ## …checked this often (20 Hz)
 const RESCUE_BITE_M := 1.1  ## m from a carried teammate: its carrier is in bite reach
 const RETRY_AFTER_FAIL_S := 1.5  ## a goal that just failed sits out this long
 const CAGE_SPIT_PER_S := 0.35  ## caged, with a supervisor in range: chance per second to spit (cooldown allowing)
+const SPIN_REACH := 0.9  ## of the tail spin's range: a noticed trap this close gets smashed
 
 var director: AiDirector
 var body: Player
@@ -255,13 +256,15 @@ func _reflex_wants_in() -> bool:
 
 
 ## Instant reactions, whatever the goal.
-##   rats: bite the supervisor carrying a teammate next to us (one bite drops it)
+##   rats: spin the tail when a trap we noticed (or heard about) is in reach; bite the supervisor
+##     carrying a teammate next to us (one bite drops it)
 ##   supervisors: swing the broom at a rat this bot sees within reach, in front (the server clamps the
 ##     aim to 45° of the facing, so the body faces first: Chase and Capture turn toward rats); turn
 ##     toward whoever just bit us
 func _reflexes() -> void:
 	var here := body.global_position
 	if body.role == Role.Kind.RAT:
+		_tail_spin_at_traps(here)
 		if not body.abilities.server_ready(&"bite"):
 			return
 		for mate in ctx.teammates():
@@ -294,6 +297,16 @@ func _reflexes() -> void:
 		if ctx.driver.use(&"broom", aim) == "":
 			ctx.log_line("swung at %s" % ctx.session.name_of(k.peer))
 		return
+
+
+## Rats: smash the traps we know of within reach (a trap we never noticed stays a surprise).
+func _tail_spin_at_traps(here: Vector3) -> void:
+	var spin := body.role_data.ability(&"tail_spin")
+	if spin == null or not body.abilities.server_ready(spin.id) \
+			or not ctx.senses.trap_near(here, spin.range * SPIN_REACH):
+		return
+	if ctx.driver.use(spin.id, Vector3.ZERO) == "":
+		ctx.log_line("tail-spun at a trap")
 
 
 ## Caged and bored: now and then, spit at the nearest supervisor in range (the server checks the line

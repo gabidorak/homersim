@@ -1,7 +1,7 @@
 class_name AbilityService
 extends Node
-## Melee abilities, server side (GDD §5): the broom, the bite and a caged rat's spit. Clients only
-## send intents:
+## Melee abilities, server side (GDD §5): the broom, the bite, a caged rat's spit and a rat's tail
+## spin. Clients only send intents:
 ##   request_use_ability(id, aim)  → the server checks the match, the role's ability list,
 ##                                   AbilityData.usable() and the cooldown, then runs the ability
 ## Traps go through ItemService.request_place_trap instead (they need a position).
@@ -16,6 +16,9 @@ extends Node
 ## are emitted too: AI bots hear them (AiSenses).
 ## Spit (GDD §5.3) is mostly for fun: a hit has a stun_chance to stun the supervisor, who then can't be
 ## stunned by spit again for stun_cooldown_s (so a cage full of rats can't keep a guard down).
+## Tail spin (GDD §5.2): the rat spins and smashes every armed trap (snap traps, cheese lures) within
+## the ability's range, in sight. Every player's event feed gets one line per trap smashed, but where
+## it was stays secret from the supervisors: only rats' clients get the positions (on_tail_spin).
 
 const HIT_TOLERANCE := 0.5  ## m added to an ability's range (lag)
 const AIM_TOLERANCE_DEG := 45.0
@@ -24,6 +27,10 @@ signal broom_swung(attacker: int, victim: int, stunned: bool)  ## clients: cosme
 signal bitten(attacker: int, victim: int, result: int)  ## clients: cosmetics (StatusRules.Bite); server: the AI
 ## Clients: cosmetics. `aim` is the flat direction it flew in (a miss flies that way); victim 0 = missed.
 signal spat(attacker: int, victim: int, aim: Vector3, stunned: bool)
+## Clients: cosmetics. `smashed` = where the smashed traps were (always empty on supervisors' clients).
+signal tail_spun(attacker: int, smashed: PackedVector3Array)
+
+const SPIN_TOLERANCE := 0.25  ## m added to the tail spin's range (lag; the traps don't move)
 
 var rng := RandomNumberGenerator.new()  ## server: the spit's stun roll
 
@@ -88,6 +95,8 @@ func _use(peer: int, id: StringName, aim: Vector3) -> String:
 			_bite(body, data, aim)
 		AbilityData.Kind.SPIT:
 			_spit(body, data, aim)
+		AbilityData.Kind.TAIL_SPIN:
+			_tail_spin(body, data)
 	return ""
 
 
@@ -179,6 +188,35 @@ func _spit(attacker: Player, data: AbilityData, aim: Vector3) -> void:
 	on_spit.rpc(attacker.peer_id, victim_peer, look, stunned)
 
 
+## A rat spins: every armed trap in reach and in sight is smashed (it doesn't go off).
+func _tail_spin(rat: Player, data: AbilityData) -> void:
+	var origin := Interactable.origin_of(rat)
+	var traps: Array[Trap] = []
+	var candidates := {}
+	for child in session.items.dynamic_root.get_children():
+		var trap := child as Trap
+		if trap != null and trap.is_armed():
+			candidates[traps.size()] = trap.global_position
+			traps.append(trap)
+	var smashed := PackedVector3Array()
+	var kinds: Array[String] = []
+	for i: int in HitCheck.targets_in_reach(origin, Vector3.ZERO, candidates, data.range + SPIN_TOLERANCE, 360.0):
+		var trap := traps[i]
+		if not HitCheck.has_line_of_sight(rat, origin, trap.global_position + Vector3.UP * 0.15):
+			continue
+		smashed.append(trap.global_position)
+		kinds.append(trap.trap_kind)
+		trap.smash()
+		session.match_manager.feed("tail_snap" if trap.trap_kind == "snap" else "tail_lure", rat.display_name)
+	Log.info("ability", "%s spun its tail: %s" % [rat.display_name,
+		("smashed %d trap(s) (%s)" % [smashed.size(), ", ".join(kinds)]) if not smashed.is_empty() else "nothing in reach"])
+	for peer: int in session.players:
+		var for_supervisor: bool = session.match_manager.roster.has(peer) \
+			and session.match_manager.roster[peer]["role"] == Role.Kind.SUPERVISOR
+		on_tail_spin.rpc_id(peer, rat.peer_id, PackedVector3Array() if for_supervisor else smashed)
+	tail_spun.emit(rat.peer_id, smashed)
+
+
 func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0
 
@@ -205,3 +243,8 @@ func on_bite(attacker: int, victim: int, result: int) -> void:
 @rpc("authority", "reliable")
 func on_spit(attacker: int, victim: int, aim: Vector3, stunned: bool) -> void:
 	spat.emit(attacker, victim, aim, stunned)
+
+
+@rpc("authority", "reliable")
+func on_tail_spin(attacker: int, smashed: PackedVector3Array) -> void:
+	tail_spun.emit(attacker, smashed)

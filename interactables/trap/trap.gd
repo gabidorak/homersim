@@ -5,6 +5,7 @@ extends Area3D
 ##   snap  STUNNED 3 s and a loud SNAP every supervisor hears (on_trap_snap), then consumed
 ##   lure  REVEALED 10 s (outlined through walls for supervisors), then consumed
 ## A rat that can't be stunned right now (invulnerable, stun immunity) doesn't set off a snap trap.
+## A rat's tail spin smashes it instead (AbilityService, smash()): gone without going off.
 ## The numbers come from the matching AbilityData (snap_trap / cheese_lure).
 
 const ABILITY_FOR := {"snap": &"snap_trap", "lure": &"cheese_lure"}
@@ -41,6 +42,17 @@ func _on_body_entered(node: Node3D) -> void:
 	_sprung = true
 	Session.current.items.trap_sprung(self, rat)
 	queue_free()  # the Dynamic spawner removes it on clients too
+
+
+## Server: a rat's tail spin broke it. It can't go off any more; the Dynamic spawner removes it on
+## clients too.
+func smash() -> void:
+	_sprung = true
+	queue_free()
+
+
+func is_armed() -> bool:
+	return not _sprung and not is_queued_for_deletion()
 
 
 func _build_look() -> void:

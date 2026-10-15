@@ -1,5 +1,6 @@
 """The music (M7): a sneaky match theme in three synced layers, a lounge loop for the lobby, win/lose
-stingers, and the score of the intro cinematic. All synthesized (tools/audio/synth.py).
+stingers, and the scores of the intro and of the end-of-match cinematics. All synthesized
+(tools/audio/synth.py).
 
 Match layers (client/music_director.gd plays them together and fades them with the plant alarm):
   match_calm      pizzicato walking bass, marimba melody, a ticking clock: always on in a match
@@ -443,6 +444,184 @@ def intro():
     return buf
 
 
+# --- The end-of-match cinematics (client/outro/outro.gd) ---------------------------------------------------
+# Written to the cinematics' clock, in seconds: each section starts on a cue of outro.gd (Outro.A_*,
+# B_*). Move a cue there, move it here too (tests/unit/test_outro.gd checks the lengths).
+
+OUTRO_A_S = 8.3
+OUTRO_A_CLICK = 0.9  # the lever goes down
+OUTRO_A_DING = 3.8
+OUTRO_A_LANDS = (4.56, 4.80)  # the slices land (their flights decide: client/outro/outro.gd _throw)
+OUTRO_A_JOY = 5.05
+OUTRO_A_SPARKLE = 6.05
+OUTRO_A_BITE = 6.95  # CRUNCH: the music stops dead
+OUTRO_B_S = 9.3
+OUTRO_B_FLICKER = 0.4
+OUTRO_B_CLICK = 0.9
+OUTRO_B_PWOMP = 3.8
+OUTRO_B_SHOCK = 4.6
+OUTRO_B_POUT = 5.1
+OUTRO_B_BLACKOUT = 5.8  # the power-down: the music runs down like a record losing power
+OUTRO_B_EYES = 6.8  # the sneaky pizzicato
+OUTRO_B_LIGHT = 7.9  # the match
+OUTRO_B_BLOW = 8.8
+
+
+def _tape_stop(x, at, dur):
+    """From `at` s, the sound slows to a stop over `dur` s (pitch and speed falling together, a
+    turntable losing power); silence after."""
+    out = x.copy()
+    a = samples(at)
+    n = samples(dur)
+    t = np.arange(n) / n
+    rate = (1.0 - t) ** 1.6
+    pos = a + np.cumsum(rate)
+    for ch in range(x.shape[1]):
+        out[a:a + n, ch] = np.interp(pos, np.arange(len(x)), x[:, ch]) * (1.0 - t ** 3)
+    out[a + n:] = 0.0
+    return out
+
+
+def outro_supervisors():
+    """Grandma's golden toast: a jaunty little piece in F. Morning (a glockenspiel over soft strings),
+    the wait (pizzicato tick-tock, a tuba, a glockenspiel climbing), a snare roll into the DING (a brass
+    stab), the slices flipping (a xylophone run up, a hang, down; woodblock plops as they land), joy
+    (a strummed, oompah'd tune with a brass melody), a twinkle on the photo, a dead stop on the CRUNCH,
+    then a warm cadence while she chews."""
+    sc = Score(OUTRO_A_S)
+    rng = np.random.default_rng(31)
+    # Morning: F major strings swelling in, a rising glockenspiel motif.
+    sc.add(_strings([53, 57, 60, 65], OUTRO_A_CLICK + 0.2, 0.7, attack=0.5), 0.0, 0.9)
+    for k, n in enumerate((77, 81, 84)):
+        sc.add(S.glockenspiel(S.midi(n), 0.9, 0.45), 0.15 + k * 0.2, 0.4, 0.2)
+    # The wait: tick-tock pizzicato, a tuba on the beats, the glockenspiel climbing a note per bar.
+    beat = 0.36
+    t = OUTRO_A_CLICK + 0.05
+    k = 0
+    while t < OUTRO_A_DING - 0.32:
+        sc.add(S.pluck(S.midi(72 if k % 2 == 0 else 67), 0.3, 0.5, 0.99, rng), t, 0.5, 0.25)
+        if k % 2 == 0:
+            sc.add(S.tuba(S.midi([41, 48, 45, 48][(k // 2) % 4]), 0.25, 0.8), t, 0.5, -0.1)
+        if k % 4 == 0:
+            sc.add(S.glockenspiel(S.midi(72 + 2 * (k // 4)), 0.6, 0.35), t, 0.32, 0.3)
+        sc.add(S.woodblock(1250 if k % 2 == 0 else 950, 0.3), t, 0.5, -0.3)
+        t += beat
+        k += 1
+    sc.add(_strings([60, 65, 69], OUTRO_A_DING - OUTRO_A_CLICK - 0.2, 0.45, attack=1.6, cutoff=2400),
+           OUTRO_A_CLICK + 0.2, 0.8)
+    for j in range(8):  # a snare roll into the DING
+        sc.add(S.snare(0.2 + 0.05 * j, rng), OUTRO_A_DING - 0.3 + j * 0.035, 0.6, 0.1)
+    # DING: a bright brass stab and a cymbal.
+    stab = sum(S.brass(S.midi(n), 0.35, 1.0, 3200) for n in (60, 65, 69, 72))
+    sc.add(stab, OUTRO_A_DING, 0.8)
+    sc.add(S.cymbal(1.0, 0.6, rng), OUTRO_A_DING, 0.6, 0.2)
+    # The flight: a xylophone run up to the top of the arc, a hang (a trill), and down to the plate.
+    up = [65, 67, 69, 72, 74, 77, 79, 81]
+    for j, n in enumerate(up):
+        sc.add(S.xylophone(S.midi(n + 12), 0.25), OUTRO_A_DING + 0.04 + j * 0.04, 0.45, -0.1 + j * 0.04)
+    for j in range(6):
+        sc.add(S.xylophone(S.midi(84 if j % 2 == 0 else 86), 0.2), 4.2 + j * 0.035, 0.3, 0.2)
+    for j, n in enumerate(reversed(up)):
+        sc.add(S.xylophone(S.midi(n + 12), 0.25), 4.42 + j * 0.038, 0.4, 0.2 - j * 0.04)
+    for at in OUTRO_A_LANDS:
+        sc.add(S.woodblock(700, 0.9), at, 0.7)
+        sc.add(S.pluck(S.midi(53), 0.4, 0.4, 0.99, rng), at, 0.6)
+    # Joy: a strummed oompah and a brass tune, F - Bb - C - F.
+    jb = 0.26
+    bars = [([53, 57, 60, 65], 41), ([53, 58, 62, 65], 46), ([55, 60, 64, 67], 48), ([53, 57, 60, 65], 41)]
+    tune = [(0, 77, 1), (1, 81, 1), (2, 84, 2), (4, 82, 1), (5, 81, 1), (6, 79, 2), (8, 76, 1), (9, 79, 1),
+            (10, 84, 2)]
+    for b, (chord, root) in enumerate(bars):
+        b0 = OUTRO_A_JOY + 0.02 + b * 4 * jb
+        if b0 > OUTRO_A_BITE - 0.05:
+            break
+        sc.add(S.tuba(S.midi(root), jb * 0.8, 0.9), b0, 0.55)
+        sc.add(S.tuba(S.midi(root + 7), jb * 0.8, 0.8), b0 + 2 * jb, 0.45)
+        for s in (1, 3):
+            strum = sum(S.pluck(S.midi(n + 12), jb * 1.2, 0.6, 0.99, rng) for n in chord)
+            sc.add(strum, b0 + s * jb, 0.18, 0.3)
+    for at, n, length in tune:
+        when = OUTRO_A_JOY + 0.02 + at * jb
+        if when > OUTRO_A_BITE - 0.08:
+            break
+        sc.add(S.brass(S.midi(n - 12), min(length * jb, OUTRO_A_BITE - when - 0.02), 0.8, 2600), when, 0.42, -0.2)
+        sc.add(S.glockenspiel(S.midi(n), 0.5, 0.3), when, 0.18, 0.25)
+    for k2, n in enumerate((96, 100, 103)):  # the photo's twinkle
+        sc.add(S.glockenspiel(S.midi(n), 0.6, 0.25), OUTRO_A_SPARKLE + k2 * 0.05, 0.3, 0.3)
+    # CRUNCH: everything stops dead, reverb and all (the bite is alone), then the warm ending swells in
+    # with her "mmm".
+    buf = sc.reverb(0.18, 1.0).buf
+    gap0, gap1 = samples(OUTRO_A_BITE - 0.03), samples(OUTRO_A_BITE + 0.02)
+    buf[gap0:gap1] *= np.linspace(1, 0, gap1 - gap0)[:, None] ** 2
+    buf[gap1:] = 0.0
+    warm = OUTRO_A_BITE + 0.28
+    end = Score(OUTRO_A_S)
+    end.add(_strings([53, 57, 60, 65], 1.1, 0.7, attack=0.3), warm, 0.9)
+    end.add(_strings([58, 62, 65, 70], 0.7, 0.6, attack=0.3), warm, 0.5, 0.2)
+    for k2, n in enumerate((65, 69, 72, 77, 81, 84)):  # a harp-ish arpeggio
+        end.add(S.pluck(S.midi(n), 1.2, 0.7, 0.997, rng), warm + 0.06 + k2 * 0.08, 0.3, -0.3 + k2 * 0.12)
+    end.add(_strings([53, 60, 65, 69, 72], 0.75, 0.8, attack=0.2), warm + 0.62, 0.8)
+    end.add(S.glockenspiel(S.midi(89), 1.0, 0.5), warm + 0.62, 0.3, 0.3)
+    out = buf + end.reverb(0.18, 1.0).buf
+    out[-samples(0.5):] *= np.linspace(1, 0, samples(0.5))[:, None]
+    return out
+
+
+def outro_rats():
+    """Grandma's power cut: a wobbly music box at dawn (A minor, detuned, the flicker bends it), the
+    wait gone thin, a deflated "wah" for the pale slices, a stab for her shock, a sad "wah" for the
+    pout; at the blackout the whole thing runs down like a turntable losing power. A beat of silence.
+    The eyes: a sneaky pizzicato, staccato and low. The match: a soft glassy chord, held, cut by her
+    breath."""
+    sc = Score(OUTRO_B_S)
+    rng = np.random.default_rng(32)
+    melody = [(0.0, 76), (0.3, 72), (0.6, 69), (0.9, 72), (1.2, 76), (1.5, 77), (1.8, 76), (2.1, 72), (2.4, 71),
+              (2.7, 72), (3.0, 74), (3.3, 72)]
+    for at, n in melody:
+        wobble = 1.0 - (0.03 if OUTRO_B_FLICKER <= at < OUTRO_B_FLICKER + 0.3 else 0.0) - 0.006 * np.sin(at * 7)
+        sc.add(S.glockenspiel(S.midi(n) * wobble, 0.8, 0.45), 0.1 + at, 0.35, 0.2)
+    for at, root in ((0.1, 45), (1.3, 41), (2.5, 43)):
+        sc.add(_strings([root + 12, root + 15, root + 19], 1.2, 0.45, attack=0.4, cutoff=1400), at, 0.7)
+    t = OUTRO_B_CLICK + 0.05
+    k = 0
+    while t < OUTRO_B_PWOMP - 0.1:  # the tick-tock, thin and uneven
+        sc.add(S.pluck(S.midi(64 if k % 2 == 0 else 60) * (1 - 0.01 * np.sin(t * 5)), 0.25, 0.3, 0.99, rng), t, 0.3, 0.25)
+        sc.add(S.woodblock(1150 if k % 2 == 0 else 880, 0.25), t, 0.35, -0.3)
+        t += 0.4 + 0.03 * np.sin(k)
+        k += 1
+    # pwomp: a deflated "wah" (down a minor third, muted brass).
+    for at, (a, b), d in ((OUTRO_B_PWOMP, (57, 54), 0.5), (OUTRO_B_POUT, (55, 52), 0.55)):
+        tt = np.arange(samples(d)) / SR
+        f = S.midi(a) * (S.midi(b) / S.midi(a)) ** np.clip(tt / d * 1.3, 0, 1)
+        x = S.saw(f, d) + 0.6 * S.saw(f * 1.004, d)
+        x = S.sweep_filter(x, lambda u: 80, lambda u: 500 + 1300 * np.sin(np.pi * min(1.0, u * 1.2)))
+        sc.add(x * S.env_adsr(d, 0.04, 0.1, 0.85, 0.15), at, 0.45)
+    sc.add(sum(S.brass(S.midi(n), 0.18, 1.0, 2400) for n in (57, 60, 63, 66)), OUTRO_B_SHOCK, 0.6)  # the shock
+    for at, n in ((5.2, 69), (5.45, 67), (5.65, 64)):  # the music box, sadder
+        sc.add(S.glockenspiel(S.midi(n) * 0.995, 0.8, 0.4), at, 0.3, 0.2)
+    sc.add(_strings([57, 60, 64], 0.9, 0.5, attack=0.4, cutoff=1300), 5.0, 0.6)
+    buf = _tape_stop(sc.reverb(0.16, 1.0).buf, OUTRO_B_BLACKOUT - 0.02, 0.45)  # the power goes
+    # The eyes: a sneaky pizzicato (staccato, chromatic, low), a soft tick.
+    sneak = Score(OUTRO_B_S)
+    line = [45, 48, 47, 46, 45, 52, 51, 50, 45, 48]
+    for k, n in enumerate(line):
+        at = OUTRO_B_EYES + 0.05 + k * 0.105
+        if at > OUTRO_B_LIGHT - 0.08:
+            break
+        sneak.add(S.pluck(S.midi(n), 0.14, 0.4, 0.98, rng) * S.env_exp(0.14, 0.05), at, 0.75, -0.1)
+        if k % 2 == 0:
+            sneak.add(S.woodblock(1600, 0.25), at, 0.3, 0.3)
+    # The match: a soft glassy chord, held, until she blows.
+    hold = OUTRO_B_BLOW - OUTRO_B_LIGHT
+    sneak.add(sum(S.glockenspiel(S.midi(n), 1.2, 0.5) for n in (81, 85, 88)), OUTRO_B_LIGHT, 0.25, 0.2)
+    sneak.add(_strings([57, 64, 69, 73], hold, 0.35, attack=0.25, cutoff=1600), OUTRO_B_LIGHT, 0.7)
+    b = sneak.reverb(0.16, 1.0).buf
+    cut = samples(OUTRO_B_BLOW + 0.02)  # her breath cuts it: the dark is silent
+    b[cut:cut + samples(0.08)] *= np.linspace(1, 0, samples(0.08))[:, None]
+    b[cut + samples(0.08):] = 0.0
+    return buf + b
+
+
 def _master(stems, level=0.85):
     """Scales stems together so their sum peaks at `level` (keeps the layers' balance)."""
     total = sum(stems)
@@ -460,6 +639,7 @@ def render_all(only=()):
             if wanted(name):
                 yield name, x
     for name, fn, level in (("lobby", lobby, 0.75), ("stinger_win", stinger_win, 0.85),
-                            ("stinger_lose", stinger_lose, 0.85), ("intro", intro, 0.8)):
+                            ("stinger_lose", stinger_lose, 0.85), ("intro", intro, 0.8),
+                            ("outro_supervisors", outro_supervisors, 0.8), ("outro_rats", outro_rats, 0.8)):
         if wanted(name):
             yield name, S.normalize(fn(), level)

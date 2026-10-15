@@ -1,9 +1,9 @@
 class_name EventFeed
 extends CanvasLayer
 ## The event feed (M8, ClientOnly), top right: one line per big moment of the match, sent by the server
-## (MatchManager.feed → Events.feed_event): cages, rescues, bonks, knockdowns, traps, stolen keycards,
-## sabotages, machines offline or fixed, the swarm bonus. Names take their team's colour. Each line
-## fades out after LINE_S.
+## (MatchManager.feed → Events.feed_event): cages, rescues, bonks, knockdowns, traps (and the ones a
+## rat's tail spin smashed: who did it, never where), stolen keycards, sabotages, machines offline or
+## fixed, the swarm bonus. Names take their team's colour. Each line fades out after LINE_S.
 
 const LINE_S := 7.0
 const FADE_S := 0.8
@@ -21,6 +21,8 @@ const LINES := {
 	"spit": "PTOOEY! %s spat in %s's eye",
 	"trap_snap": "SNAP! %s stepped in a trap",
 	"trap_lure": "%s sniffed the cheese lure: revealed!",
+	"tail_snap": "%s's tail smashed a snap trap",
+	"tail_lure": "%s's tail smashed a cheese lure",
 	"stolen": "A rat stole %s's keycard!",
 	"sabotaged": "%s sabotaged!",
 	"offline": "%s is offline! It needs a reboot",

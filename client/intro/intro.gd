@@ -1,5 +1,5 @@
 class_name Intro
-extends Node3D
+extends Cinematic
 ## The intro cinematic (about 18 s), played when the game starts, before the main menu (main.gd):
 ## how the rats came to Sunny Acres. In the good old days the supervisors kept hamsters in open cages
 ## on their desk, played with them and shared their donuts. Then the new guy, carrying a yellow bottle
@@ -9,19 +9,17 @@ extends Node3D
 ## Any click (or key, or gamepad button) skips straight to the menu.
 ##
 ## Everything is built in code: the set (IntroSet), the characters (IntroActor), the effects
-## (IntroFx). The timeline is a list of cues (a time and what happens then, see _script()) and of
-## camera shots (_shot_list()); the music (tools/audio/music.py, intro) is written to the same clock.
+## (IntroFx). Cinematic (client/cinema/) runs it: the timeline is a list of cues (a time and what
+## happens then, see _script()) and of camera shots (_shot_list()); the music (tools/audio/music.py,
+## intro) is written to the same clock.
 
 const SCENE := "res://client/intro/Intro.tscn"
 const MENU := "res://client/MainMenu.tscn"
 const MUSIC := "res://assets/audio/music/intro.ogg"
 const LENGTH := 18.6  ## s: the menu comes then
-const SKIP_FADE := 0.3
 const MUSIC_DB := 2.0  ## the score leads here: a little over the Music bus mix level
 const GOO := Color(0.61, 1.0, 0.18)
 const GOO_TINT := Color(0.72, 1.0, 0.6)  ## hamsters dripping with goo
-const OVERLAY_LAYER := 10
-const BAR_HEIGHT := 58.0  ## the letterbox bars, in pixels at 720p
 const VENT := Vector3(IntroSet.RIGHT - 0.3, 0.0, IntroSet.VENT_Z)  ## the vent's mouth
 ## Where the broom guy swings at the last rat...
 const SWING_SPOT := Vector3(2.6, 0.0, -2.0)
@@ -36,9 +34,6 @@ const BONK := 15.89
 
 var set_: IntroSet
 var fx: IntroFx
-var camera: Camera3D
-var t := 0.0  ## the clock: seconds since the intro started
-var leaving := false
 
 # The cast.
 var sup_a: IntroActor  ## left: plays with the begging hamster, gets bitten
@@ -48,20 +43,11 @@ var hamsters: Array[IntroActor] = []  ## golden (on the wheel), cocoa (begging),
 var rats: Array[IntroActor] = []  ## what each hamster becomes
 var bottle: Node3D
 
-var _cues: Array[Array] = []  # [time, Callable], sorted by time
-var _next_cue := 0
-var _shots: Array[Dictionary] = []
-var _shake := 0.0
-var _rng := RandomNumberGenerator.new()
-var _music: AudioStreamPlayer
-var _fade: ColorRect
 var _caption: TextureRect
 var _caption_box: VBoxContainer
-var _skip_hint: Label
 var _goo_lights: Array[OmniLight3D] = []
 var _trail: Array[Node3D] = []  # goo blobs pouring out of the flying bottle
 var _trail_points: Array[Vector3] = []
-var _started := false
 
 
 ## Whether the game should open with the intro: a windowed client with no reason to go straight
@@ -88,29 +74,20 @@ func _ready() -> void:
 		return
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	var started_ms := Time.get_ticks_msec()
+	log_tag = "intro"
 	_rng.seed = 2024
 	set_ = IntroSet.new()
 	set_.name = "Set"
 	add_child(set_)
-	camera = Camera3D.new()
-	camera.name = "Camera"
-	add_child(camera)
-	camera.make_current()
+	_make_camera()
 	fx = IntroFx.new()
 	fx.name = "Fx"
 	fx.camera = camera
 	add_child(fx)
 	_cast()
 	_build_overlay()
-	_music = AudioStreamPlayer.new()
-	_music.bus = &"Music"
-	_music.volume_db = MUSIC_DB
-	_music.stream = load(MUSIC) if ResourceLoader.exists(MUSIC) else null
-	add_child(_music)
-	_shots = _shot_list()
-	_script()
-	_cues.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
-	_place_camera(0.0)
+	_make_music(MUSIC, MUSIC_DB)
+	_start_timeline()
 	fx.prewarm()
 	Log.info("intro", "set built in %d ms" % (Time.get_ticks_msec() - started_ms))
 
@@ -119,42 +96,16 @@ func _exit_tree() -> void:
 	Art.clear_cache()  # the goo tints: nothing else uses them
 
 
-func _process(delta: float) -> void:
-	if not _started:
-		# The first frame took the loading: start the clock (and the music) from here.
-		_started = true
-		if _music.stream != null:
-			_music.play()
-		return
-	t += delta
-	while _next_cue < _cues.size() and _cues[_next_cue][0] <= t:
-		(_cues[_next_cue][1] as Callable).call()
-		_next_cue += 1
-	_place_camera(delta)
+func length() -> float:
+	return LENGTH
+
+
+func _tick(_delta: float) -> void:
 	_update_trail()
-	if t >= LENGTH and not leaving:
-		_go_to_menu()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	var pressed := (event is InputEventMouseButton or event is InputEventKey or event is InputEventJoypadButton) \
-		and event.is_pressed() and not event.is_echo()
-	if pressed:
-		get_viewport().set_input_as_handled()
-		skip()
-
-
-## Ends the intro now: a short fade, then the menu.
-func skip() -> void:
-	if leaving:
-		return
-	leaving = true
-	Log.info("intro", "skipped at %.1f s" % t)
-	var tween := create_tween().set_parallel()
-	tween.tween_property(_fade, ^"color:a", 1.0, SKIP_FADE)
-	if _music.playing:
-		tween.tween_property(_music, ^"volume_db", -40.0, SKIP_FADE)
-	tween.chain().tween_callback(_go_to_menu)
+func _finish() -> void:
+	_go_to_menu()
 
 
 func _go_to_menu() -> void:
@@ -200,14 +151,6 @@ func _cast() -> void:
 
 
 # --- The timeline ---------------------------------------------------------------------------------
-
-func _at(time: float, what: Callable) -> void:
-	_cues.append([time, what])
-
-
-func _sfx(time: float, sound: String, db := 0.0) -> void:
-	_at(time, func() -> void: Sfx.play(self, sound, db))
-
 
 func _script() -> void:
 	var h_wheel := hamsters[0]
@@ -615,14 +558,8 @@ func _dizzy(actor: IntroActor) -> void:
 		set_.add_child(stars)
 
 
-func _after(seconds: float, what: Callable) -> void:
-	get_tree().create_timer(seconds, false).timeout.connect(what)
-
-
 # --- Camera ---------------------------------------------------------------------------------------
 
-## The shots, one after the other: from `start` s the camera eases from its first eye position and
-## target (and field of view) to its second ones.
 func _shot_list() -> Array[Dictionary]:
 	return [
 		# 1. Close on the wheel, pulling back to the whole happy desk.
@@ -649,48 +586,12 @@ func _shot_list() -> Array[Dictionary]:
 	]
 
 
-func _shot(start: float, eye_a: Vector3, eye_b: Vector3, look_a: Vector3, look_b: Vector3, fov_a: float,
-		fov_b: float) -> Dictionary:
-	return {"start": start, "eye": [eye_a, eye_b], "look": [look_a, look_b], "fov": [fov_a, fov_b]}
-
-
-func _place_camera(delta: float) -> void:
-	var index := 0
-	for i in _shots.size():
-		if t >= _shots[i]["start"]:
-			index = i
-	var shot := _shots[index]
-	var end: float = _shots[index + 1]["start"] if index + 1 < _shots.size() else LENGTH
-	var u := clampf((t - shot["start"]) / (end - shot["start"]), 0.0, 1.0)
-	u = u * u * (3.0 - 2.0 * u)
-	var eye: Vector3 = (shot["eye"][0] as Vector3).lerp(shot["eye"][1], u)
-	var look: Vector3 = (shot["look"][0] as Vector3).lerp(shot["look"][1], u)
-	camera.fov = lerpf(shot["fov"][0], shot["fov"][1], u)
-	if _shake > 0.0:
-		if Config.camera_shake:  # (Settings, or --no-shake, turn it off)
-			var amount := _shake * _shake * 0.12
-			eye += Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1)) * amount
-		_shake = maxf(_shake - delta * 1.6, 0.0)
-	camera.look_at_from_position(eye, look)
-
-
 # --- Overlay ----------------------------------------------------------------------------------------
 
-func _build_overlay() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = OVERLAY_LAYER
-	add_child(layer)
-	for top: bool in [true, false]:  # letterbox bars
-		var bar := ColorRect.new()
-		bar.color = Color.BLACK
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		bar.anchor_right = 1.0
-		bar.anchor_top = 0.0 if top else 1.0
-		bar.anchor_bottom = 0.0 if top else 1.0
-		bar.offset_top = 0.0 if top else -BAR_HEIGHT
-		bar.offset_bottom = BAR_HEIGHT if top else 0.0
-		layer.add_child(bar)
-	# Captions sit on a soft dark band at the bottom of the picture.
+## Cinematic's overlay, plus the captions: they sit on a soft dark band at the bottom of the picture,
+## under the skip hint and the fade.
+func _build_overlay() -> CanvasLayer:
+	var layer := super()
 	_caption = TextureRect.new()
 	var gradient := Gradient.new()
 	gradient.set_color(0, Color(0, 0, 0, 0))
@@ -712,6 +613,7 @@ func _build_overlay() -> void:
 	_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_caption.modulate.a = 0.0
 	layer.add_child(_caption)
+	layer.move_child(_caption, _skip_hint.get_index())
 	_caption_box = VBoxContainer.new()
 	_caption_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_caption_box.offset_bottom = -14.0
@@ -719,24 +621,7 @@ func _build_overlay() -> void:
 	_caption_box.add_theme_constant_override(&"separation", 0)
 	_caption_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_caption.add_child(_caption_box)
-	_skip_hint = Label.new()
-	_skip_hint.text = tr("Click to skip")
-	_skip_hint.theme_type_variation = &"MutedLabel"
-	_skip_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_skip_hint.offset_left = -320.0
-	_skip_hint.offset_top = -BAR_HEIGHT + 8.0
-	_skip_hint.offset_right = -24.0
-	_skip_hint.offset_bottom = -8.0
-	_skip_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_skip_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_skip_hint.modulate.a = 0.0
-	layer.add_child(_skip_hint)
-	_skip_hint.create_tween().tween_property(_skip_hint, ^"modulate:a", 0.8, 0.6).set_delay(1.0)
-	_fade = ColorRect.new()
-	_fade.color = Color.BLACK
-	_fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(_fade)
+	return layer
 
 
 ## Shows a caption (a title and a line under it) for `seconds`.

@@ -86,7 +86,8 @@ language is one more column plus an entry in `Config.LANGUAGES`.
 ## Running
 Start the game with no arguments: a short intro tells how the rats came to the plant (a click, a key or a gamepad
 button skips it; `--no-intro` leaves it out), then the menu asks for a name the first time, and **Join a game** opens the server
-browser. Servers on your network show up by themselves (with their ping); others are joined by typing their
+browser. At the end of each match the winners get a little cinematic, "Grandma's Toast", before the result (a click
+skips it too; `--no-outro` leaves it out). Servers on your network show up by themselves (with their ping); others are joined by typing their
 address, and can be saved as favourites. Settings and How to play are in the menu, and in game behind Esc.
 
 **Play solo** and **Host a game** need no separate server: the game starts a hidden second copy of itself as a
@@ -172,6 +173,7 @@ godot tests/helpers/UiTour.tscn -- --settings /tmp/tour.cfg --out /tmp/ui [--lan
 godot tests/helpers/HowToShots.tscn -- --out /tmp/howto          # windowed: renders the How to play illustrations (copy to assets/ui/howto/)
 godot tests/helpers/ItemIcons.tscn -- --out res://assets/ui/items # windowed: renders the hotbar's item icons from the models
 godot --write-movie /tmp/intro.avi --fixed-fps 30 --quit-after 570 res://client/intro/Intro.tscn -- --settings /tmp/intro.cfg   # the intro, frame by frame, with its sound
+godot --fixed-fps 60 --resolution 1280x720 tests/helpers/OutroShots.tscn -- --out /tmp/outro [--ending rats] [--times 0.5,3.9] [--seek]   # windowed: the end-of-match cinematics' key moments
 godot --headless -s tools/godot/make_theme.gd                    # rebuilds client/ui/theme.tres (fonts, colours, buttons)
 python3 tools/heatmap.py ~/.local/share/godot/app_userdata/HomerSim/heatmap_*.csv   # playtest heatmap
 godot -- --connect 127.0.0.1:7777 --game-version 0.0.0   # debug builds only: fake an old client

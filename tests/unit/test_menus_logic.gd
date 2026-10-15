@@ -50,6 +50,17 @@ func test_keys_conflicts() -> void:
 	assert_eq(Keys.conflicts(&"interact", "", bindings), [] as Array[StringName], "unbound conflicts with nothing")
 
 
+## The project's default keys (not the player's) never clash where they're read together.
+func test_default_bindings_do_not_conflict() -> void:
+	var defaults := {}
+	for action in Keys.REBINDABLE:
+		var events: Array = ProjectSettings.get_setting("input/" + action, {}).get("events", [])
+		defaults[action] = Keys.encode(events[0]) if not events.is_empty() else ""
+	for action in Keys.REBINDABLE:
+		assert_eq(Keys.conflicts(action, defaults[action], defaults), [] as Array[StringName], String(action))
+	assert_eq(defaults[&"tail_spin"], "key:%d" % KEY_X, "the tail spin is on X by default")
+
+
 # --- LAN discovery -------------------------------------------------------------
 
 func _announce(id: int, players: int = 2, state: String = "lobby") -> Dictionary:

@@ -219,3 +219,19 @@ func test_french_is_loaded() -> void:
 	assert_eq(TranslationServer.translate("Settings"), "Paramètres")
 	assert_eq(TranslationServer.translate("Server full"), "Serveur plein")
 	TranslationServer.set_locale(before)
+
+
+## The game reads the compiled strings.*.translation files, not the CSV: after editing the CSV
+## outside the editor, they're stale until `godot --headless --import` rebuilds them.
+func test_compiled_translations_match_the_csv() -> void:
+	var before := TranslationServer.get_locale()
+	TranslationServer.set_locale("fr")
+	var stale: Array[String] = []
+	var rows := load_csv()
+	for key: String in rows:
+		var fr: String = rows[key]["fr"]
+		if fr != "" and TranslationServer.translate(_unescape(key)) != _unescape(fr):
+			stale.append(key)
+	TranslationServer.set_locale(before)
+	assert_eq(stale, [] as Array[String],
+		"%d CSV line(s) not in the compiled translations: run godot --headless --import" % stale.size())

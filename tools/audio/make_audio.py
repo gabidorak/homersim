@@ -6,6 +6,7 @@
     python3 tools/audio/make_audio.py music        # only music
     python3 tools/audio/make_audio.py squeak hiss  # only sounds (and music) whose name starts with these
     python3 tools/audio/make_audio.py intro        # the intro's sounds and its music
+    python3 tools/audio/make_audio.py outro        # the end-of-match cinematics' sounds and scores
 
 Everything here is made from scratch with numpy (tools/audio/synth.py), so it belongs to the
 project. Recorded CC0 sounds (Kenney packs: footsteps, impacts, UI clicks, doors) are used as they
@@ -605,6 +606,338 @@ def intro_flip():
         S.mix_at(out, S.woodblock(f, 1.0), samples(at), 0.8)
     S.mix_at(out, S.bandpass(S.noise(0.12, rng(63)), 1500, 6000) * S.env_exp(0.12, 0.03) * 0.3, 0)
     return S.fade(S.normalize(out, 0.7))
+
+
+# --- The end-of-match cinematics (client/outro/) ------------------------------------------------------------
+
+def _granny(dur, pitch, formants, seed, vib=(5.5, 0.03), breath=0.08, drive=1.0):
+    """Grandma's voice: a soft, a little shaky buzz (higher than the supervisors') through formants."""
+    x = _shout(dur, pitch, formants, seed, vib=vib, breath=breath)
+    return S.normalize(S.distort(x, drive) if drive > 1.0 else x, 0.8)
+
+
+@sound("outro_birds")
+def outro_birds():
+    """Dawn in town: a few birds chirping, far and near, over a soft breeze (the supervisors' ending)."""
+    r = rng(70)
+    dur = 9.0
+    out = 0.05 * S.lowpass(S.noise(dur, r), 500)
+    at = 0.2
+    while at < dur - 0.6:
+        f0 = r.uniform(2600, 4200)
+        notes = r.integers(2, 6)
+        gain = r.uniform(0.25, 0.7)
+        for k in range(notes):
+            d = r.uniform(0.04, 0.09)
+            t = t_axis(d)
+            f = f0 * (1 + r.uniform(-0.25, 0.3) * t / d) + 300 * np.sin(2 * np.pi * r.uniform(25, 45) * t)
+            S.mix_at(out, S.sine(f, d) * S.bell(d, 0.7), samples(at + k * r.uniform(0.07, 0.11)), gain)
+        at += r.uniform(0.35, 1.0)
+    return S.fade(S.normalize(out, 0.5), 0.3, 0.6)
+
+
+@sound("outro_lever")
+def outro_lever():
+    """The toaster's lever going down: a spring creaks, KA-CHUNK, the latch clicks."""
+    r = rng(71)
+    out = np.zeros(samples(0.45))
+    d = 0.12
+    t = t_axis(d)
+    creak = S.bandpass(S.saw(220 + 140 * t / d, d), 600, 3500) * S.bell(d) * 0.3
+    S.mix_at(out, creak, 0)
+    t2 = t_axis(0.2)
+    thunk = np.sin(S.phase(140 * (1 + 0.6 * np.exp(-t2 / 0.02)), len(t2))) * np.exp(-t2 / 0.05)
+    S.mix_at(out, thunk, samples(0.1), 0.9)
+    S.mix_at(out, S.bandpass(S.noise(0.03, r), 1500, 7000) * S.env_exp(0.03, 0.006), samples(0.1), 0.8)
+    ring = sum(np.sin(2 * np.pi * f * t2) * np.exp(-t2 / 0.06) for f in (2300, 3450, 5100)) * 0.18
+    S.mix_at(out, ring, samples(0.11))
+    return S.fade(S.normalize(out, 0.85))
+
+
+def _element_hum(dur, seed, wobble=0.0):
+    t = t_axis(dur)
+    f = 120.0 * (1 + wobble * 0.04 * np.sin(2 * np.pi * 1.7 * t) * np.sin(2 * np.pi * 0.43 * t))
+    x = 0.5 * np.sin(S.phase(f, len(t))) + 0.25 * np.sin(S.phase(f * 2, len(t))) + 0.1 * np.sin(S.phase(f * 3, len(t)))
+    x += 0.06 * S.bandpass(S.noise(dur, rng(seed)), 2500, 7000)  # the coils ticking
+    if wobble:
+        x *= 0.75 + 0.25 * np.sin(2 * np.pi * 2.3 * t) * np.sin(2 * np.pi * 0.9 * t + 1)
+    return x
+
+
+@sound("outro_hum")
+def outro_hum():
+    """The toaster's elements warming: a steady electric hum (loops)."""
+    return S.normalize(S.loopable(_element_hum(2.05, 72), 0.05), 0.45)
+
+
+@sound("outro_hum_weak")
+def outro_hum_weak():
+    """The same hum on a failing grid: wobbling in pitch and level (loops)."""
+    return S.normalize(S.loopable(_element_hum(2.55, 73, wobble=1.0), 0.05), 0.4)
+
+
+@sound("outro_tap")
+def outro_tap():
+    """A fingertip tapping the formica: tok."""
+    t = t_axis(0.08)
+    x = np.sin(2 * np.pi * 700 * t) * np.exp(-t / 0.012) + 0.6 * S.bandpass(S.noise(0.08, rng(74)), 800, 4000) * np.exp(-t / 0.006)
+    return S.fade(S.normalize(x, 0.6))
+
+
+@sound("outro_sniff")
+def outro_sniff():
+    """A sniff: two quick breaths in through the nose."""
+    r = rng(75)
+    out = np.zeros(samples(0.32))
+    for at, d in ((0.0, 0.11), (0.15, 0.14)):
+        x = S.sweep_filter(S.noise(d, r), lambda u: 1200 + 800 * u, lambda u: 4000 + 2500 * u) * S.bell(d, 0.6)
+        S.mix_at(out, x, samples(at))
+    return S.fade(S.normalize(out, 0.55))
+
+
+@sound("outro_ding")
+def outro_ding():
+    """The toaster's bell: a bright DING with a long shimmer."""
+    d = 1.6
+    t = t_axis(d)
+    f = 1760.0
+    x = sum(a * np.sin(2 * np.pi * f * h * t) * np.exp(-t / (tau * 0.9)) for h, a, tau in
+            ((1.0, 1.0, 0.7), (2.76, 0.45, 0.25), (5.4, 0.25, 0.1), (8.9, 0.12, 0.05), (0.5, 0.2, 0.9)))
+    x[:samples(0.002)] += S.noise(0.002, rng(76)) * 0.5
+    return S.fade(S.normalize(x, 0.8), 0.001, 0.2)
+
+
+@sound("outro_pop")
+def outro_pop():
+    """The slices spring up: a cartoon BOING and a little whoosh."""
+    d = 0.5
+    t = t_axis(d)
+    f = 330 * (1 + 0.35 * np.sin(2 * np.pi * 18 * t) * np.exp(-t / 0.15)) * (1 + 0.5 * t / d)
+    boing = np.sin(S.phase(f, len(t))) * np.exp(-t / 0.16)
+    whoosh = S.sweep_filter(S.noise(d, rng(77)), lambda u: 800 + 2000 * u, lambda u: 3000 + 4000 * u) * S.bell(d, 1.5)
+    return S.fade(S.normalize(boing + 0.35 * whoosh, 0.8))
+
+
+@sound("outro_land")
+def outro_land():
+    """A slice of toast landing on a china plate: a light clack and a crumble."""
+    r = rng(78)
+    out = np.zeros(samples(0.3))
+    t = t_axis(0.12)
+    clack = sum(np.sin(2 * np.pi * f * t) * np.exp(-t / 0.025) for f in (1900, 3100)) * 0.4
+    clack += np.sin(2 * np.pi * 260 * t) * np.exp(-t / 0.03) * 0.7
+    S.mix_at(out, clack, 0)
+    for _ in range(8):
+        d = r.uniform(0.004, 0.012)
+        S.mix_at(out, S.highpass(S.noise(d, r), 2500) * r.uniform(0.15, 0.4), samples(r.uniform(0.02, 0.2)))
+    return S.fade(S.normalize(out, 0.7))
+
+
+@sound("outro_ooh")
+def outro_ooh():
+    """Grandma, delighted: "Ooh!", up and down."""
+    def pitch(u):
+        return 300 + 160 * np.sin(np.pi * np.clip(u * 1.3, 0, 1))
+
+    def formants(u):
+        return [330 + 0 * u, 760 + 0 * u, 2350 + 0 * u]
+    return _granny(0.55, pitch, formants, 79)
+
+
+@sound("outro_hop")
+def outro_hop():
+    """Her slippers landing: a soft pff."""
+    t = t_axis(0.18)
+    x = S.lowpass(S.noise(0.18, rng(80)), 900) * np.exp(-t / 0.04) + 0.5 * np.sin(2 * np.pi * 90 * t) * np.exp(-t / 0.05)
+    return S.fade(S.normalize(x, 0.6))
+
+
+def _crunch(dur, bites, seed, low=1.0):
+    r = rng(seed)
+    out = np.zeros(samples(dur))
+    t = t_axis(0.15)
+    S.mix_at(out, np.sin(S.phase(110 * (1 + np.exp(-t / 0.02)), len(t))) * np.exp(-t / 0.05) * low, 0, 0.7)
+    for _ in range(bites):
+        d = r.uniform(0.003, 0.014)
+        burst = S.bandpass(S.noise(d, r), r.uniform(1500, 3000), r.uniform(6000, 11000)) * r.uniform(0.4, 1.0)
+        S.mix_at(out, burst, samples(r.uniform(0.0, dur * 0.7) ** 1.3 / (dur * 0.7) ** 0.3))
+    S.mix_at(out, S.bandpass(S.noise(dur * 0.6, r), 900, 5000) * S.env_exp(dur * 0.6, dur * 0.12), 0, 0.5)
+    return out
+
+
+@sound("outro_crunch")
+def outro_crunch():
+    """Her bite into golden toast: a big, crisp CRUNCH."""
+    return S.fade(S.normalize(_crunch(0.42, 70, 81), 0.95))
+
+
+@sound("outro_nibble")
+def outro_nibble():
+    """A rat's quick crunch in the dark."""
+    return S.fade(S.normalize(_crunch(0.16, 22, 82, low=0.4), 0.7))
+
+
+@sound("outro_mmm")
+def outro_mmm():
+    """Bliss: a happy, closed-mouth "Mmm!" that wobbles up."""
+    def pitch(u):
+        return 260 + 90 * u + 25 * np.sin(2 * np.pi * 3 * u)
+
+    def formants(u):
+        return [250 + 0 * u, 1300 + 0 * u, 2600 + 0 * u]
+    x = _granny(0.7, pitch, formants, 83, vib=(6.0, 0.035), breath=0.03)
+    return S.fade(S.normalize(S.lowpass(x, 1800), 0.75))
+
+
+@sound("outro_flicker")
+def outro_flicker():
+    """The lamp flickers: a buzz, cut twice."""
+    d = 0.22
+    t = t_axis(d)
+    x = _crackle(d, 84, 40, 100.0)
+    gate = np.where(((t > 0.03) & (t < 0.07)) | ((t > 0.11) & (t < 0.14)), 0.1, 1.0)
+    return S.fade(S.normalize(x * gate, 0.5))
+
+
+@sound("outro_hmm")
+def outro_hmm():
+    """Grandma, puzzled: "Hm?", rising."""
+    def pitch(u):
+        return 230 + 140 * u ** 1.5
+
+    def formants(u):
+        return [260 + 0 * u, 1400 + 0 * u, 2500 + 0 * u]
+    return S.fade(S.normalize(S.lowpass(_granny(0.4, pitch, formants, 85, breath=0.04), 2000), 0.7))
+
+
+@sound("outro_tonk")
+def outro_tonk():
+    """Knuckles rapping a chrome toaster: tonk."""
+    d = 0.35
+    t = t_axis(d)
+    x = sum(a * np.sin(2 * np.pi * f * t) * np.exp(-t / tau) for f, a, tau in
+            ((620, 1.0, 0.09), (1530, 0.5, 0.05), (2870, 0.3, 0.03), (4100, 0.15, 0.02)))
+    x[:samples(0.003)] += S.noise(0.003, rng(86)) * 0.6
+    return S.fade(S.normalize(x, 0.75))
+
+
+@sound("outro_pwomp")
+def outro_pwomp():
+    """The slices creep up on a dying spring: a sad, deflated "pwomp"."""
+    d = 0.55
+    t = t_axis(d)
+    f = 150 * (1 - 0.35 * (t / d) ** 0.7)
+    x = S.saw(f, d) * 0.6 + np.sin(S.phase(f, len(t)))
+    x = S.sweep_filter(x, lambda u: 60, lambda u: 700 - 450 * u) * S.env_adsr(d, 0.03, 0.1, 0.8, 0.2)
+    t2 = t_axis(0.12)
+    S.mix_at(x, np.sin(2 * np.pi * 75 * t2) * np.exp(-t2 / 0.04), 0, 0.6)
+    return S.fade(S.normalize(x, 0.8))
+
+
+@sound("outro_oh")
+def outro_oh():
+    """Grandma, shocked: "Oh!", jumping up."""
+    def pitch(u):
+        return 280 + 260 * np.clip(u * 5, 0, 1) - 60 * u
+
+    def formants(u):
+        return [480 + 0 * u, 820 + 0 * u, 2700 + 0 * u]
+    return _granny(0.32, pitch, formants, 87, vib=(7.0, 0.02), drive=1.3)
+
+
+@sound("outro_hmph")
+def outro_hmph():
+    """Grandma, disappointed: a huffy "Hmph.", falling."""
+    r = rng(88)
+    out = np.zeros(samples(0.5))
+    def pitch(u):
+        return 250 - 70 * u
+
+    def formants(u):
+        return [280 + 0 * u, 1200 + 0 * u, 2400 + 0 * u]
+    S.mix_at(out, S.lowpass(_granny(0.26, pitch, formants, 89, breath=0.06), 1800), 0)
+    S.mix_at(out, S.bandpass(S.noise(0.16, r), 600, 3000) * S.env_exp(0.16, 0.05), samples(0.22), 0.6)  # the "ph"
+    return S.fade(S.normalize(out, 0.7))
+
+
+@sound("outro_creak")
+def outro_creak():
+    """The photo tilting on its nail: a small wooden creak."""
+    d = 0.5
+    t = t_axis(d)
+    rate = 30 + 25 * np.sin(np.pi * t / d)
+    clicks = np.sin(S.phase(rate, len(t))) > 0.92
+    x = S.bandpass(S.noise(d, rng(90)), 900, 3200) * clicks * S.bell(d, 0.5)
+    x += 0.2 * S.bandpass(S.saw(380 + 60 * t / d, d), 500, 2500) * S.bell(d)
+    return S.fade(S.normalize(x, 0.55))
+
+
+@sound("outro_bzzzt")
+def outro_bzzzt():
+    """The power goes out all over town: a buzz that falls and dies (bzzzzt...)."""
+    d = 0.75
+    t = t_axis(d)
+    f = 120 * (1 - 0.8 * (t / d) ** 0.8)
+    buzz = S.square(f, d) * 0.5 + S.saw(f * 1.01, d) * 0.5
+    buzz = S.lowpass(buzz, 2500) * (1 - (t / d) ** 1.5)
+    crack = _crackle(0.12, 91, 120, 0.0001)
+    S.mix_at(buzz, crack, 0, 0.6)
+    return S.fade(S.normalize(S.distort(buzz, 1.6), 0.8))
+
+
+@sound("outro_blink")
+def outro_blink():
+    """Two eyes opening in the dark: a tiny cartoon plink."""
+    out = np.zeros(samples(0.2))
+    for at, f in ((0.0, 2400), (0.05, 3200)):
+        t = t_axis(0.08)
+        S.mix_at(out, np.sin(2 * np.pi * f * t) * np.exp(-t / 0.02), samples(at), 0.7)
+    return S.fade(S.normalize(out, 0.45))
+
+
+@sound("outro_snicker")
+def outro_snicker():
+    """The rat's snicker in the dark: hee-hee-hee."""
+    out = np.zeros(samples(0.6))
+    for k in range(4):
+        d = 0.07
+        S.mix_at(out, _chirp(3300 - k * 150, 2600 - k * 150, d, 90), samples(k * 0.12), 0.8 - k * 0.12)
+    return S.fade(S.normalize(out, 0.6))
+
+
+@sound("outro_strike")
+def outro_strike():
+    """A match: scritch along the box, then the flare (fwoof)."""
+    r = rng(92)
+    out = np.zeros(samples(0.6))
+    d = 0.09
+    scratch = S.bandpass(S.noise(d, r), 2000, 9000) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 90 * t_axis(d))))
+    S.mix_at(out, scratch * S.bell(d, 0.4), 0)
+    d2 = 0.45
+    flare = S.sweep_filter(S.noise(d2, r), lambda u: 300 + 400 * u, lambda u: 2500 - 1200 * u) * S.env_exp(d2, 0.15, 0.01)
+    S.mix_at(out, flare, samples(0.07), 0.8)
+    for _ in range(6):
+        S.mix_at(out, S.highpass(S.noise(0.004, r), 3000) * 0.4, samples(r.uniform(0.1, 0.5)))
+    return S.fade(S.normalize(out, 0.75))
+
+
+@sound("outro_huh")
+def outro_huh():
+    """Grandma, baffled: "Huh?"."""
+    def pitch(u):
+        return 240 + 200 * u ** 2
+
+    def formants(u):
+        return [620 + 0 * u, 1150 + 0 * u, 2500 + 0 * u]
+    return _granny(0.36, pitch, formants, 93, breath=0.12)
+
+
+@sound("outro_blow")
+def outro_blow():
+    """She blows the match out: fft."""
+    d = 0.22
+    x = S.sweep_filter(S.noise(d, rng(94)), lambda u: 600, lambda u: 5000 - 2000 * u) * S.env_exp(d, 0.07, 0.008)
+    return S.fade(S.normalize(x, 0.6))
 
 
 SFX_ONLY = set(SOUNDS)

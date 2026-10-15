@@ -10,12 +10,14 @@
 //   3 stripes diagonal hazard stripes of `cell.x` m (base / trim colours)
 //   4 duct    riveted sheet metal: seams every `cell.x` m along the run
 //   5 plain   base colour only (outdoor ground, sludge)
+//   6 checker upward faces: tiles of `cell` m in two colours (base / trim), with seams (the outro's
+//             kitchen floor); other faces: trim
 shader_type spatial;
 render_mode diffuse_lambert, specular_disabled;
 
 #include "res://shaders/toon_light.gdshaderinc"
 
-uniform int pattern : hint_range(0, 5) = 0;
+uniform int pattern : hint_range(0, 6) = 0;
 uniform vec4 base_color : source_color = vec4(0.79, 0.72, 0.6, 1.0);
 uniform vec4 trim_color : source_color = vec4(0.36, 0.42, 0.47, 1.0);
 uniform vec4 line_color : source_color = vec4(0.1, 0.1, 0.12, 1.0);
@@ -93,6 +95,13 @@ void fragment() {
 		lines = grid(vec2(run, 0.5), vec2(cell.x, 1000.0), line_width);
 		if (down) {
 			col *= 0.8;
+		}
+	} else if (pattern == 6) {
+		col = trim_color.rgb;
+		if (up) {
+			vec2 c = floor(p.xz / cell);
+			col = mod(c.x + c.y, 2.0) < 0.5 ? base_color.rgb : trim_color.rgb;
+			lines = grid(p.xz, cell, line_width);
 		}
 	}
 	ALBEDO = mix(col, line_color.rgb, lines * line_strength);

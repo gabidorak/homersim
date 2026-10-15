@@ -2,7 +2,8 @@
 # M2 lobby smoke test: a headless server and headless test clients on a random local port.
 # Checks preferences + ready vote -> role assignment -> countdown -> unfreeze, late joiners
 # spectating, chat relay + rate limit, the movement validator, and (since M3) the supervisors
-# winning when every rat leaves mid-match.
+# winning when every rat leaves mid-match (and no headless process building the end-of-match
+# cinematic then).
 # Usage: tests/integration/lobby_smoke.sh   (GODOT=/path/to/godot to override the binary)
 set -u
 cd "$(dirname "$0")/../.."
@@ -63,6 +64,11 @@ if grep -qE "strike [0-9]+ for (Sup|RatA|RatB|Late) " "$LOGS/server.log"; then
 	echo "FAIL - validator flagged an honest player"; FAIL=1
 else
 	echo "ok   - server: no strikes for honest players (respawns included)"
+fi
+if grep -qE "\[outro\]" "$LOGS/Sup.log" "$LOGS/server.log"; then  # (headless: the end-of-match cinematic is never built)
+	echo "FAIL - a headless process built the end-of-match cinematic"; FAIL=1
+else
+	echo "ok   - Sup, server: no end-of-match cinematic headless"
 fi
 if grep -lE "SCRIPT ERROR|^ERROR" "$LOGS"/*.log; then echo "FAIL - errors in the logs above"; FAIL=1; fi
 

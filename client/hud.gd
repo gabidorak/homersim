@@ -190,6 +190,9 @@ func _ability_text() -> String:
 	var primary := abilities.primary()
 	if primary != null:
 		lines.append("%s %s: %s" % [Keys.label(&"primary"), tr(primary.display_name), _cooldown_text(primary.id)])
+	var spin := abilities.for_action(&"tail_spin")
+	if spin != null and not _player.status.has(StatusComponent.Status.CAGED):
+		lines.append("%s %s: %s" % [Keys.label(&"tail_spin"), tr(spin.display_name), _cooldown_text(spin.id)])
 	var inv := _player.inventory
 	if _player.role == Role.Kind.SUPERVISOR:
 		if not inv.keycard:  # (the hotbar shows the keycard; this says where to get a spare)
