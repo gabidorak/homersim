@@ -153,13 +153,15 @@ func set_toaster_glow(level: float) -> void:
 
 ## The kitchen's power: 1 on, 0 cut (the room's fill, the chrome's glint; the moonlight and the
 ## cartoon night's ambient and fill stay). The lamp has its own level (set_lamp), the town its lights.
-func set_power(level: float) -> void:
+## `night` dims the night itself, moon and sky too (RATS: once the match is out, near-black).
+func set_power(level: float, night_level := 1.0) -> void:
 	fill.light_energy = _fill_energy * level
 	if ending == 1:
-		environment.ambient_light_energy = lerpf(NIGHT_AMBIENT, _ambient, level)
+		environment.ambient_light_energy = lerpf(NIGHT_AMBIENT, _ambient, level) * night_level
 		environment.ambient_light_color = NIGHT_AMBIENT_COLOR.lerp(_ambient_color, level)
-		night.light_energy = NIGHT_FILL * (1.0 - level)
-	sun.light_energy = _sun_energy * (lerpf(0.75, 1.0, level) if ending == 1 else 1.0)
+		night.light_energy = NIGHT_FILL * (1.0 - level) * night_level
+		environment.background_energy_multiplier = night_level
+	sun.light_energy = _sun_energy * (lerpf(0.75, 1.0, level) * night_level if ending == 1 else 1.0)
 	if _chrome != null:
 		_chrome.set_shader_parameter(&"glint", lerpf(0.35, 0.9, level) if ending == 1 else 0.9 * level)
 

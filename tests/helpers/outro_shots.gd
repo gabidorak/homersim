@@ -11,14 +11,18 @@ extends Node
 
 const SHOTS := {
 	Outro.Ending.SUPERVISORS: [["a_00_open", 0.5], ["a_01_press", 0.84], ["a_02_wait", 2.2], ["a_03_sniff", 2.9],
-		["a_04_ding", 3.86], ["a_05_flip", 4.05], ["a_06_heart", 4.3], ["a_07_land", 4.6], ["a_08_stack", 4.85],
-		["a_09_joy", 5.15], ["a_10_hop", 5.32], ["a_11_photo", 6.2], ["a_12_wink", 6.6], ["a_13_grab", 7.3],
-		["a_14_bite", 7.7], ["a_15_hmph", 8.3], ["a_16_bliss", 9.05], ["a_17_end", 9.4]],
+		["a_04_ding", 3.86], ["a_05_flip", 4.05], ["a_06_land", 4.6], ["a_07_stack", 4.85], ["a_08_stare", 5.05],
+		["a_09_heart", 5.55], ["a_10_joy", 5.85], ["a_11_hop", 6.0], ["a_12_thumbs", 6.55], ["a_13_wink", 6.85],
+		["a_14_proud", 7.3], ["a_15_photo", 7.7], ["a_16_wink_back", 8.1], ["a_17_grab", 9.35], ["a_18_bite", 9.75],
+		["a_19_chew", 10.1], ["a_20_copy", 10.7], ["a_21_copy_chew", 11.2], ["a_22_glare", 11.85], ["a_23_hmph", 12.12],
+		["a_24_back", 12.8], ["a_25_bliss", 13.7], ["a_26_end", 14.5]],
 	Outro.Ending.RATS: [["b_00_open", 0.45], ["b_01_press", 0.84], ["b_02_sniff", 2.3], ["b_03_tap", 3.2],
-		["b_04_pwomp", 4.1], ["b_05_flop", 4.55], ["b_06_shock", 4.75], ["b_07_pout", 5.25], ["b_08_photo", 5.6],
-		["b_09_cough", 6.0], ["b_10_roll", 6.75], ["b_11_lamp", 7.3], ["b_12_dark", 7.85], ["b_13_eyes", 8.6],
-		["b_14_chorus", 9.1], ["b_15_snicker", 9.55], ["b_16_match", 9.85], ["b_17_tail", 10.2], ["b_18_blow", 10.65],
-		["b_19_button", 11.35], ["b_20_end", 11.74]],
+		["b_04_pwomp", 4.1], ["b_05_flop", 4.55], ["b_06_shock", 4.75], ["b_07_pout", 5.25], ["b_08_photo", 5.75],
+		["b_09_tilt", 6.1], ["b_10_cough", 6.6], ["b_11_plant", 7.1], ["b_12_houses", 7.9], ["b_13_lantern", 8.88],
+		["b_14_lamp", 9.3], ["b_15_dark", 9.7], ["b_16_eyes", 10.0], ["b_17_more_eyes", 10.9], ["b_18_all_eyes", 11.5],
+		["b_19_snicker", 11.95], ["b_20_hush", 12.6], ["b_21_strike", 12.88], ["b_22_caught", 13.1], ["b_23_dive", 13.3],
+		["b_24_toaster", 13.45], ["b_25_slip", 13.85], ["b_26_baffled", 14.2], ["b_27_blow", 14.45], ["b_28_dark", 14.85],
+		["b_29_button", 15.15], ["b_30_snicker", 15.4], ["b_31_end", 15.8]],
 }
 
 var _out := ""

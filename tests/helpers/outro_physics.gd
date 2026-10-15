@@ -1412,7 +1412,7 @@ func _cage_cells() -> Array[Box]:
 ## camera sees them, no mesh nor grandma on the way.
 func _check_eyes(from: float, to: float) -> void:
 	for i in outro.gang.size():
-		var at := Outro.eyes_at(i) + 0.12
+		var at := outro.eyes_at(i) + 0.12
 		if at < from or at > to:
 			continue
 		_seek(at)

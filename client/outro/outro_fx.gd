@@ -18,7 +18,7 @@ const HEART_INSIDE: Array[Vector2] = [Vector2(-0.5, 0.35), Vector2(0.5, 0.35), V
 	Vector2(0.3, -0.3), Vector2(0.0, -0.55), Vector2(-0.45, 0.0), Vector2(0.45, 0.0)]
 const HEART_HEIGHT := 34.0
 ## Where the heart's middle floats: OutroKitchen.view_spot's yaw and pitch (up right of the towers).
-const HEART_AT := Vector2(9.4, 12.2)
+const HEART_AT := Vector2(9.4, 11.0)
 const HEART_FORM := 0.38
 const HEART_LIFE := 2.9
 const COUGH_BALLS := 9  ## per tower

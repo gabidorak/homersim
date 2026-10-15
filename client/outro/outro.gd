@@ -1,18 +1,21 @@
 class_name Outro
 extends Cinematic
-## The end-of-match cinematics, "Grandma's toast" (9.5 and 11.9 s, before the post-match screen, played
-## by client/outro/outro_screen.gd): at dawn, in town, a grandma makes her toast with the power from
-## Sunny Acres, her grandson's photo on the wall (a supervisor, holding up a donut).
-##   SUPERVISORS  the plant made it through the night: DING, a golden slice flips high onto her plate
-##                (the cooling towers puff a heart), another lands on it, she hops with joy, gives the
-##                photo a winking thumbs up and the photo winks back; CRUNCH (her grandson bites his
-##                donut too), bliss; in its cage on the sink counter, a caged rat turns its back: hmph.
+## The end-of-match cinematics, "Grandma's toast" (14.7 and 15.85 s, before the post-match screen,
+## played by client/outro/outro_screen.gd): at dawn, in town, a grandma makes her toast with the power
+## from Sunny Acres, her grandson's photo on the wall (a supervisor, holding up a donut).
+##   SUPERVISORS  the plant made it through the night: DING, a golden slice flips high onto her plate,
+##                another lands on it; she stares at them (behind her the cooling towers puff a heart),
+##                hops with joy, gives the photo a thumbs up and a wink, and the photo winks back;
+##                CRUNCH, and a beat later her grandson bites his donut too; bliss; in its cage on the
+##                sink counter, a caged rat glares at her and turns its back: hmph.
 ##   RATS         the power is failing: the toaster barely warms, two pale slices creep up and one flops
 ##                over the slot. The cooling towers cough a goo-green puff, the plant's lights go out,
 ##                then the town's, house by house towards her, her lamp last. In the dark, a pair of
 ##                goo-green eyes per winning rat blinks open around the kitchen, crunch crunch crunch, a
-##                snicker chorus; she strikes a match: the toaster and her plate are empty, a tail slips
-##                over the edge of the counter. Fft. A beat, and one more pair of eyes opens by her face.
+##                snicker chorus, a hush; she strikes a match: the rat by the toaster, caught in its
+##                light, dives off the counter, the toaster and her plate are empty, its tail slips over
+##                the edge. Fft. Near-black, and one more pair of eyes opens by her cheek.
+## Each gag has its own beat: a lead-in, the hit, a hold for the reaction (no shot under 1.1 s).
 ## No words: the animation, the sounds and a few "hmph"s tell it. Never scary: the rats are cheeky.
 ##
 ## Built in code like the intro (Cinematic runs both): the set (OutroKitchen), grandma (an IntroActor
@@ -28,7 +31,7 @@ extends Cinematic
 
 enum Ending { SUPERVISORS, RATS }
 
-const LENGTHS := {Ending.SUPERVISORS: 9.5, Ending.RATS: 11.9}  ## s
+const LENGTHS := {Ending.SUPERVISORS: 14.7, Ending.RATS: 15.85}  ## s
 ## Grandma's performance for each ending (tools/blender/grandma.py writes them to this clock).
 const CLIPS := {Ending.SUPERVISORS: "outro_supervisors", Ending.RATS: "outro_rats"}
 const MUSIC := {Ending.SUPERVISORS: "res://assets/audio/music/outro_supervisors.ogg",
@@ -42,18 +45,21 @@ const CUT_OUT := 0.04  ## the rats' ending cuts to black on its last snicker
 const MAX_RATS := 6
 const DEFAULT_RATS := 4
 ## Hit points. Grandma's performances (tools/blender/grandma.py A_*, B_*) and the scores
-## (tools/audio/music.py OUTRO_*) hit the same times: move one, move it there too.
+## (tools/audio/music.py OUTRO_*) hit the same times: move one, move it there too. Each gag has its
+## own beat: a lead-in, the hit, a hold for the reaction (tests/unit/test_outro.gd keeps them apart).
 const A_PRESS := 0.8  ## her palm meets the lever's knob...
 const A_CLICK := 0.9  ## ...and pushes it down: click (on a frame of her clip: her palm is all the way down)
 const A_DING := 3.8
-const A_SECOND := 0.2  ## the second slice pops this much after the first
-const A_HEART := 4.05  ## the first slice nears the top of its arc: the cooling towers puff a heart
-const A_JOY := 5.05
-const A_SPARKLE := 6.05
-const A_WINK := 6.5  ## her grandson winks back from his photo
-const A_GRAB := 7.25  ## her left hand takes the top slice
-const A_BITE := 7.65  ## CRUNCH (her grandson bites his donut with her)
-const A_HMPH := 8.15  ## the caged rat turns its back on her bliss
+const A_SECOND := 0.2  ## the second slice pops this much after the first (they land at 4.56 and 4.8 s)
+const A_HEART := 5.12  ## she stares at her slices: behind her, the cooling towers puff a heart
+const A_JOY := 5.75
+const A_SPARKLE := 6.5  ## her thumbs up to the photo: it twinkles...
+const A_HER_WINK := 6.8  ## ...and she winks at it (her left eye shut, her face to us)
+const A_WINK := 7.95  ## her grandson winks back from his photo
+const A_GRAB := 9.3  ## her left hand takes the top slice
+const A_BITE := 9.7  ## CRUNCH
+const A_COPY := 10.6  ## ...and a beat later, back on his photo, her grandson bites his donut too
+const A_HMPH := 12.0  ## the caged rat turns its back on her bliss
 const B_FLICKER := 0.4
 const B_PRESS := 0.8
 const B_CLICK := 0.9
@@ -62,20 +68,22 @@ const B_PWOMP := 3.8
 const B_UP := 4.3  ## the pale slices have crept up
 const B_FOLDED := 4.62  ## the limp one lies folded over the slot
 const B_SHOCK := 4.6
-const B_TILT := 5.45  ## her grandson's photo starts tilting
-const B_COUGH := 5.9  ## the cooling towers cough a goo-green puff...
-const B_ROLL := 6.4  ## ...the plant's lights go out, then each house's, nearer and nearer (ROLL_GAPS)...
-const ROLL_GAPS: Array[float] = [0.14, 0.12, 0.11, 0.1, 0.09, 0.08, 0.08]
-const B_BLACKOUT := 7.35  ## ...and her lamp goes last: its dying stutter, then the night
-const B_EYES := 8.1  ## the first pair of eyes blinks open in the dark; the next rat's EYE_GAP later...
-const EYE_GAP := 0.17
-const B_SNICKER := 9.6  ## ...a snicker chorus
-const B_LEAP := 9.67  ## the rat by the toaster dives over the counter's front edge, hangs there (its tail over it)...
-const B_SLIP := 10.25  ## ...and slips away as she sees it
-const B_STRIKE := 9.72
-const B_LIGHT := 9.77
-const B_BLOW := 10.67
-const B_BUTTON := 11.2  ## a beat after the fft, a last pair of eyes opens right by her face; a snicker; cut
+const B_TILT := 5.6  ## her grandson's photo starts tilting
+const B_COUGH := 6.3  ## the cooling towers cough a goo-green puff...
+const B_ROLL := 7.0  ## ...the plant's lights go out, then each house's, nearer and nearer (ROLL_GAPS)...
+const ROLL_GAPS: Array[float] = [0.28, 0.27, 0.26, 0.25, 0.25, 0.25, 0.25]
+const B_BLACKOUT := 9.25  ## ...and her lamp goes last: its dying stutter, then the night
+## In the dark the eyes blink open one pair at a time over EYE_WINDOW s from B_EYES, however many rats
+## won (eyes_at: more rats, closer together), each rat crunching after its eyes open...
+const B_EYES := 9.85
+const EYE_WINDOW := 1.8
+const B_SNICKER := 11.85  ## ...a snicker chorus; a beat of silence...
+const B_STRIKE := 12.85  ## ...she strikes a match...
+const B_LIGHT := 12.9  ## ...it flares: the rat by the toaster is caught in its light...
+const B_LEAP := 13.2  ## ...dives over the counter's front edge, hangs there (its tail over it)...
+const B_SLIP := 13.75  ## ...and slips away as she sees it; she holds her baffled look...
+const B_BLOW := 14.4  ## ...and blows the match out: the dark, darker (her eyes were used to the flame)...
+const B_BUTTON := 15.0  ## ...a last pair of eyes opens right by her cheek; a snicker; a beat; cut
 ## The toaster (tools/blender/kitchen.py): a slice's bottom above the toaster's base with the lever
 ## down and up, and how high the pale ones creep (TOAST_LIMP_UP).
 const TOAST_DOWN := 0.047
@@ -90,8 +98,8 @@ const ISLAND_FRONT := 0.275
 ## it lies on it) and out from the face (its climbing segment's radius: up along it).
 const HOOK_CLEAR := Vector2(0.0115, 0.0155)
 const TAIL_TIP := Vector3(0.0, 0.085, -0.075)  ## the tail's last segment, to its tip (rat.py TAIL_END - tail_4)
-const TAIL_HOOK: Array[Vector3] = [Vector3(0.0, 1.0, -0.3), Vector3(0.1, 1.0, -0.04), Vector3(0.05, 1.0, 0.0),
-	Vector3(0.85, -0.045, -0.5)]  # (up the face, then sideways along the top, following its taper: a hook)
+const TAIL_HOOK: Array[Vector3] = [Vector3(-0.65, 1.0, -0.3), Vector3(0.05, 1.0, -0.06), Vector3(0.7, 1.0, 0.0),
+	Vector3(0.85, -0.045, -0.5)]  # (up the face in a curve, then sideways along the top, following its taper: a hook)
 const TAIL_STRETCH := 1.7  ## (a cartoon tail: it stretches as it holds on)
 ## The caged rat (SUPERVISORS): its size, where it sits in the cage (the cage's own space, unscaled:
 ## tools/blender/intro_props.py; on its floor, between the wheel and the bowl) and which way it faces
@@ -105,9 +113,9 @@ const MATCHBOX_GRIP := Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(-0.01,
 const MATCH_GRIP := Transform3D(Basis(Vector3.RIGHT, -0.2), Vector3(0.0, -0.03, 0.05))
 const GOO := Color(0.61, 1.0, 0.18)  ## the rats' eyes (the intro's goo)
 ## A rat's eyes on its head (the head bone's space, scaled with it), and the last pair by grandma's face
-## (her head bone's space: by her left cheek, a little behind it).
+## (her head bone's space: right beside her left cheek, in front of her ear, at her face's depth).
 const RAT_EYES: Array[Vector3] = [Vector3(-0.07, 0.09, 0.19), Vector3(0.07, 0.09, 0.19)]
-const BUTTON_EYES: Array[Vector3] = [Vector3(0.27, 0.17, 0.06), Vector3(0.345, 0.175, 0.05)]
+const BUTTON_EYES: Array[Vector3] = [Vector3(0.26, 0.12, 0.13), Vector3(0.335, 0.125, 0.12)]
 ## Her hand (tools/blender/grandma.py _hand: a box rounded by HAND_ROUND, its centre 4.2 cm down the
 ## hand bone; in the bone's axes) and the lever's knob (kitchen.py KNOB): the lever goes down as far
 ## as her palm pushes it.
@@ -143,6 +151,7 @@ var _face_light: OmniLight3D  # the match's glow on her face (between the flame 
 var _tail_light: OmniLight3D  # ...and on the tail slipping over the counter's edge
 var _crumbs: Array[Dictionary] = []  # what the rats leave behind: {mesh, from} (shown from that time)
 var _button_glints: Array[MeshInstance3D] = []  # the last pair of eyes, by her face (RATS)
+var _button_light: OmniLight3D
 var _grip := Transform3D.IDENTITY  # the top slice in her left hand, from the moment she takes it
 var _grip_known := false
 var _hum: AudioStreamPlayer
@@ -268,32 +277,40 @@ func _cast() -> void:
 
 ## The rats' spots in the dark, in the order their eyes open: by the toaster (eating the pale slice),
 ## on top of the fridge, at the butter, on the windowsill, in the cat clock's eyes (no rat: its eyes
-## alone), on her plate. {name, at (where it sits, world), yaw, clip, holds (a slice), crunches (s),
-## on (what it sits on, for the tests)}; the cat clock's {name, eyes (world), crunches}.
+## alone), on her plate. {name, at (where it sits, world), yaw, clip, holds (a slice), crunches (s:
+## after its eyes open, all before the snicker), on (what it sits on, for the tests)}; the cat clock's
+## {name, eyes (world), crunches}.
 func spots() -> Array[Dictionary]:
 	var toaster := set_.toaster.global_position
 	var top := toaster.y  # the counter's top
 	var butter := set_.butter.get_parent_node_3d().global_position
 	var plate := Art.part(set_.plate, "Surface")
 	var plate_top := plate.global_position if plate != null else set_.plate.global_position + Vector3(0, 0.01, 0)
-	return [
+	var out: Array[Dictionary] = [
 		{"name": "toaster", "at": Vector3(toaster.x + 0.23, top, toaster.z + 0.18), "yaw": 0.15, "clip": "gnaw",
-			"holds": true, "crunches": [8.42, 8.66, 8.9, 9.22], "on": "the counter"},
+			"holds": true, "crunches": [0.28, 0.52, 0.76, 1.02], "on": "the counter"},
 		{"name": "fridge", "at": OutroKitchen.FRIDGE + Vector3(-0.08, 1.45, 0.17), "yaw": -0.35, "clip": "sit_gnaw",
-			"holds": true, "crunches": [8.58, 8.84, 9.15], "on": "the fridge"},
+			"holds": true, "crunches": [0.26, 0.5, 0.78], "on": "the fridge"},
 		{"name": "butter", "at": butter + Vector3(0.165, 0.0, 0.02), "yaw": -0.95, "clip": "gnaw", "holds": false,
-			"crunches": [8.72, 9.02], "on": "the counter"},
+			"crunches": [0.28, 0.56], "on": "the counter"},
 		{"name": "sill", "at": OutroKitchen.SILL + Vector3(0.05, 0.0, 0.06), "yaw": 0.1, "clip": "sit_gnaw",
-			"holds": false, "crunches": [8.94, 9.3], "on": "the windowsill"},
+			"holds": false, "crunches": [0.26, 0.5], "on": "the windowsill"},
 		{"name": "clock", "eyes": set_.cat_eyes(), "crunches": []},
 		{"name": "plate", "at": plate_top, "yaw": -0.2, "clip": "sit_gnaw", "holds": false,
-			"crunches": [9.1, 9.4], "on": "the plate"},
+			"crunches": [0.22, 0.42], "on": "the plate"},
 	]
+	for i in out.size():  # (each rat's crunches, after its eyes)
+		var times: Array[float] = []
+		for after: float in out[i]["crunches"]:
+			times.append(eyes_at(i) + after)
+		out[i]["crunches"] = times
+	return out
 
 
-## When rat `i`'s eyes blink open.
-static func eyes_at(i: int) -> float:
-	return B_EYES + EYE_GAP * i
+## When rat `i`'s eyes blink open: one pair after the other, evenly over the EYE_WINDOW (the same
+## window for any number of rats).
+func eyes_at(i: int) -> float:
+	return B_EYES + EYE_WINDOW * i / rats
 
 
 func _cast_rats() -> void:
@@ -321,6 +338,11 @@ func _cast_rats() -> void:
 		member["light"] = light
 		gang.append(member)
 	_button_glints = _make_glints()
+	_button_light = OmniLight3D.new()  # (their glow on her cheek, like every pair's)
+	_button_light.light_color = GOO
+	_button_light.omni_range = 0.15
+	_button_light.light_energy = 0.0
+	set_.add_child(_button_light)
 	matchbox = Art.add(set_, "matchbox")
 	match_ = Art.add(set_, "match")
 	if match_ != null:
@@ -535,21 +557,21 @@ func _pose_supervisors(time: float) -> void:
 	_pose_cage_rat(time)
 
 
-## Her grandson's photo at `time`: proud, then winking back at her, biting his donut with her CRUNCH,
-## chewing happily after.
+## Her grandson's photo at `time`: proud, then winking back at her, biting his donut a beat after her
+## CRUNCH, chewing happily after.
 static func photo_at(time: float) -> OutroKitchen.Photo:
-	if time >= A_BITE + 0.1:
+	if time >= A_COPY + 0.1:
 		return OutroKitchen.Photo.BITTEN
-	if time >= A_BITE - 0.06:
+	if time >= A_COPY - 0.06:
 		return OutroKitchen.Photo.BITE
-	if time >= A_WINK and time < A_WINK + 0.32:
+	if time >= A_WINK and time < A_WINK + 0.4:
 		return OutroKitchen.Photo.WINK
 	return OutroKitchen.Photo.PROUD
 
 
 ## The caged rat: sulking, arms crossed; when the toast flies it can't help looking (its head follows
-## the slices up and down onto her plate); at her CRUNCH its ears flick, and it turns its back on her
-## with a huff, its nose in the air.
+## the slices up and down onto her plate); while she chews it glares at her, jealous, then turns its
+## back on her with a huff, its nose in the air.
 func _pose_cage_rat(time: float) -> void:
 	if cage_rat == null:
 		return
@@ -566,6 +588,10 @@ func _pose_cage_rat(time: float) -> void:
 	if look > 0.0:
 		var up := 0.5 * (1.0 - _ramp(time, 4.2, 4.65))  # (up while they fly, down as they land)
 		_turn_bone(cage_rat, "head", Basis.from_euler(Vector3(-0.55 * up - 0.3, -0.25, 0.0)), look)
+	# The glare: its head turns up to her as she chews (the shot cuts to it), then the hmph.
+	var glare := _ramp(time, A_HMPH - 0.42, A_HMPH - 0.22) * (1.0 - _ramp(time, A_HMPH, A_HMPH + 0.08))
+	if glare > 0.0:
+		_turn_bone(cage_rat, "head", Basis.from_euler(Vector3(-0.25, -0.6, 0.0)), glare)
 
 
 ## Turns `bone` by `turn` (in its parent's space) on top of its clip's pose, `amount` of the way.
@@ -588,7 +614,7 @@ func _pose_rats(time: float) -> void:
 	if time >= B_BLACKOUT:
 		lamp *= [0.6, 0.9, 0.35, 0.7, 0.15][mini(int((time - B_BLACKOUT) / 0.05), 4)] * power
 	set_.set_lamp(lamp)
-	set_.set_power(power)
+	set_.set_power(power, _night_at(time))
 	set_.set_town_lights(town_lights_at(time))
 	var heat := _ramp(time, B_CLICK, B_CLICK + 0.6) * (1.0 - _ramp(time, B_PWOMP, B_PWOMP + 0.3))
 	set_.set_toaster_glow(heat * (0.22 + 0.16 * absf(sin(time * 11.0) * sin(time * 4.3))) * power)
@@ -692,7 +718,7 @@ func _pose_gang(time: float) -> void:
 func _pose_toaster_rat(actor: IntroActor, spot: Dictionary, time: float, from: float) -> void:
 	var at: Vector3 = spot["at"]
 	if time < B_LEAP:
-		actor.pose_at(spot["clip"], time - from)
+		actor.pose_at(spot["clip"], minf(time, B_LIGHT) - from)  # (frozen, caught in the match's light)
 		actor.position = at
 		actor.rotation = Vector3(0.0, spot["yaw"], 0.0)
 		return
@@ -743,16 +769,19 @@ func _tail_turn(to_skel: Basis, dir: Vector3, k: int) -> Basis:
 		Vector3.FORWARD))
 
 
-## The last pair of eyes, right by her face: a beat after the fft they blink open, a cheeky squint with
+## The last pair of eyes, right by her cheek: a beat after the fft they blink open, a cheeky squint with
 ## the snicker, then the cut.
 func _pose_button(time: float) -> void:
 	var head := bone_xform(grandma, "head")
 	var open := _ramp(time, B_BUTTON, B_BUTTON + 0.07)
-	var squint := 0.4 if time >= B_BUTTON + 0.16 else 1.0
+	var squint := 0.4 if time >= B_BUTTON + 0.16 and time < B_BUTTON + 0.55 else 1.0
 	for k in _button_glints.size():
 		_button_glints[k].global_position = head * BUTTON_EYES[k]
 		_button_glints[k].visible = open > 0.01
 		_button_glints[k].scale = Vector3(1.0, maxf(open * squint, 0.05), 1.0)
+	if _button_light != null:
+		_button_light.global_position = head * ((BUTTON_EYES[0] + BUTTON_EYES[1]) * 0.5 + Vector3(0.0, 0.0, 0.06))
+		_button_light.light_energy = 0.03 * open
 
 
 ## The match: the box and the match in her hands in the dark, the strike, the flame (flickering, its
@@ -828,6 +857,13 @@ static func _underside(inv: Transform3D, at: Vector2, from: float, to: float) ->
 	return to
 
 
+## How much of the cartoon night's light shows at `time` (RATS, 0 .. 1): all of it until she blows the
+## match out; then the dark is near-black (her eyes were used to the flame), and lifts a little as the
+## last eyes open by her cheek.
+static func _night_at(time: float) -> float:
+	return 1.0 - 0.92 * _ramp(time, B_BLOW, B_BLOW + 0.12) + 0.22 * _ramp(time, B_BUTTON - 0.1, B_BUTTON + 0.5)
+
+
 ## How much the match lights the room at `time` (0 .. about 1).
 func _match_glow(time: float) -> float:
 	return 0.35 * _ramp(time, B_LIGHT - 0.02, B_LIGHT + 0.05) * (1.0 - _ramp(time, B_BLOW, B_BLOW + 0.06))
@@ -893,7 +929,7 @@ func _script_supervisors() -> void:
 		fx.hearts(grandma.bone_position("head", Vector3(-0.26, 0.32, 0.05)), 3, 1.0)  # (beside her head, in the shot)
 		fx.steam_heart(set_.teacup))
 	_sfx(A_JOY + 0.12, "intro_sparkle", -8.0)
-	_sfx(5.42, "outro_hop", -4.0)
+	_sfx(A_JOY + 0.37, "outro_hop", -4.0)
 	_at(A_SPARKLE, func() -> void: fx.sparkle(set_.picture.global_position))
 	_sfx(A_SPARKLE, "intro_sparkle", -3.0)
 	_at(A_WINK, func() -> void: fx.sparkle(set_.picture.global_position + Vector3(-0.03, 0.03, 0.0), 0.5))
@@ -901,6 +937,7 @@ func _script_supervisors() -> void:
 	_sfx(A_BITE, "outro_crunch")
 	_at(A_BITE + 0.02, func() -> void: fx.crumb_puff(grandma.bone_position("head", Vector3(0.0, 0.05, 0.22)), 12, true))
 	_sfx(A_BITE + 0.3, "outro_mmm", -2.0)
+	_sfx_pitched(A_COPY, "outro_crunch", -6.0, 1.25)  # (his, smaller)
 	_sfx(A_HMPH, "outro_rat_hmph", -3.0)
 
 
@@ -997,24 +1034,28 @@ func _shot_list() -> Array[Dictionary]:
 			# The kitchen at sunrise; while she waits the camera comes down to her left, low, onto the toaster,
 			# her plate and the window (the caged rat sulks on the right).
 			_shot(0.0, eye, Vector3(-0.1, 1.1, 1.82), Vector3(0.1, 1.03, -0.3), Vector3(0.1, 1.075, 0.0), 38.0, 42.0),
-			# DING: the slices flip up past her face, the cooling towers puff a heart over her head, the slices
-			# land on her plate, she hops for joy.
+			# DING: the slices flip up past her face and land on her plate; she stares at them while the
+			# cooling towers puff a heart in the window behind her; she hops for joy.
 			_shot(A_DING - 0.35, Vector3(-0.1, 1.1, 1.82), Vector3(-0.09, 1.1, 1.74), Vector3(0.1, 1.075, 0.0),
 				Vector3(0.1, 1.075, 0.0), 42.0, 41.5),
-			# Her winking thumbs up to the photo.
-			_shot(5.6, Vector3(-0.15, 1.3, 1.8), Vector3(-0.13, 1.28, 1.68), Vector3(-0.12, 1.1, -0.25),
-				Vector3(-0.09, 1.08, -0.2), 40.0, 38.0),
+			# Her thumbs up to the photo and her wink: from her right, her face turned our way, the photo
+			# on the wall behind her.
+			_shot(A_JOY + 0.45, Vector3(-0.72, 1.3, 1.62), Vector3(-0.68, 1.28, 1.52), Vector3(-0.2, 1.12, -0.25),
+				Vector3(-0.18, 1.1, -0.25), 38.0, 36.0),
 			# The photo: he winks back.
-			_shot(6.3, Vector3(-0.5, 1.39, -0.12), Vector3(-0.51, 1.39, -0.16), Vector3(-0.62, 1.37, -0.8),
+			_shot(A_WINK - 0.4, Vector3(-0.5, 1.39, -0.12), Vector3(-0.51, 1.39, -0.16), Vector3(-0.62, 1.37, -0.8),
 				Vector3(-0.62, 1.37, -0.8), 34.0, 33.0),
-			# The bite, his photo biting too over her shoulder.
-			_shot(7.0, Vector3(-0.75, 1.28, 2.25), Vector3(-0.73, 1.27, 2.15), Vector3(-0.3, 1.08, -0.2),
+			# The bite.
+			_shot(A_GRAB - 0.35, Vector3(-0.75, 1.28, 2.25), Vector3(-0.73, 1.27, 2.15), Vector3(-0.3, 1.08, -0.2),
 				Vector3(-0.29, 1.07, -0.2), 26.0, 25.0),
-			# In its cage, the rat that watched it all turns its back on her: hmph.
-			_shot(7.92, Vector3(0.77, 0.93, 0.08), Vector3(0.77, 0.92, 0.04), Vector3(0.83, 0.78, -0.52),
+			# Back on the photo: a beat later, he bites his donut too.
+			_shot(A_COPY - 0.3, Vector3(-0.5, 1.39, -0.12), Vector3(-0.51, 1.39, -0.16), Vector3(-0.62, 1.37, -0.8),
+				Vector3(-0.62, 1.37, -0.8), 34.0, 33.0),
+			# In its cage, the rat that watched it all glares at her, and turns its back on her: hmph.
+			_shot(A_HMPH - 0.5, Vector3(0.77, 0.93, 0.08), Vector3(0.77, 0.92, 0.04), Vector3(0.83, 0.78, -0.52),
 				Vector3(0.83, 0.78, -0.52), 30.0, 29.0),
-			# Bliss, the rat sulking behind her.
-			_shot(8.75, Vector3(0.55, 1.08, 1.35), Vector3(0.54, 1.07, 1.3), Vector3(0.28, 0.95, -0.4),
+			# Bliss, the rat sulking behind her (a second of it, then the fade).
+			_shot(A_HMPH + 1.25, Vector3(0.55, 1.08, 1.35), Vector3(0.54, 1.07, 1.3), Vector3(0.28, 0.95, -0.4),
 				Vector3(0.29, 0.95, -0.4), 40.0, 39.0),
 		]
 	return [
@@ -1026,18 +1067,19 @@ func _shot_list() -> Array[Dictionary]:
 		# Her pout, the photo.
 		_shot(4.95, Vector3(-0.3, 1.32, 1.95), Vector3(-0.27, 1.3, 1.82), Vector3(-0.14, 0.98, -0.1),
 			Vector3(-0.12, 0.97, 0.0), 42.0, 41.0),
-		# Out of the window: the plant coughs a green puff, its lights go out, then the houses', nearer and
-		# nearer, the garden's lantern last.
-		_shot(B_COUGH - 0.04, Vector3(0.25, 1.47, 1.45), Vector3(0.25, 1.47, 1.4), Vector3(0.62, 1.575, -1.66),
-			Vector3(0.62, 1.575, -1.66), 22.5, 21.0),
+		# Out of the window: the plant coughs a green puff; then a slow push in on the town as its lights go
+		# out, the plant's, then the houses', nearer and nearer, the garden's lantern last.
+		_shot(B_COUGH - 0.04, Vector3(0.25, 1.47, 1.45), Vector3(0.25, 1.47, 1.4), Vector3(0.62, 1.6, -1.66),
+			Vector3(0.64, 1.44, -1.66), 22.5, 13.0),
 		# The kitchen: she looks round from the window up at her lamp, it dies; in the dark the eyes open all
-		# round it.
-		_shot(7.18, Vector3(0.75, 1.36, 3.1), Vector3(0.74, 1.34, 2.95), Vector3(0.75, 1.2, -0.4),
-			Vector3(0.72, 1.17, -0.4), 36.0, 32.5),
-		# Lower, the match: her face, the empty toaster, the crumbs, the tail hooked over the edge; fft.
+		# round it, one pair after the other (a slow push in).
+		_shot(B_BLACKOUT - 0.3, Vector3(0.75, 1.36, 3.1), Vector3(0.7, 1.3, 2.7), Vector3(0.75, 1.2, -0.4),
+			Vector3(0.7, 1.15, -0.4), 36.0, 32.0),
+		# Lower, the match: her face, the rat caught in its light, diving off the counter, the empty
+		# toaster, the crumbs, the tail hooked over the edge slipping away; fft.
 		_shot(B_STRIKE - 0.04, Vector3(0.0, 1.0, 1.98), Vector3(0.0, 0.99, 1.9), Vector3(-0.06, 0.82, 0.3),
 			Vector3(-0.06, 0.82, 0.3), 42.0, 41.0),
-		# In the dark, closer on her: a last pair of eyes opens right by her face.
-		_shot(B_BLOW + 0.33, Vector3(0.14, 1.07, 1.12), Vector3(0.14, 1.07, 1.07), Vector3(0.12, 1.0, 0.0),
-			Vector3(0.12, 1.0, 0.0), 34.0, 33.0),
+		# In the dark (cut there), closer on her: a last pair of eyes opens right by her cheek.
+		_shot(B_BLOW + 0.3, Vector3(0.16, 1.07, 1.12), Vector3(0.16, 1.07, 1.07), Vector3(0.15, 1.0, 0.0),
+			Vector3(0.15, 1.0, 0.0), 34.0, 33.0),
 	]
