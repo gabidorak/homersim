@@ -24,3 +24,5 @@ password=""
 ; bot_fill_to=6
 ; 0 easy, 1 normal, 2 hard
 ; bot_difficulty=1
+; Freeing a cage frees every rat in it (true) or only the one caged first (false)
+; free_whole_cage=false

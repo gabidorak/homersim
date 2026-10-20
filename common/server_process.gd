@@ -16,7 +16,8 @@ const STATUS_EVERY_S := 2.0
 
 ## The server.cfg for `options` (see server.cfg.example): name, password, port, max_players,
 ## supervisors and rats (the teams' seats; the rules' own when left out), bots (fill up to that many
-## players, 0 = none), difficulty, countdown (seconds before a match starts; the rules' own when left out).
+## players, 0 = none), difficulty, free_all (freeing a cage frees every rat in it), countdown (seconds
+## before a match starts; the rules' own when left out).
 static func config_for(options: Dictionary) -> ConfigFile:
 	var cfg := ConfigFile.new()
 	cfg.set_value("server", "name", str(options.get("name", "")))
@@ -29,6 +30,7 @@ static func config_for(options: Dictionary) -> ConfigFile:
 		cfg.set_value("match", "max_rats", int(options["rats"]))
 	cfg.set_value("match", "bot_fill_to", int(options.get("bots", 0)))
 	cfg.set_value("match", "bot_difficulty", int(options.get("difficulty", 1)))
+	cfg.set_value("match", "free_whole_cage", options.get("free_all") is bool and options["free_all"])
 	if options.has("countdown"):
 		cfg.set_value("match", "countdown_s", int(options["countdown"]))
 	return cfg

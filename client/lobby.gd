@@ -121,6 +121,8 @@ func _refresh() -> void:
 	else:
 		%Summary.text = "%s · %s" % [teams_line, tr("Matches of %s (%s with one supervisor) · %d+ players to start · %d / %d here") % [
 			duration, duration_single, mm.min_players, mm.roster.size(), int(info.get("max_players", 6))]]
+	if info.get("free_all", false):
+		%Summary.text += " · " + tr("Freeing a cage frees every rat in it")
 	var count := mm.roster.size()
 	if solo:
 		status_label.text = tr("Press Ready to start a match against the bots.")

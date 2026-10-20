@@ -29,6 +29,9 @@ const RATS_LIMIT := 16
 ## slots first. Play solo and Host a game set it to the seats: bots take every empty one.
 @export var bot_fill_to := 0
 @export_range(0, 2) var bot_difficulty := 1  ## 0 easy, 1 normal, 2 hard (BotTuning.skills)
+## Freeing a cage (GDD §5.3): false = the hold frees one rat (the one caged first), true = every rat
+## in it. The host picks it (Play solo, Host a game).
+@export var free_whole_cage := false
 
 
 func supervisor_seats() -> int:

@@ -2,11 +2,12 @@ extends Control
 ## The card before "Play solo" and "Host a game" (main menu): the choices for the server this game
 ## starts itself (client/local_server.gd). Every change is saved at once (Config.solo_* / host_*), so
 ## the card opens with the last choices. Start emits start_requested; the main menu does the rest.
-##   Solo: the role you'd like, the teams (you + bots), the bots' difficulty.
+##   Solo: the role you'd like, the teams (you + bots), the bots' difficulty, whether freeing a cage
+##   frees one rat or all of them.
 ##   Host: where (this computer, or the online server: the launcher on the VPS, OnlineClient), the
 ##   game's name, a password, the most players, the teams' seats, the bots (none, or a difficulty: they
-##   take the seats nobody fills); on this computer the UDP port and whether the game shows on the
-##   local network, online the friends key.
+##   take the seats nobody fills), freeing a cage; on this computer the UDP port and whether the game
+##   shows on the local network, online the friends key.
 
 signal closed
 signal start_requested(mode: LocalServer.Mode, options: Dictionary)
@@ -56,6 +57,7 @@ func _build_solo() -> void:
 		[Role.Kind.SUPERVISOR, tr("Supervisor")], [Role.Kind.RAT, tr("Rat")]])
 	_team_rows("solo_supervisors", "solo_rats")
 	_choices(tr("Bots"), "solo_difficulty", _difficulties())
+	_choices(tr("Freeing a cage frees"), "solo_free_all", _free_choices())
 	_teams_label = _muted(rows)
 	_note = _muted(%Col)
 	_note.text = tr("The match doesn't pause: Esc only opens the menu.")
@@ -89,6 +91,7 @@ func _build_host() -> void:
 			Config.set_value("host_bots", value >= 0)
 			if value >= 0:
 				Config.set_value("host_difficulty", value))
+	_choices(tr("Freeing a cage frees"), "host_free_all", _free_choices())
 	_teams_label = _muted(rows)
 	_port_edit = _line_edit(str(Config.host_port), 5)
 	_port_edit.text_changed.connect(func(_t: String) -> void: _refresh())
@@ -184,6 +187,11 @@ func _start() -> void:
 
 func _difficulties() -> Array:
 	return [[0, tr("Easy")], [1, tr("Normal")], [2, tr("Hard")]]
+
+
+## MatchRules.free_whole_cage: one rat per rescue (the oldest), or the whole cage.
+func _free_choices() -> Array:
+	return [[false, tr("One rat")], [true, tr("Every rat")]]
 
 
 # --- Row builders --------------------------------------------------------------

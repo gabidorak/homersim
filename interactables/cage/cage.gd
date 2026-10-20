@@ -1,7 +1,8 @@
 class_name Cage
 extends Interactable
 ## A rat cage (GDD §5.3). Supervisors carrying a rat press E (instant) to cage it; rats hold E
-## for 4 s to free one occupant (the one caged first). CaptureService does the moving and the
+## for 4 s to free one occupant (the one caged first), or all of them when the host chose so
+## (MatchRules.free_whole_cage). CaptureService does the moving and the
 ## bookkeeping; the cage keeps the occupant list, replicated so every peer can show it.
 ##
 ## Layout (local space, origin at the door, 0.5 m above the floor, +Z out of the door): the
@@ -97,6 +98,8 @@ func prompt_for(player: Player) -> String:
 		return tr("Cage %s") % _name_of(player.status.carrying)
 	if occupants.is_empty():
 		return tr("Empty cage")
+	if occupants.size() > 1 and Session.current.match_manager.server_info.get("free_all", false):
+		return tr("Free all %d rats") % occupants.size()
 	return tr("Free %s") % _name_of(occupants[0])
 
 

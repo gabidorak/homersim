@@ -547,6 +547,11 @@ A lone rat can't sabotage the critical machines: their two levers need two rats.
 Easy,Easy,Facile
 Normal,Normal,Normal
 Hard,Hard,Difficile
+Freeing a cage frees,Freeing a cage frees,Libérer une cage libère
+One rat,One rat,Un rat
+Every rat,Every rat,Tous les rats
+Freeing a cage frees every rat in it,Freeing a cage frees every rat in it,Libérer une cage libère tous les rats qu'elle contient
+Free all %d rats,Free all %d rats,Libérer les %d rats
 Matches of %s (%s with one supervisor),Matches of %s (%s with one supervisor),Parties de %s (%s avec un seul superviseur)
 %s vs %s,%s vs %s,%s contre %s
 Up to %s and %s,Up to %s and %s,Jusqu'à %s et %s

@@ -1061,6 +1061,8 @@ def build_props():
     p = poi("Yard")
     solid_cylinder(p, -2, 11, -32, 6.0, 22.0)
     model(p, "CoolingTower", "cooling_tower", (-2, 0, -32), fallback=(12.0, 22.0, 12.0))
+    p.s.node("TowerSteam", "Marker3D", ".", {"position": V3(-2, 22, -32),
+                                            "script": p.s.ext_res("Script", "res://levels/tower_steam.gd")})
     crate(p, -20.0, 0, -36.5, -18.5, 1.2, -35.0)
     crate(p, 8.0, 0, -37.0, 10.0, 1.0, -35.5)
     fill(p, "Barrels", "barrels_cluster", -24.0, 0, -31.0, -22.5, 1.0, -29.5)

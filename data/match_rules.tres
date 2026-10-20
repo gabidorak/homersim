@@ -16,3 +16,4 @@ swarm_bonus = 15.0
 swarm_cooldown_s = 45.0
 bot_fill_to = 0
 bot_difficulty = 1
+free_whole_cage = false

@@ -56,9 +56,10 @@ const SECTIONS := {
 	"show_minimap": "gameplay", "minimap_rotate": "gameplay",
 	"last_address": "servers",
 	"solo_role": "solo", "solo_difficulty": "solo", "solo_supervisors": "solo", "solo_rats": "solo",
+	"solo_free_all": "solo",
 	"host_name": "host", "host_password": "host", "host_port": "host", "host_max_players": "host",
 	"host_supervisors": "host", "host_rats": "host", "host_bots": "host", "host_difficulty": "host",
-	"host_lan": "host", "host_online": "host",
+	"host_free_all": "host", "host_lan": "host", "host_online": "host",
 	"online_key": "online",
 }
 ## The light preset (apply_light_preset()): the 3D image is at most this many rows, using one of the
@@ -111,6 +112,7 @@ var solo_difficulty := 1  ## bots: 0 easy, 1 normal, 2 hard
 ## The teams (you and the bots): 1 to MatchRules.SUPERVISORS_LIMIT / RATS_LIMIT.
 var solo_supervisors := 2
 var solo_rats := 4
+var solo_free_all := false  ## freeing a cage frees every rat in it (MatchRules.free_whole_cage)
 var host_name := ""  ## the server's name; "" = "<player name>'s plant"
 var host_password := ""  ## "" = anyone may join
 var host_port: int = SERVER_DEFAULTS["port"]
@@ -120,6 +122,7 @@ var host_supervisors := 2
 var host_rats := 4
 var host_bots := true  ## bots take the seats nobody fills
 var host_difficulty := 1
+var host_free_all := false
 var host_lan := true  ## announce the game on the local network (the server browser's LAN list)
 var host_online := false  ## host on the online server (the VPS launcher) instead of this computer
 # --- Online games ----------------------------------------------------------------

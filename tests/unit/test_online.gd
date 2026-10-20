@@ -12,7 +12,7 @@ func _bytes(text: String) -> PackedByteArray:
 
 func test_options_are_clamped_like_the_host_card() -> void:
 	var clean := OnlineApi.sanitize_options({"name": "  Friday [b]night[/b]  ", "password": " cheese ", "max_players": 99.0,
-		"supervisors": 3.0, "rats": 99, "bots": 5.0, "difficulty": -3})
+		"supervisors": 3.0, "rats": 99, "bots": 5.0, "difficulty": -3, "free_all": true})
 	assert_eq(clean["name"], ChatService.clean("Friday [b]night[/b]").strip_edges(), "cleaned like chat")
 	assert_false(str(clean["name"]).contains("[b]"), "no BBCode")
 	assert_eq(clean["password"], "cheese")
@@ -21,6 +21,7 @@ func test_options_are_clamped_like_the_host_card() -> void:
 	assert_eq(clean["rats"], MatchRules.RATS_LIMIT)
 	assert_eq(clean["bots"], 5)
 	assert_eq(clean["difficulty"], 0)
+	assert_true(clean["free_all"])
 
 
 func test_options_fall_back_on_anything_unusable() -> void:
@@ -30,6 +31,7 @@ func test_options_fall_back_on_anything_unusable() -> void:
 	assert_eq(clean["max_players"], 6, "a string is not a number")
 	assert_eq(clean["bots"], 0, "fewer than 2 = no bots (as Config's host_bots)")
 	assert_eq(clean["difficulty"], 1)
+	assert_false(OnlineApi.sanitize_options({"free_all": 1})["free_all"], "only a real true frees the whole cage")
 	assert_eq([clean["supervisors"], clean["rats"]], [1, 4], "at least one supervisor; a string is not a number")
 	assert_eq(OnlineApi.sanitize_options({})["name"], "Online game")
 	assert_eq([OnlineApi.sanitize_options({})["supervisors"], OnlineApi.sanitize_options({})["rats"]], [2, 4], "the default seats")

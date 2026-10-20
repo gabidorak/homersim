@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3]
+[gd_scene load_steps=30 format=3]
 
 [ext_resource type="Script" path="res://levels/poi.gd" id="1_poi"]
 [ext_resource type="ArrayMesh" path="res://levels/plant/baked/Yard_shell.res" id="2_yard_shell"]
@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" path="res://assets/generated/k_cone.glb" id="13_k_cone"]
 [ext_resource type="PackedScene" path="res://assets/generated/k_barrel.glb" id="14_k_barrel"]
 [ext_resource type="Script" path="res://levels/ambient_sound.gd" id="15_ambient_soun"]
+[ext_resource type="Script" path="res://levels/tower_steam.gd" id="16_tower_steam"]
 
 [sub_resource type="BoxOccluder3D" id="BoxOccluder3D_1"]
 size = Vector3(0.24, 3, 7.89)
@@ -95,6 +96,10 @@ shape = SubResource("CylinderShape3D_4")
 
 [node name="CoolingTower" parent="." instance=ExtResource("5_cooling_towe")]
 position = Vector3(-2, 0, -32)
+
+[node name="TowerSteam" type="Marker3D" parent="."]
+position = Vector3(-2, 22, -32)
+script = ExtResource("16_tower_steam")
 
 [node name="Box" type="CollisionShape3D" parent="PropCollision"]
 position = Vector3(-19.25, 0.6, -35.75)

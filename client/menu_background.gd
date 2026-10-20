@@ -3,7 +3,7 @@ extends Node3D
 ## The main menu's backdrop (M8): a little night diorama outside the plant, built from the generated
 ## models. A supervisor naps on a bench with his coffee and donuts while, right behind him, one rat
 ## gnaws at the generator's junction box, another keeps watch on a crate and a third scurries back and
-## forth; the cooling towers loom in the fog. The camera drifts slowly from side to side.
+## forth; the cooling towers loom in the fog, puffing calmly (TowerSteam). The camera drifts slowly from side to side.
 ## (The real plant can't be loaded here: its interactables and props expect a running Session.)
 ## Built in code so it needs no scene file; nothing is built in a headless process.
 
@@ -128,8 +128,12 @@ func _build_world() -> void:
 
 func _build_set() -> void:
 	# The skyline.
-	_prop("cooling_tower", Vector3(-22, 0, -62), 0.3)
-	_prop("cooling_tower", Vector3(10, 0, -78), -0.2)
+	for at: Vector3 in [Vector3(-22, 0, -62), Vector3(10, 0, -78)]:
+		_prop("cooling_tower", at, 0.3 if at.x < 0.0 else -0.2)
+		var steam := TowerSteam.new()  # calm puffs: no match here
+		steam.wind = Vector3(1, 0, -0.2)  # across the view, so the puffs trail along the skyline
+		add_child(steam)
+		steam.position = at + Vector3(0, 22, 0)
 	_prop("exhaust_stack", Vector3(26, 0, -50))
 	_prop("transformer", Vector3(-8.5, 0, -7), 0.4)
 	_prop("insulator_post", Vector3(-6.2, 0, -9))

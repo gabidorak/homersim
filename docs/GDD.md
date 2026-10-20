@@ -139,7 +139,7 @@ Abilities:
 - **Bite** (LMB): 1.2 m range, 2.5 s cooldown. It **slows a supervisor by 30% for 3 s**. **3 bites within 6 s (any rats) = knockdown for 4 s**, followed by 3 s of knockdown immunity.
 - **Tail spin** (X): the rat spins round and smashes **every trap within 1.5 m** (snap traps and cheese lures, in sight) with its tail, **5 s cooldown**. A smashed trap doesn't go off. Not while stunned, knocked down, carried or caged; the rat keeps moving while it spins (0.6 s of whirling model, speed streaks, a swirl on the floor showing the reach, dust). Every player's event feed gets one line per trap smashed ("RatBot's tail smashed a snap trap"), but only rats are told where it was: supervisors find out the trap is gone, not which one.
 - **Steal** (E behind a supervisor, 1 s hold): takes the supervisor's keycard (or broom, from M6). The rat carries it and moves 10% slower. If the rat is stunned, it drops the item. A supervisor without a keycard can get a spare from the Storage locker after a 30 s delay.
-- **Free a caged rat** (hold E for 4 s at a cage). One hold frees one rat, the one caged first.
+- **Free a caged rat** (hold E for 4 s at a cage). One hold frees one rat, the one caged first, or every rat in the cage if the host chose so (Play solo / Host a game, `free_whole_cage` in server.cfg).
 - **Break a CCTV camera** (hold E for 2 s). A supervisor fixes it with a 3 s hold.
 - **Squeak emote** (Z): purely for fun.
 

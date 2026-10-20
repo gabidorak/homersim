@@ -8,7 +8,7 @@ extends RefCounted
 ##   GET  /games    -> 200 {"version": V, "host": H, "games": [{id, name, players, max, state, locked,
 ##                     version, port}, …]}
 ##   POST /games    {"version", "name", "password", "max_players", "supervisors", "rats", "bots",
-##                   "difficulty"}
+##                   "difficulty", "free_all"}
 ##                  -> 200 {"host": H, "port": N, "version": V} once the new game's server listens
 ##   anything else  -> an HTTP error status with {"error": CODE} (the ERR_* below)
 ## /games needs "Authorization: Bearer <friends key>". H is the launcher's game_host setting; "" means
@@ -57,6 +57,7 @@ static func sanitize_options(raw: Dictionary) -> Dictionary:
 		"rats": rats,
 		"bots": 0 if bots < 2 else mini(bots, supervisors + rats),
 		"difficulty": clampi(_int(raw.get("difficulty"), 1), 0, 2),
+		"free_all": raw.get("free_all") is bool and raw["free_all"],
 	}
 
 

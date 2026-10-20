@@ -74,7 +74,8 @@ var roster: Dictionary = {}:
 ##  {"peer", "name", "role", "bot", one count per STAT_KEYS, and "score" (MatchScore)}}, each team best first
 var result: Dictionary = {}
 ## {"name", "max_players", "duration_s", "duration_single_s", "min_players", "locked", "supervisors",
-##  "rats" (the teams' seats), "bot_fill_to" (0 = no bots)}: the lobby shows it.
+##  "rats" (the teams' seats), "bot_fill_to" (0 = no bots), "free_all" (MatchRules.free_whole_cage)}:
+## the lobby shows it, and cages read "free_all" for their prompt.
 var server_info: Dictionary = {}
 var pings: Dictionary = {}  ## peer -> round trip in ms
 var live_stats: Dictionary = {}  ## peer -> {stat: count} during PLAYING (only the stats that are not 0)
@@ -130,6 +131,7 @@ func _ready() -> void:
 		"supervisors": rules.supervisor_seats(),
 		"rats": rules.rat_seats(),
 		"bot_fill_to": MatchRulesModel.bot_target(rules) if bots_enabled() else 0,
+		"free_all": rules.free_whole_cage,
 	}
 
 

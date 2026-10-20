@@ -51,10 +51,10 @@ func list() -> void:
 
 
 ## Asks for a new game with `options` (LocalServer.host_options(): name, password, max_players,
-## supervisors, rats, bots, difficulty): emits created once it listens, or failed.
+## supervisors, rats, bots, difficulty, free_all): emits created once it listens, or failed.
 func create(options: Dictionary) -> void:
 	var body := {"version": Session.game_version()}
-	for field: String in ["name", "password", "max_players", "supervisors", "rats", "bots", "difficulty"]:
+	for field: String in ["name", "password", "max_players", "supervisors", "rats", "bots", "difficulty", "free_all"]:
 		body[field] = options.get(field)
 	_send(HTTPClient.METHOD_POST, JSON.stringify(body), CREATE_TIMEOUT_S, func(answer: Dictionary) -> void:
 		created.emit(OnlineApi.game_address(answer, url())))

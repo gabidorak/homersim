@@ -164,6 +164,7 @@ tests/integration/local_games.sh      # Play solo and Host a game: the client's 
 # server: --no-heatmap   client: --debug-overlay (F3 overlay; F4 = route stopwatch)
 godot tests/helpers/MapTour.tscn -- --out /tmp/tour [--alarm]   # windowed: screenshots + fps of every room
 godot tests/helpers/HazardTour.tscn -- --out /tmp/hazards        # windowed: every hazard live, consoles, minigames
+godot tests/helpers/TowerSteamShots.tscn -- --out /tmp/steam [--hold S]   # windowed: the cooling tower's steam in each plant state, from the yard and the roof
 python3 tools/map/gen_plant.py --force && godot --headless -s tools/godot/bake_shells.gd   # rebuild the plant from the layout numbers
 tools/build_assets.sh [models|audio|level|all]   # M7: palette, Blender models, synthesized audio, level, Godot import
 godot tests/helpers/MapTour.tscn -- --players 6 --no-vsync   # + animated bodies, uncapped fps (perf check)

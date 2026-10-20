@@ -46,6 +46,11 @@ func test_host_config_reads_back() -> void:
 	assert_eq([rules.max_supervisors, rules.max_rats], [3, 5], "the teams' seats")
 	var defaults := load(Config.DEFAULT_MATCH_RULES) as MatchRules
 	assert_eq([rules.min_players, rules.countdown_s], [defaults.min_players, defaults.countdown_s], "the usual rules otherwise")
+	assert_false(rules.free_whole_cage, "freeing a cage frees one rat unless asked")
+	var free_all := HOST_OPTIONS.duplicate()
+	free_all["free_all"] = true
+	assert_eq(ServerProcess.config_for(free_all).save(CFG), OK)
+	assert_true(Config.load_match_rules(CFG).free_whole_cage, "or every rat in it")
 
 
 func test_solo_server_args() -> void:

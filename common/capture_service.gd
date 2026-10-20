@@ -102,10 +102,17 @@ func cage(supervisor: Player, target: Cage) -> void:
 
 
 ## Server (Cage, rat side): `helper` freed the oldest occupant of `target`.
+## Frees the cage's oldest occupant, or all of them with MatchRules.free_whole_cage.
 func free_rat(helper: Player, target: Cage) -> void:
 	if target.occupants.is_empty():
 		return
-	var peer := target.occupants[0]
+	var peers := target.occupants.duplicate() if session.match_manager.rules.free_whole_cage \
+		else PackedInt32Array([target.occupants[0]])
+	for peer in peers:
+		_free_one(helper, target, peer)
+
+
+func _free_one(helper: Player, target: Cage, peer: int) -> void:
 	target.remove_occupant(peer)
 	var rat := session.get_body(peer)
 	if rat == null:
